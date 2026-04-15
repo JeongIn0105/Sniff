@@ -55,6 +55,10 @@ final class FragellaService {
     static let shared = FragellaService()
     private init() {}
 
+<<<<<<< HEAD
+    private let apiKey = "0e4d3ff3231b3243fa544f797311c0df9175c3ce946c3df588365a70f76961e3" // ⚠️ 실제 키로 교체
+=======
+>>>>>>> origin/main
     private let baseURL = "https://api.fragella.com/api/v1"
 
         // MARK: - 향수 검색
@@ -101,6 +105,8 @@ final class FragellaService {
             return Disposables.create()
         }
     }
+<<<<<<< HEAD
+=======
         // MARK: - 추천용 향수 조회 (핵심🔥)
     func fetchByFamilies(families: [String], limit: Int = 20) -> Single<[FragellaPerfume]> {
 
@@ -156,6 +162,7 @@ final class FragellaService {
 
         return result.data
     }
+>>>>>>> origin/main
 
         // MARK: - 실제 네트워크 요청 (검색)
     private func requestSearch(
@@ -173,7 +180,11 @@ final class FragellaService {
         }
 
         var request = URLRequest(url: url)
+<<<<<<< HEAD
+        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+=======
         request.setValue(try apiKey(), forHTTPHeaderField: "x-api-key")
+>>>>>>> origin/main
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
@@ -200,7 +211,11 @@ final class FragellaService {
         }
 
         var request = URLRequest(url: url)
+<<<<<<< HEAD
+        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+=======
         request.setValue(try apiKey(), forHTTPHeaderField: "x-api-key")
+>>>>>>> origin/main
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
@@ -211,10 +226,13 @@ final class FragellaService {
 
         return try JSONDecoder().decode(FragellaPerfume.self, from: data)
     }
+<<<<<<< HEAD
+=======
 
     private func apiKey() throws -> String {
         try AppSecrets.fragellaAPIKey()
     }
+>>>>>>> origin/main
 }
 
     // MARK: - Error

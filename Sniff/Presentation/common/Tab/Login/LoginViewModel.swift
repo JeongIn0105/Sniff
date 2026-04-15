@@ -6,104 +6,63 @@
 //
 
 import Foundation
+import Combine
 import AuthenticationServices
-import CryptoKit
-import Security
+@preconcurrency import FirebaseAuth
+@preconcurrency import FirebaseFirestore
 
-@MainActor
+// MARK: - 로그인 ViewModel
 final class LoginViewModel: ObservableObject {
-
-    @Published var isLoading = false
-    @Published var errorMessage: String?
-
-    private let authService: AuthService
-    private var currentNonce: String?
-
-    init(authService: AuthService = .shared) {
-        self.authService = authService
+    
+    @Published var isLoading: Bool = false
+    @Published var errorMessage: String? = nil
+    @Published var showError: Bool = false
+    
+    // MARK: - 콜백
+    private let onNewUser: () -> Void
+    private let onExistingUser: () -> Void
+    
+    private let appleSignInHelper = AppleSignInHelper()
+    private let db = Firestore.firestore()
+    
+    init(onNewUser: @escaping () -> Void,
+         onExistingUser: @escaping () -> Void) {
+        self.onNewUser = onNewUser
+        self.onExistingUser = onExistingUser
     }
-
-    func prepareAppleLoginRequest(_ request: ASAuthorizationAppleIDRequest) {
-        let nonce = randomNonceString()
-        currentNonce = nonce
-        request.requestedScopes = [.fullName, .email]
-        request.nonce = sha256(nonce)
-    }
-
-    func handleAppleLoginResult(
-        _ result: Result<ASAuthorization, Error>,
-        onSuccess: @escaping () -> Void
-    ) {
-        Task {
-            await processAppleLoginResult(result, onSuccess: onSuccess)
-        }
-    }
-
-    private func processAppleLoginResult(
-        _ result: Result<ASAuthorization, Error>,
-        onSuccess: @escaping () -> Void
-    ) async {
+    
+    // MARK: - Apple 로그인
+    @MainActor
+    func signInWithApple(presentationAnchor: ASPresentationAnchor) {
         isLoading = true
-        defer { isLoading = false }
-
+        appleSignInHelper.startSignIn(presentationAnchor: presentationAnchor) { [weak self] result in
+            guard let self else { return }
+            Task { @MainActor in
+                self.isLoading = false
+                switch result {
+                case .success(let authResult):
+                    await self.handleSignInSuccess(authResult: authResult)
+                case .failure(let error):
+                    self.errorMessage = error.localizedDescription
+                    self.showError = true
+                }
+            }
+        }
+    }
+    
+    // MARK: - 신규/기존 사용자 분기
+    @MainActor
+    private func handleSignInSuccess(authResult: AuthDataResult) async {
+        let uid = authResult.user.uid
         do {
-            let authorization = try result.get()
-
-            guard
-                let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential,
-                let nonce = currentNonce
-            else {
-                throw AuthServiceError.missingIdentityToken
+            let document = try await db.collection("users").document(uid).getDocument()
+            if document.exists {
+                onExistingUser()  // 기존 사용자 → 홈
+            } else {
+                onNewUser()       // 신규 사용자 → 닉네임
             }
-
-            try await authService.signInWithApple(
-                identityToken: appleIDCredential.identityToken,
-                rawNonce: nonce
-            )
-
-            errorMessage = nil
-            onSuccess()
         } catch {
-            errorMessage = error.localizedDescription
+            onNewUser()
         }
-    }
-
-    private func sha256(_ input: String) -> String {
-        let inputData = Data(input.utf8)
-        let hashedData = SHA256.hash(data: inputData)
-        return hashedData.compactMap {
-            String(format: "%02x", $0)
-        }.joined()
-    }
-
-    private func randomNonceString(length: Int = 32) -> String {
-        precondition(length > 0)
-        let charset: [Character] = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
-        var result = ""
-        var remainingLength = length
-
-        while remainingLength > 0 {
-            let randoms: [UInt8] = (0..<16).map { _ in
-                var random: UInt8 = 0
-                let errorCode = SecRandomCopyBytes(kSecRandomDefault, 1, &random)
-                if errorCode != errSecSuccess {
-                    fatalError("Nonce 생성에 실패했어요. OSStatus \(errorCode)")
-                }
-                return random
-            }
-
-            randoms.forEach { random in
-                if remainingLength == 0 {
-                    return
-                }
-
-                if Int(random) < charset.count {
-                    result.append(charset[Int(random)])
-                    remainingLength -= 1
-                }
-            }
-        }
-
-        return result
     }
 }

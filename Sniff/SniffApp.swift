@@ -7,12 +7,8 @@
 
 import SwiftUI
 import FirebaseCore
-import FirebaseAuth
 
-private enum AppStorageKey {
-    static let hasCompletedOnboarding = "hasCompletedOnboarding"
-}
-
+// MARK: - 앱 상태
 enum AppState {
     case splash
     case login
@@ -26,6 +22,7 @@ struct SniffApp: App {
 
     @State private var appState: AppState = .splash
 
+    // MARK: - Firebase 초기화
     init() {
         FirebaseApp.configure()
     }
@@ -44,39 +41,23 @@ struct SniffApp: App {
                 .onAppear {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                         withAnimation(.easeInOut) {
-                            appState = initialAppState()
+                            appState = .login
                         }
                     }
                 }
         case .login:
-            LoginView {
-                appState = UserDefaults.standard.bool(forKey: AppStorageKey.hasCompletedOnboarding)
-                    ? .main
-                    : .onboardingIntro
-            }
+            LoginView(
+                onNewUser: { appState = .onboardingIntro },      // 신규 사용자 → 온보딩
+                onExistingUser: { appState = .main }             // 기존 사용자 → 홈
+            )
         case .onboardingIntro:
             OnboardingIntroView {
                 appState = .onboarding
             }
         case .onboarding:
-            OnboardingContainerView(onBack: {
-                appState = .onboardingIntro
-            }, onComplete: {
-                UserDefaults.standard.set(true, forKey: AppStorageKey.hasCompletedOnboarding)
-                appState = .main
-            })
+            OnboardingContainerView()
         case .main:
             MainTabView()
         }
-    }
-
-    private func initialAppState() -> AppState {
-        guard Auth.auth().currentUser != nil else {
-            return .login
-        }
-
-        return UserDefaults.standard.bool(forKey: AppStorageKey.hasCompletedOnboarding)
-            ? .main
-            : .onboardingIntro
     }
 }

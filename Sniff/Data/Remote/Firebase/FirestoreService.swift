@@ -6,6 +6,8 @@
 //
 
 import Foundation
+<<<<<<< HEAD
+=======
 import FirebaseAuth
 import FirebaseFirestore
 
@@ -161,3 +163,4 @@ final class FirestoreService {
         )
     }
 }
+>>>>>>> origin/main

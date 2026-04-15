@@ -1,3 +1,13 @@
+<<<<<<< HEAD
+//
+//  MainTabView.swift
+//  Sniff
+//
+//  Created by t2025-m0239 on 2026.04.13.
+//
+
+import SwiftUI
+=======
     //
     //  MainTabView.swift
     //  Sniff
@@ -7,21 +17,44 @@
 
 import SwiftUI
 import UIKit
+>>>>>>> origin/main
 
 struct MainTabView: View {
     var body: some View {
         TabView {
+<<<<<<< HEAD
+            Text("홈")
+=======
             HomeTabContainerView()
+>>>>>>> origin/main
                 .tabItem {
                     Image(systemName: "house")
                     Text("홈")
                 }
+<<<<<<< HEAD
+            Text("검색")
+=======
 
             PlaceholderTabView(title: "검색")
+>>>>>>> origin/main
                 .tabItem {
                     Image(systemName: "magnifyingglass")
                     Text("검색")
                 }
+<<<<<<< HEAD
+            Text("시향기")
+                .tabItem {
+                    Image(systemName: "note.text")
+                    Text("시향기")
+                }
+            Text("MY")
+                .tabItem {
+                    Image(systemName: "person")
+                    Text("MY")
+                }
+        }
+        .accentColor(.black)
+=======
 
             PlaceholderTabView(title: "시향 기록")
                 .tabItem {
@@ -66,5 +99,6 @@ private struct PlaceholderTabView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color(.systemBackground))
         }
+>>>>>>> origin/main
     }
 }
