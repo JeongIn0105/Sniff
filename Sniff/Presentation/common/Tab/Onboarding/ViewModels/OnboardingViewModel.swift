@@ -1,0 +1,211 @@
+//
+//  OnboardingViewModel.swift
+//  Sniff
+//
+//  Created by t2025-m0239 on 2026.04.10.
+//
+
+import Foundation
+import Combine
+import SwiftUI
+
+@MainActor
+final class OnboardingViewModel: ObservableObject {
+
+    enum NicknameValidationState: Equatable {
+        case idle
+        case invalid
+        case available
+        case unavailable
+    }
+
+    // MARK: - 온보딩 단계
+    @Published var currentStep: OnboardingStep = .nickname
+
+    // MARK: - 유저 선택 데이터
+    @Published var selectedExperience: ExperienceLevel? = nil
+    @Published var selectedVibes: [String] = []    // 분위기 (최대 3개)
+    @Published var selectedImages: [String] = []   // 향의 느낌 (최대 3개)
+
+    // MARK: - Gemini 결과
+    @Published var tasteResult: TasteAnalysisResult? = nil
+    @Published var isLoading: Bool = false
+    @Published var errorMessage: String? = nil
+    @Published var nickname: String = ""
+    @Published private(set) var nicknameValidationState: NicknameValidationState = .idle
+
+    private let nicknameValidator = NicknameValidator()
+    private let userTasteRepository: UserTasteRepositoryType
+    private var cancellables = Set<AnyCancellable>()
+
+    // MARK: - 태그 목록
+    let vibeTags: [String] = [
+        "세련된", "고급스러운", "자연스러운", "활기찬",
+        "신비로운", "중성적인", "자신감있는", "여유로운",
+        "트렌디한", "신뢰감있는", "품위있는"
+    ]
+
+    let imageTags: [String] = [
+        "달콤한", "시원한", "따뜻한", "강렬한",
+        "은은한", "상큼한", "싱그러운", "묵직한",Z
+        "보송보송한", "무거운", "가벼운"
+    ]
+
+    init(userTasteRepository: UserTasteRepositoryType = UserTasteRepository()) {
+        self.userTasteRepository = userTasteRepository
+        bindNickname()
+    }
+
+    // MARK: - 선택 로직
+
+    func completeOnboarding() {
+        // TODO: Firestore 저장 후 홈 탭으로 이동
+        currentStep = .nickname
+    }
+
+    func clearNickname() {
+        nickname = ""
+        nicknameValidationState = .idle
+    }
+
+    func checkNicknameDuplication() {
+        let trimmedNickname = trimmedNickname
+
+        guard nicknameValidator.isValidFormat(trimmedNickname) else {
+            nicknameValidationState = .invalid
+            return
+        }
+
+        nicknameValidationState = nicknameValidator.isDuplicated(trimmedNickname)
+            ? .unavailable
+            : .available
+    }
+
+    func toggleVibe(_ vibe: String) {
+        if selectedVibes.contains(vibe) {
+            selectedVibes.removeAll { $0 == vibe }
+        } else if selectedVibes.count < 3 {
+            selectedVibes.append(vibe)
+        }
+    }
+
+    func toggleImage(_ image: String) {
+        if selectedImages.contains(image) {
+            selectedImages.removeAll { $0 == image }
+        } else if selectedImages.count < 3 {
+            selectedImages.append(image)
+        }
+    }
+
+    // 다음 버튼 활성화 조건
+    var canProceed: Bool {
+        !selectedVibes.isEmpty && !selectedImages.isEmpty
+    }
+
+    var canCheckNicknameDuplication: Bool {
+        !trimmedNickname.isEmpty
+    }
+
+    var canProceedFromNickname: Bool {
+        nicknameValidationState == .available
+    }
+
+    var nicknameStatusMessage: String? {
+        switch nicknameValidationState {
+        case .idle:
+            return nil
+        case .invalid:
+            return AppStrings.Nickname.invalid
+        case .available:
+            return AppStrings.Nickname.available
+        case .unavailable:
+            return AppStrings.Nickname.unavailable
+        }
+    }
+
+    var nicknameStatusColor: Color {
+        switch nicknameValidationState {
+        case .available:
+            return Color.green
+        case .invalid, .unavailable:
+            return Color.red
+        case .idle:
+            return Color.clear
+        }
+    }
+
+    var nicknameWelcomeMessage: String? {
+        guard nicknameValidationState == .available else { return nil }
+        return AppStrings.Nickname.welcome(nickname: trimmedNickname)
+    }
+
+    // MARK: - Gemini API 호출
+
+    func analyzeTaste() async {
+        guard let experience = selectedExperience else {
+            errorMessage = "향수 경험을 먼저 선택해주세요."
+            return
+        }
+
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            let result = try await userTasteRepository.analyzeTaste(input: makeTasteAnalysisInput(for: experience))
+            try await userTasteRepository.saveUserProfile(
+                nickname: trimmedNickname,
+                tasteAnalysis: result
+            )
+            tasteResult = result
+            currentStep = .result
+
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+
+        isLoading = false
+    }
+
+    private var trimmedNickname: String {
+        nickname.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func makeTasteAnalysisInput(for experience: ExperienceLevel) -> TasteAnalysisInput {
+        TasteAnalysisInput(
+            experience: experienceText(for: experience),
+            vibes: selectedVibes,
+            images: selectedImages
+        )
+    }
+
+    private func experienceText(for experience: ExperienceLevel) -> String {
+        switch experience {
+        case .beginner:
+            return "향수를 처음 시작했어요"
+        case .casual:
+            return "향수를 가끔씩 뿌려요"
+        case .expert:
+            return "향수를 꽤 알고 있어요"
+        }
+    }
+
+    private func bindNickname() {
+        $nickname
+            .removeDuplicates()
+            .sink { [weak self] newValue in
+                self?.sanitizeNicknameInput(newValue)
+            }
+            .store(in: &cancellables)
+    }
+
+    private func sanitizeNicknameInput(_ value: String) {
+        let filtered = nicknameValidator.sanitize(value)
+
+        if filtered != value {
+            nickname = filtered
+            return
+        }
+
+        nicknameValidationState = .idle
+    }
+}

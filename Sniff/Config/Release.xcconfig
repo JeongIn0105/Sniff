@@ -1,0 +1,4 @@
+#include "Secrets.xcconfig"
+
+GEMINI_API_KEY = $(inherited)
+FRAGELLA_API_KEY = $(inherited)
