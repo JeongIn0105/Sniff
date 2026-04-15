@@ -1,1 +1,3 @@
 Sniff/Config/Secrets.xcconfig
+*.xcuserstate
+xcuserdata/
