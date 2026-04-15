@@ -55,7 +55,10 @@ final class FragellaService {
     static let shared = FragellaService()
     private init() {}
 
+<<<<<<< HEAD
     private let apiKey = "0e4d3ff3231b3243fa544f797311c0df9175c3ce946c3df588365a70f76961e3" // ⚠️ 실제 키로 교체
+=======
+>>>>>>> origin/main
     private let baseURL = "https://api.fragella.com/api/v1"
 
         // MARK: - 향수 검색
@@ -102,6 +105,64 @@ final class FragellaService {
             return Disposables.create()
         }
     }
+<<<<<<< HEAD
+=======
+        // MARK: - 추천용 향수 조회 (핵심🔥)
+    func fetchByFamilies(families: [String], limit: Int = 20) -> Single<[FragellaPerfume]> {
+
+        return Single.create { [weak self] single in
+            guard let self else {
+                single(.failure(FragellaError.invalidURL))
+                return Disposables.create()
+            }
+
+            Task {
+                do {
+                    let result = try await self.requestByFamilies(
+                        families: families,
+                        limit: limit
+                    )
+                    single(.success(result))
+                } catch {
+                    single(.failure(error))
+                }
+            }
+
+            return Disposables.create()
+        }
+    }
+
+    private func requestByFamilies(
+        families: [String],
+        limit: Int
+    ) async throws -> [FragellaPerfume] {
+
+        let familyQuery = families.joined(separator: ",")
+
+        let urlString = "\(baseURL)/fragrances?accords=\(familyQuery)&limit=\(limit)"
+
+        guard let url = URL(string: urlString) else {
+            throw FragellaError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.setValue(try apiKey(), forHTTPHeaderField: "x-api-key")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw FragellaError.invalidResponse
+        }
+
+        let result = try JSONDecoder().decode(
+            FragellaSearchResponse.self,
+            from: data
+        )
+
+        return result.data
+    }
+>>>>>>> origin/main
 
         // MARK: - 실제 네트워크 요청 (검색)
     private func requestSearch(
@@ -119,7 +180,11 @@ final class FragellaService {
         }
 
         var request = URLRequest(url: url)
+<<<<<<< HEAD
         request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+=======
+        request.setValue(try apiKey(), forHTTPHeaderField: "x-api-key")
+>>>>>>> origin/main
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
@@ -146,7 +211,11 @@ final class FragellaService {
         }
 
         var request = URLRequest(url: url)
+<<<<<<< HEAD
         request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+=======
+        request.setValue(try apiKey(), forHTTPHeaderField: "x-api-key")
+>>>>>>> origin/main
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
@@ -157,6 +226,13 @@ final class FragellaService {
 
         return try JSONDecoder().decode(FragellaPerfume.self, from: data)
     }
+<<<<<<< HEAD
+=======
+
+    private func apiKey() throws -> String {
+        try AppSecrets.fragellaAPIKey()
+    }
+>>>>>>> origin/main
 }
 
     // MARK: - Error
