@@ -1,13 +1,10 @@
-<<<<<<< HEAD
 //
-//  ViewModel.swift
+//  HomeViewModel.swift
 //  Sniff
 //
 //  Created by t2025-m0239 on 2026.04.13.
 //
 
-import Foundation
-=======
 import Foundation
 import RxSwift
 import RxCocoa
@@ -101,10 +98,7 @@ final class HomeViewModel {
                     .prefix(2)
                     .joined(separator: " · ")
 
-                if familySummary.isEmpty {
-                    return "나에게 맞는 향수를 찾아가요"
-                }
-
+                if familySummary.isEmpty { return "나에게 맞는 향수를 찾아가요" }
                 return "\(familySummary) 무드의 향수를 찾아가요"
             }
             .asDriver(onErrorJustReturn: "나에게 맞는 향수를 찾아가요")
@@ -173,13 +167,7 @@ private extension HomeViewModel {
             .filter { !$0.isEmpty }
             .prefix(2)
 
-        if accords.isEmpty {
-            return "• Floral  • Musky"
-        }
-
-        return accords
-            .map { "• \($0)" }
-            .joined(separator: "  ")
+        if accords.isEmpty { return "• Floral  • Musky" }
+        return accords.map { "• \($0)" }.joined(separator: "  ")
     }
 }
->>>>>>> origin/main

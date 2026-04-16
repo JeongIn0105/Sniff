@@ -30,9 +30,7 @@ struct OnboardingTasteView: View {
                         HStack {
                             Text(AppStrings.Onboarding.vibeSection)
                                 .font(.headline)
-
                             Spacer()
-
                             Text("\(viewModel.selectedVibes.count)/3")
                                 .font(.caption)
                                 .foregroundColor(.gray)
@@ -68,9 +66,7 @@ struct OnboardingTasteView: View {
                         HStack {
                             Text(AppStrings.Onboarding.imageSection)
                                 .font(.headline)
-
                             Spacer()
-
                             Text("\(viewModel.selectedImages.count)/3")
                                 .font(.caption)
                                 .foregroundColor(.gray)
@@ -99,6 +95,14 @@ struct OnboardingTasteView: View {
                     }
                 }
                 .padding(.bottom)
+            }
+
+            // 에러 메시지 ← 추가된 부분
+            if let error = viewModel.errorMessage {
+                Text(error)
+                    .font(.caption)
+                    .foregroundColor(.red)
+                    .padding(.horizontal)
             }
 
             Button {

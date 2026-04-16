@@ -30,17 +30,29 @@
 		991561532F7E90AE0030F8BC /* Exceptions for "Sniff" folder in "Sniff" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Config/Secrets.xcconfig,
 				Info.plist,
 			);
 			target = 9915613D2F7E90AD0030F8BC /* Sniff */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
+/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+		99F814A02F905ACF0005ED4C /* Exceptions for "Sniff" folder in "Compile Sources" phase from "Sniff" target */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			buildPhase = 9915613A2F7E90AD0030F8BC /* Sources */;
+			membershipExceptions = (
+				Config/Secrets.xcconfig,
+			);
+		};
+/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		991561402F7E90AD0030F8BC /* Sniff */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				991561532F7E90AE0030F8BC /* Exceptions for "Sniff" folder in "Sniff" target */,
+				99F814A02F905ACF0005ED4C /* Exceptions for "Sniff" folder in "Compile Sources" phase from "Sniff" target */,
 			);
 			path = Sniff;
 			sourceTree = "<group>";

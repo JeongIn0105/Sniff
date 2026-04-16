@@ -6,8 +6,6 @@
 //
 
 import Foundation
-<<<<<<< HEAD
-=======
 import FirebaseAuth
 import FirebaseFirestore
 
@@ -30,10 +28,7 @@ final class FirestoreService {
 
     private init() {}
 
-    func saveUserProfile(
-        nickname: String,
-        tasteAnalysis: TasteAnalysisResult
-    ) async throws {
+    func saveUserProfile(nickname: String, tasteAnalysis: TasteAnalysisResult) async throws {
         let now = FieldValue.serverTimestamp()
         let userRef = userDocumentRef()
 
@@ -124,9 +119,7 @@ final class FirestoreService {
         guard
             let name = data["name"] as? String,
             let brand = data["brand"] as? String
-        else {
-            return nil
-        }
+        else { return nil }
 
         let timestamp = data["addedAt"] as? Timestamp
 
@@ -148,9 +141,7 @@ final class FirestoreService {
             let brandName = data["brandName"] as? String,
             let rating = data["rating"] as? Int,
             let updatedAt = (data["updatedAt"] as? Timestamp)?.dateValue()
-        else {
-            return nil
-        }
+        else { return nil }
 
         return TastingRecord(
             id: document.documentID,
@@ -163,4 +154,3 @@ final class FirestoreService {
         )
     }
 }
->>>>>>> origin/main

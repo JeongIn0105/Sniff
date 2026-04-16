@@ -20,7 +20,7 @@ enum AppState {
 @main
 struct SniffApp: App {
 
-    @State private var appState: AppState = .splash
+    @StateObject private var appStateManager = AppStateManager()
 
     // MARK: - Firebase 초기화
     init() {
@@ -30,32 +30,36 @@ struct SniffApp: App {
     var body: some Scene {
         WindowGroup {
             contentView
+                .environmentObject(appStateManager)
         }
     }
 
     @ViewBuilder
     private var contentView: some View {
-        switch appState {
+        switch appStateManager.state {
         case .splash:
             SplashView()
                 .onAppear {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                         withAnimation(.easeInOut) {
-                            appState = .login
+                            appStateManager.state = .login
                         }
                     }
                 }
         case .login:
             LoginView(
-                onNewUser: { appState = .onboardingIntro },      // 신규 사용자 → 온보딩
-                onExistingUser: { appState = .main }             // 기존 사용자 → 홈
+                onNewUser: { appStateManager.state = .onboardingIntro },      // 신규 사용자 → 온보딩
+                onExistingUser: { appStateManager.state = .main }             // 기존 사용자 → 홈
             )
         case .onboardingIntro:
             OnboardingIntroView {
-                appState = .onboarding
+                appStateManager.state = .onboarding
             }
         case .onboarding:
-            OnboardingContainerView()
+            OnboardingContainerView(
+                onBack: { appStateManager.state = .onboardingIntro },   // 뒤로 → 온보딩 인트로
+                onComplete: { appStateManager.state = .main }           // 완료 → 홈
+            )
         case .main:
             MainTabView()
         }

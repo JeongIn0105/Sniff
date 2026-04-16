@@ -1,13 +1,11 @@
 //
-//  ViewModel.swift
+//  PerfumeDetailViewModel.swift
 //  Sniff
 //
 //  Created by t2025-m0239 on 2026.04.13.
 //
 
 import Foundation
-<<<<<<< HEAD
-=======
 import RxSwift
 import RxCocoa
 
@@ -42,17 +40,9 @@ final class PerfumeDetailViewModel {
             .bind(to: perfumeRelay)
             .disposed(by: disposeBag)
 
-        let name = perfumeRelay
-            .map { $0.name }
-            .asDriver(onErrorJustReturn: "")
-
-        let brand = perfumeRelay
-            .map { $0.brand }
-            .asDriver(onErrorJustReturn: "")
-
-        let imageURL = perfumeRelay
-            .map { $0.imageUrl }
-            .asDriver(onErrorJustReturn: nil)
+        let name = perfumeRelay.map { $0.name }.asDriver(onErrorJustReturn: "")
+        let brand = perfumeRelay.map { $0.brand }.asDriver(onErrorJustReturn: "")
+        let imageURL = perfumeRelay.map { $0.imageUrl }.asDriver(onErrorJustReturn: nil)
 
         let notes = perfumeRelay
             .map { perfume in
@@ -60,22 +50,10 @@ final class PerfumeDetailViewModel {
                 let middle = perfume.middleNotes?.joined(separator: ", ") ?? "-"
                 let base = perfume.baseNotes?.joined(separator: ", ") ?? "-"
 
-                return """
-                TOP: \(top)
-                
-                MIDDLE: \(middle)
-                
-                BASE: \(base)
-                """
+                return "TOP: \(top)\n\nMIDDLE: \(middle)\n\nBASE: \(base)"
             }
             .asDriver(onErrorJustReturn: "")
 
-        return Output(
-            perfumeName: name,
-            brandName: brand,
-            imageURL: imageURL,
-            notesText: notes
-        )
+        return Output(perfumeName: name, brandName: brand, imageURL: imageURL, notesText: notes)
     }
 }
->>>>>>> origin/main

@@ -9,7 +9,7 @@ import Foundation
 
 enum AppStrings {
 
-        // MARK: - 온보딩
+    // MARK: - 온보딩
     enum Onboarding {
         static let experienceTitle = "현재 당신의\n향수 경험을 알려주세요"
         static let tasteTitle = "향수로 표현하고 싶은\n느낌을 골라주세요"
@@ -37,7 +37,7 @@ enum AppStrings {
         }
     }
 
-        // MARK: - 홈
+    // MARK: - 홈
     enum Home {
         static func greeting(nickname: String) -> String {
             "\(nickname)님의 취향에 맞는\n향수를 찾아왔어요 🌸"
@@ -50,7 +50,7 @@ enum AppStrings {
         static let emptyRecommend = "취향 분석을 완료하면\n맞춤 향수를 추천해드려요 🌿"
     }
 
-        // MARK: - 검색
+    // MARK: - 검색
     enum Search {
         static let placeholder = "향수명 또는 브랜드를 검색해보세요"
         static let recentTitle = "최근 검색어"
@@ -61,7 +61,7 @@ enum AppStrings {
         static let filterApply = "적용하기"
     }
 
-        // MARK: - 시향기
+    // MARK: - 시향기
     enum TastingNote {
         static let emptyList = "아직 기록이 없어요. 오늘 맡은 향수를 기록해보세요 🌿"
         static let searchPlaceholder = "향수명을 입력해주세요"
@@ -79,7 +79,7 @@ enum AppStrings {
         static let updatedSuccess = "기록이 수정됐어요 ✅"
     }
 
-        // MARK: - 마이페이지
+    // MARK: - 마이페이지
     enum MyPage {
         static let collectionTitle = "내 향수 컬렉션"
         static let collectionMore = "전체 보기"
@@ -97,7 +97,7 @@ enum AppStrings {
         }
     }
 
-        // MARK: - 컬렉션
+    // MARK: - 컬렉션
     enum Collection {
         static let emptyTitle = "아직 등록된 향수가 없어요"
         static let emptyMessage = "첫 번째 향수를 찾아볼까요? 🔍"
@@ -107,7 +107,7 @@ enum AppStrings {
         static let cancelButton = "아니요, 유지할게요"
     }
 
-        // MARK: - 환경설정
+    // MARK: - 환경설정
     enum Settings {
         static let logoutTitle = "로그아웃 할까요?"
         static let logoutConfirm = "로그아웃"
@@ -118,7 +118,7 @@ enum AppStrings {
         static let deleteAccountCancel = "아니요, 남을게요"
     }
 
-        // MARK: - 공통 에러
+    // MARK: - 공통 에러
     enum Error {
         static let network = "잠깐, 연결이 끊겼나봐요. 다시 시도해볼까요?"
         static let retry = "다시 시도하기"
@@ -128,14 +128,8 @@ enum AppStrings {
         static let analyzing = "취향에 맞는 향수를 찾고 있어요..."
     }
 
-        // MARK: - 닉네임
+    // MARK: - 닉네임
     enum Nickname {
-<<<<<<< HEAD
-        static let title = "킁킁에서 사용할\n이름을 알려주세요"
-        static let placeholder = "닉네임을 입력해주세요"
-        static let hint = "한글/영문/숫자 2~10자로 입력해주세요"
-        static let confirm = "시작하기"
-=======
         static let title = "킁킁에서 사용할\n닉네임을 설정해주세요"
         static let placeholder = "닉네임을 입력해주세요"
         static let description = "한글, 영문 숫자 포함 2~10자 제한"
@@ -144,7 +138,6 @@ enum AppStrings {
         static let unavailable = "중복된 닉네임입니다."
         static let invalid = "한글, 영문, 숫자 포함 2~10자로 입력해주세요."
         static let confirm = "다음"
->>>>>>> origin/main
         static func welcome(nickname: String) -> String {
             "반가워요, \(nickname)님! 🌸\n취향에 맞는 향수를 찾아드릴게요"
         }

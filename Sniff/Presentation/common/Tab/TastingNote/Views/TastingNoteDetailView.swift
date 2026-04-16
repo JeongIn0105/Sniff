@@ -1,0 +1,284 @@
+//
+//  TastingNoteDetailView.swift
+//  Sniff
+//
+//  Created by 이정인 on 4/16/26.
+//
+
+// MARK: - 상세 화면 (새로 추가)
+import SwiftUI
+import Kingfisher
+
+struct TastingNoteDetailView: View {
+
+    let note: TastingNote
+    @ObservedObject var viewModel: TastingNoteViewModel
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var showDeleteAlert: Bool = false
+    @State private var showEditSheet: Bool = false
+
+    private var currentNote: TastingNote {
+        guard let id = note.id,
+              let liveNote = viewModel.notes.first(where: { $0.id == id }) else {
+            return note
+        }
+        return liveNote
+    }
+
+    var body: some View {
+        ZStack {
+            Color(.systemBackground)
+                .ignoresSafeArea()
+
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 0) {
+                    headerView
+
+                    perfumeInfoCard
+                        .padding(.horizontal, 20)
+
+                    Divider()
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 20)
+
+                    ratingDisplaySection(
+                        title: "향 선호도",
+                        rating: currentNote.rating,
+                        label: currentNote.rating.ratingLabel
+                    )
+                    .padding(.horizontal, 20)
+
+                    Divider()
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 20)
+
+                    ratingDisplaySection(
+                        title: "향수 지속력",
+                        rating: currentNote.longevity,
+                        label: currentNote.longevity.longevityLabel
+                    )
+                    .padding(.horizontal, 20)
+
+                    Divider()
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 20)
+
+                    moodTagDisplaySection
+                        .padding(.horizontal, 20)
+
+                    Divider()
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 20)
+
+                    memoDisplaySection
+                        .padding(.horizontal, 20)
+
+                    Spacer()
+                        .frame(height: 40)
+                }
+            }
+        }
+        .toolbar(.hidden, for: .navigationBar)
+        .sheet(isPresented: $showEditSheet) {
+            TastingNoteFormView(editingNote: currentNote)
+        }
+        .alert("시향 기록 삭제", isPresented: $showDeleteAlert) {
+            Button("삭제", role: .destructive) {
+                Task {
+                    await viewModel.deleteNote(currentNote)
+                    dismiss()
+                }
+            }
+            Button("취소", role: .cancel) { }
+        } message: {
+            Text("이 시향 기록을 삭제할까요? 삭제 후 복구할 수 없어요.")
+        }
+    }
+
+    private var headerView: some View {
+        ZStack {
+            Text("\(currentNote.perfumeName) 시향 기록")
+                .font(.system(size: 20, weight: .semibold))
+                .lineLimit(1)
+                .padding(.horizontal, 72)
+
+            HStack {
+                CircleIconButton(
+                    systemName: "chevron.left",
+                    size: 24
+                ) {
+                    dismiss()
+                }
+
+                Spacer()
+
+                Menu {
+                    Button {
+                        showEditSheet = true
+                    } label: {
+                        Label("수정", systemImage: "pencil")
+                    }
+
+                    Button(role: .destructive) {
+                        showDeleteAlert = true
+                    } label: {
+                        Label("삭제", systemImage: "trash")
+                    }
+                } label: {
+                    ZStack {
+                        Circle()
+                            .fill(Color(.systemGray6))
+                            .frame(width: 52, height: 52)
+
+                        Image(systemName: "ellipsis")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundColor(.primary)
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 14)
+        .padding(.bottom, 24)
+    }
+
+    private var perfumeInfoCard: some View {
+        HStack(spacing: 14) {
+            Group {
+                if let urlString = currentNote.perfumeImageURL,
+                   let url = URL(string: urlString) {
+                    KFImage(url)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } else {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color(.systemGray6))
+                }
+            }
+            .frame(width: 110, height: 110)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text(currentNote.brandName)
+                    .font(.system(size: 14))
+                    .foregroundColor(.secondary)
+
+                Text(currentNote.perfumeName)
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(.primary)
+
+                if !currentNote.mainAccords.isEmpty {
+                    HStack(spacing: 6) {
+                        ForEach(currentNote.mainAccords.prefix(3), id: \.self) { accord in
+                            HStack(spacing: 4) {
+                                Circle()
+                                    .frame(width: 5, height: 5)
+                                    .foregroundColor(accord.accordColor)
+
+                                Text(accord)
+                                    .font(.system(size: 13))
+                                    .foregroundColor(accord.accordColor)
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer()
+        }
+    }
+
+    private func ratingDisplaySection(title: String, rating: Int, label: String) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title)
+                .font(.system(size: 17, weight: .semibold))
+
+            HStack(spacing: 6) {
+                ForEach(1...5, id: \.self) { star in
+                    Image(systemName: star <= rating ? "star.fill" : "star")
+                        .font(.system(size: 30))
+                        .foregroundColor(star <= rating ? .primary : Color(.systemGray4))
+                }
+
+                Text("\(rating)")
+                    .font(.system(size: 17, weight: .semibold))
+                    .padding(.leading, 4)
+
+                Text("/5")
+                    .font(.system(size: 14))
+                    .foregroundColor(.secondary)
+            }
+
+            Text(label)
+                .font(.system(size: 13))
+                .foregroundColor(.secondary)
+        }
+    }
+
+    private var moodTagDisplaySection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("향수의 무드&이미지")
+                .font(.system(size: 17, weight: .semibold))
+
+            ChipFlowLayout(spacing: 8) {
+                ForEach(currentNote.moodTags, id: \.self) { tag in
+                    Text(tag)
+                        .font(.system(size: 14))
+                        .foregroundColor(tag.moodTagColor)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(tag.moodTagBackgroundColor)
+                        .clipShape(Capsule())
+                        .overlay(Capsule().stroke(tag.moodTagBorderColor, lineWidth: 1))
+                }
+            }
+        }
+    }
+
+    private var memoDisplaySection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("시향 메모")
+                .font(.system(size: 17, weight: .semibold))
+
+            ZStack(alignment: .bottomTrailing) {
+                Text(currentNote.memo)
+                    .font(.system(size: 15))
+                    .foregroundColor(.primary)
+                    .frame(maxWidth: .infinity, minHeight: 120, alignment: .topLeading)
+                    .padding(14)
+
+                Text("\(currentNote.memo.count)/2000")
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+                    .padding(.trailing, 12)
+                    .padding(.bottom, 10)
+            }
+            .background(Color(.systemBackground))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(Color(.systemGray4), lineWidth: 1)
+            )
+        }
+    }
+}
+
+private struct CircleIconButton: View {
+    let systemName: String
+    let size: CGFloat
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            ZStack {
+                Circle()
+                    .fill(Color(.systemGray6))
+                    .frame(width: 52, height: 52)
+
+                Image(systemName: systemName)
+                    .font(.system(size: size, weight: .semibold))
+                    .foregroundColor(.primary)
+            }
+        }
+    }
+}

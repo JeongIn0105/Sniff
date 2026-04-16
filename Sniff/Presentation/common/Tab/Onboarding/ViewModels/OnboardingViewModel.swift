@@ -24,8 +24,8 @@ final class OnboardingViewModel: ObservableObject {
 
     // MARK: - 유저 선택 데이터
     @Published var selectedExperience: ExperienceLevel? = nil
-    @Published var selectedVibes: [String] = []    // 분위기 (최대 3개)
-    @Published var selectedImages: [String] = []   // 향의 느낌 (최대 3개)
+    @Published var selectedVibes: [String] = []
+    @Published var selectedImages: [String] = []
 
     // MARK: - Gemini 결과
     @Published var tasteResult: TasteAnalysisResult? = nil
@@ -47,7 +47,7 @@ final class OnboardingViewModel: ObservableObject {
 
     let imageTags: [String] = [
         "달콤한", "시원한", "따뜻한", "강렬한",
-        "은은한", "상큼한", "싱그러운", "묵직한",Z
+        "은은한", "상큼한", "싱그러운", "묵직한",
         "보송보송한", "무거운", "가벼운"
     ]
 
@@ -57,9 +57,7 @@ final class OnboardingViewModel: ObservableObject {
     }
 
     // MARK: - 선택 로직
-
     func completeOnboarding() {
-        // TODO: Firestore 저장 후 홈 탭으로 이동
         currentStep = .nickname
     }
 
@@ -69,14 +67,14 @@ final class OnboardingViewModel: ObservableObject {
     }
 
     func checkNicknameDuplication() {
-        let trimmedNickname = trimmedNickname
+        let trimmed = trimmedNickname
 
-        guard nicknameValidator.isValidFormat(trimmedNickname) else {
+        guard nicknameValidator.isValidFormat(trimmed) else {
             nicknameValidationState = .invalid
             return
         }
 
-        nicknameValidationState = nicknameValidator.isDuplicated(trimmedNickname)
+        nicknameValidationState = nicknameValidator.isDuplicated(trimmed)
             ? .unavailable
             : .available
     }
@@ -97,7 +95,6 @@ final class OnboardingViewModel: ObservableObject {
         }
     }
 
-    // 다음 버튼 활성화 조건
     var canProceed: Bool {
         !selectedVibes.isEmpty && !selectedImages.isEmpty
     }
@@ -112,25 +109,18 @@ final class OnboardingViewModel: ObservableObject {
 
     var nicknameStatusMessage: String? {
         switch nicknameValidationState {
-        case .idle:
-            return nil
-        case .invalid:
-            return AppStrings.Nickname.invalid
-        case .available:
-            return AppStrings.Nickname.available
-        case .unavailable:
-            return AppStrings.Nickname.unavailable
+        case .idle: return nil
+        case .invalid: return AppStrings.Nickname.invalid
+        case .available: return AppStrings.Nickname.available
+        case .unavailable: return AppStrings.Nickname.unavailable
         }
     }
 
     var nicknameStatusColor: Color {
         switch nicknameValidationState {
-        case .available:
-            return Color.green
-        case .invalid, .unavailable:
-            return Color.red
-        case .idle:
-            return Color.clear
+        case .available: return Color.green
+        case .invalid, .unavailable: return Color.red
+        case .idle: return Color.clear
         }
     }
 
@@ -140,7 +130,6 @@ final class OnboardingViewModel: ObservableObject {
     }
 
     // MARK: - Gemini API 호출
-
     func analyzeTaste() async {
         guard let experience = selectedExperience else {
             errorMessage = "향수 경험을 먼저 선택해주세요."
@@ -158,7 +147,6 @@ final class OnboardingViewModel: ObservableObject {
             )
             tasteResult = result
             currentStep = .result
-
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -180,12 +168,9 @@ final class OnboardingViewModel: ObservableObject {
 
     private func experienceText(for experience: ExperienceLevel) -> String {
         switch experience {
-        case .beginner:
-            return "향수를 처음 시작했어요"
-        case .casual:
-            return "향수를 가끔씩 뿌려요"
-        case .expert:
-            return "향수를 꽤 알고 있어요"
+        case .beginner: return "향수를 처음 시작했어요"
+        case .casual: return "향수를 가끔씩 뿌려요"
+        case .expert: return "향수를 꽤 알고 있어요"
         }
     }
 
