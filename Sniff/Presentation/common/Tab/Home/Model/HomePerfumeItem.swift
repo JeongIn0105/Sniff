@@ -7,7 +7,7 @@
 import Foundation
 
 struct HomePerfumeItem {
-    let id: Int
+    let id: String
     let brandName: String
     let perfumeName: String
     let accordsText: String

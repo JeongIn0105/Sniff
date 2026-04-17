@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.hyeonjin.Sniff</string>
+	<string>com.leejeongin.Sniff</string>
 	<key>PROJECT_ID</key>
 	<string>sniff-a15da</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:448836220502:ios:f331a0bdf94a5a4a062df7</string>
+	<string>1:448836220502:ios:2f51458e2336119f062df7</string>
 </dict>
 </plist>

@@ -14,6 +14,7 @@ final class OnboardingViewModel: ObservableObject {
 
     enum NicknameValidationState: Equatable {
         case idle
+        case checking
         case invalid
         case available
         case unavailable
@@ -47,12 +48,12 @@ final class OnboardingViewModel: ObservableObject {
 
     let imageTags: [String] = [
         "달콤한", "시원한", "따뜻한", "강렬한",
-        "은은한", "상큼한", "싱그러운", "묵직한",Z
+        "은은한", "상큼한", "싱그러운", "묵직한",
         "보송보송한", "무거운", "가벼운"
     ]
 
-    init(userTasteRepository: UserTasteRepositoryType = UserTasteRepository()) {
-        self.userTasteRepository = userTasteRepository
+    init(userTasteRepository: UserTasteRepositoryType? = nil) {
+        self.userTasteRepository = userTasteRepository ?? UserTasteRepository()
         bindNickname()
     }
 
@@ -68,7 +69,7 @@ final class OnboardingViewModel: ObservableObject {
         nicknameValidationState = .idle
     }
 
-    func checkNicknameDuplication() {
+    func checkNicknameDuplication() async {
         let trimmedNickname = trimmedNickname
 
         guard nicknameValidator.isValidFormat(trimmedNickname) else {
@@ -76,9 +77,15 @@ final class OnboardingViewModel: ObservableObject {
             return
         }
 
-        nicknameValidationState = nicknameValidator.isDuplicated(trimmedNickname)
-            ? .unavailable
-            : .available
+        nicknameValidationState = .checking
+
+        do {
+            let isAvailable = try await userTasteRepository.checkNicknameAvailability(trimmedNickname)
+            nicknameValidationState = isAvailable ? .available : .unavailable
+        } catch {
+            nicknameValidationState = .idle
+            errorMessage = error.localizedDescription
+        }
     }
 
     func toggleVibe(_ vibe: String) {
@@ -106,6 +113,10 @@ final class OnboardingViewModel: ObservableObject {
         !trimmedNickname.isEmpty
     }
 
+    var canSubmitNickname: Bool {
+        !trimmedNickname.isEmpty && !isLoading
+    }
+
     var canProceedFromNickname: Bool {
         nicknameValidationState == .available
     }
@@ -114,6 +125,8 @@ final class OnboardingViewModel: ObservableObject {
         switch nicknameValidationState {
         case .idle:
             return nil
+        case .checking:
+            return "중복 여부를 확인하고 있어요..."
         case .invalid:
             return AppStrings.Nickname.invalid
         case .available:
@@ -127,6 +140,8 @@ final class OnboardingViewModel: ObservableObject {
         switch nicknameValidationState {
         case .available:
             return Color.green
+        case .checking:
+            return Color(.systemGray)
         case .invalid, .unavailable:
             return Color.red
         case .idle:
@@ -147,10 +162,17 @@ final class OnboardingViewModel: ObservableObject {
             return
         }
 
+        guard nicknameValidator.isValidFormat(trimmedNickname) else {
+            nicknameValidationState = .invalid
+            errorMessage = AppStrings.Nickname.invalid
+            return
+        }
+
         isLoading = true
         errorMessage = nil
 
         do {
+            nicknameValidationState = .available
             let result = try await userTasteRepository.analyzeTaste(input: makeTasteAnalysisInput(for: experience))
             try await userTasteRepository.saveUserProfile(
                 nickname: trimmedNickname,
@@ -164,6 +186,38 @@ final class OnboardingViewModel: ObservableObject {
         }
 
         isLoading = false
+    }
+
+    func confirmNicknameAndProceed() async {
+        let trimmedNickname = trimmedNickname
+
+        guard nicknameValidator.isValidFormat(trimmedNickname) else {
+            nicknameValidationState = .invalid
+            errorMessage = AppStrings.Nickname.invalid
+            return
+        }
+
+        isLoading = true
+        errorMessage = nil
+        nicknameValidationState = .checking
+
+        defer { isLoading = false }
+
+        do {
+            let isAvailable = try await userTasteRepository.checkNicknameAvailability(trimmedNickname)
+
+            guard isAvailable else {
+                nicknameValidationState = .unavailable
+                errorMessage = AppStrings.Nickname.unavailable
+                return
+            }
+
+            nicknameValidationState = .available
+            currentStep = .experience
+        } catch {
+            nicknameValidationState = .idle
+            errorMessage = error.localizedDescription
+        }
     }
 
     private var trimmedNickname: String {

@@ -1,9 +1,10 @@
-    //
-    //  HomeViewController.swift
-    //  Sniff
-    //
-    //  Created by t2025-m0239 on 2026.04.13.
-    //
+//
+//  HomeViewController.swift
+//  Sniff
+//
+//  Created by t2025-m0239 on 2026.04.13.
+//
+
 
 import UIKit
 import SnapKit
@@ -14,105 +15,130 @@ final class HomeViewController: UIViewController {
 
     private let viewModel = HomeViewModel()
     private let disposeBag = DisposeBag()
-
-    private var quickActions: [HomeQuickAction] = []
     private var recommendations: [HomePerfumeItem] = []
+    private var currentProfileItem: HomeViewModel.HomeProfileItem?
+
+        // MARK: - UI
 
     private let scrollView = UIScrollView()
     private let contentView = UIView()
 
     private let titleLabel: UILabel = {
-        let label = UILabel()
-        label.text = "킁킁"
-        label.font = .systemFont(ofSize: 24, weight: .bold)
-        label.textColor = .label
-        return label
+        let l = UILabel()
+        l.text = "킁킁"
+        l.font = .systemFont(ofSize: 24, weight: .bold)
+        l.textColor = .label
+        return l
     }()
 
     private let searchButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setImage(UIImage(systemName: "magnifyingglass"), for: .normal)
-        button.tintColor = .label
-        return button
+        let b = UIButton(type: .system)
+        b.setImage(UIImage(systemName: "magnifyingglass"), for: .normal)
+        b.tintColor = .label
+        return b
     }()
 
-    private let bannerView: UIView = {
-        let view = UIView()
-        view.backgroundColor = UIColor(white: 0.95, alpha: 1.0)
-        view.layer.cornerRadius = 16
-        return view
+        // 취향 프로필 entry 카드
+    private let profileEntryCard: UIView = {
+        let v = UIView()
+        v.backgroundColor = .systemBackground
+        v.layer.cornerRadius = 16
+        v.layer.borderWidth = 0.5
+        v.layer.borderColor = UIColor.separator.withAlphaComponent(0.25).cgColor
+        return v
     }()
 
-    private let bannerTitleLabel: UILabel = {
-        let label = UILabel()
-        label.numberOfLines = 0
-        label.font = .systemFont(ofSize: 15, weight: .bold)
-        label.textColor = .label
-        return label
+    private let profileIconView: UIView = {
+        let v = UIView()
+        v.layer.cornerRadius = 11
+        return v
     }()
 
-    private let bannerSubtitleLabel: UILabel = {
-        let label = UILabel()
-        label.numberOfLines = 0
-        label.font = .systemFont(ofSize: 15, weight: .bold)
-        label.textColor = .label
-        return label
+    private let profileIconLabel: UILabel = {
+        let l = UILabel()
+        l.font = .systemFont(ofSize: 18)
+        l.textAlignment = .center
+        l.text = "✨"
+        return l
     }()
 
-    private let quickActionCollectionView: UICollectionView = {
-        let layout = UICollectionViewFlowLayout()
-        layout.scrollDirection = .horizontal
-        layout.minimumLineSpacing = 8
-        layout.minimumInteritemSpacing = 8
+    private let profileCategoryLabel: UILabel = {
+        let l = UILabel()
+        l.text = "취향 프로필"
+        l.font = .systemFont(ofSize: 10, weight: .medium)
+        l.textColor = .tertiaryLabel
+        return l
+    }()
 
-        let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
-        collectionView.backgroundColor = .clear
-        collectionView.showsHorizontalScrollIndicator = false
-        return collectionView
+    private let profileNameLabel: UILabel = {
+        let l = UILabel()
+        l.text = "분석 중..."
+        l.font = .systemFont(ofSize: 14, weight: .semibold)
+        l.textColor = .label
+        return l
+    }()
+
+    private let profileChevron: UIImageView = {
+        let iv = UIImageView()
+        iv.image = UIImage(systemName: "chevron.right")
+        iv.tintColor = .tertiaryLabel
+        iv.contentMode = .scaleAspectFit
+        return iv
     }()
 
     private let recommendationTitleLabel: UILabel = {
-        let label = UILabel()
-        label.text = "오늘의 추천 향수"
-        label.font = .systemFont(ofSize: 20, weight: .bold)
-        label.textColor = .label
-        return label
+        let l = UILabel()
+        l.text = "오늘의 추천 향수"
+        l.font = .systemFont(ofSize: 17, weight: .bold)
+        l.textColor = .label
+        return l
+    }()
+
+        // 카드 바깥 대비 배경 — 카드들이 더 잘 구분되게
+    private let cardsBackgroundView: UIView = {
+        let v = UIView()
+        v.backgroundColor = UIColor(red: 0.96, green: 0.95, blue: 0.93, alpha: 1)
+        v.layer.cornerRadius = 20
+        return v
     }()
 
     private let recommendationCollectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
         layout.scrollDirection = .horizontal
-        layout.minimumLineSpacing = 12
-        layout.minimumInteritemSpacing = 12
-
-        let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
-        collectionView.backgroundColor = .clear
-        collectionView.showsHorizontalScrollIndicator = false
-        return collectionView
+        layout.minimumLineSpacing = 10
+        let cv = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        cv.backgroundColor = .clear
+        cv.showsHorizontalScrollIndicator = false
+        return cv
     }()
+
+    private let guideLabel: UILabel = {
+        let l = UILabel()
+        l.text = "추천은 취향 분석과 시향 기록, 등록한 향수를 기반으로 계속 업데이트돼요."
+        l.font = .systemFont(ofSize: 11)
+        l.textColor = .quaternaryLabel
+        l.numberOfLines = 0
+        return l
+    }()
+
+        // MARK: - Lifecycle
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        configureUI()
+        setupUI()
         bind()
     }
 }
 
+    // MARK: - UI Setup
+
 private extension HomeViewController {
 
-    func configureUI() {
+    func setupUI() {
         view.backgroundColor = .systemBackground
 
-        quickActionCollectionView.delegate = self
-        quickActionCollectionView.dataSource = self
         recommendationCollectionView.delegate = self
         recommendationCollectionView.dataSource = self
-
-        quickActionCollectionView.register(
-            HomeQuickActionCell.self,
-            forCellWithReuseIdentifier: HomeQuickActionCell.reuseIdentifier
-        )
-
         recommendationCollectionView.register(
             HomePerfumeCardCell.self,
             forCellWithReuseIdentifier: HomePerfumeCardCell.reuseIdentifier
@@ -122,101 +148,129 @@ private extension HomeViewController {
         scrollView.addSubview(contentView)
 
         [
-            titleLabel,
-            searchButton,
-            bannerView,
-            quickActionCollectionView,
+            titleLabel, searchButton,
+            profileEntryCard,
             recommendationTitleLabel,
-            recommendationCollectionView
+            cardsBackgroundView,
+            guideLabel
         ].forEach { contentView.addSubview($0) }
 
-        [bannerTitleLabel, bannerSubtitleLabel].forEach { bannerView.addSubview($0) }
+        cardsBackgroundView.addSubview(recommendationCollectionView)
 
-        scrollView.snp.makeConstraints { make in
-            make.edges.equalTo(view.safeAreaLayoutGuide)
+        profileEntryCard.addSubview(profileIconView)
+        profileIconView.addSubview(profileIconLabel)
+        profileEntryCard.addSubview(profileCategoryLabel)
+        profileEntryCard.addSubview(profileNameLabel)
+        profileEntryCard.addSubview(profileChevron)
+
+        profileEntryCard.addGestureRecognizer(
+            UITapGestureRecognizer(target: self, action: #selector(profileCardTapped))
+        )
+        profileEntryCard.isUserInteractionEnabled = true
+
+        scrollView.snp.makeConstraints { $0.edges.equalTo(view.safeAreaLayoutGuide) }
+        contentView.snp.makeConstraints {
+            $0.edges.equalToSuperview()
+            $0.width.equalTo(scrollView)
         }
 
-        contentView.snp.makeConstraints { make in
-            make.edges.equalToSuperview()
-            make.width.equalTo(scrollView.snp.width)
+        titleLabel.snp.makeConstraints {
+            $0.top.equalToSuperview().offset(12)
+            $0.leading.equalToSuperview().offset(20)
+        }
+        searchButton.snp.makeConstraints {
+            $0.centerY.equalTo(titleLabel)
+            $0.trailing.equalToSuperview().inset(20)
+            $0.size.equalTo(28)
         }
 
-        titleLabel.snp.makeConstraints { make in
-            make.top.equalToSuperview().offset(12)
-            make.leading.equalToSuperview().offset(20)
+            // 취향 프로필 entry
+        profileEntryCard.snp.makeConstraints {
+            $0.top.equalTo(titleLabel.snp.bottom).offset(16)
+            $0.leading.trailing.equalToSuperview().inset(20)
+            $0.height.equalTo(64)
+        }
+        profileIconView.snp.makeConstraints {
+            $0.leading.equalToSuperview().offset(14)
+            $0.centerY.equalToSuperview()
+            $0.size.equalTo(38)
+        }
+        profileIconLabel.snp.makeConstraints { $0.edges.equalToSuperview() }
+        profileCategoryLabel.snp.makeConstraints {
+            $0.leading.equalTo(profileIconView.snp.trailing).offset(12)
+            $0.top.equalToSuperview().offset(13)
+        }
+        profileNameLabel.snp.makeConstraints {
+            $0.leading.equalTo(profileIconView.snp.trailing).offset(12)
+            $0.top.equalTo(profileCategoryLabel.snp.bottom).offset(2)
+        }
+        profileChevron.snp.makeConstraints {
+            $0.trailing.equalToSuperview().inset(14)
+            $0.centerY.equalToSuperview()
+            $0.size.equalTo(CGSize(width: 8, height: 14))
         }
 
-        searchButton.snp.makeConstraints { make in
-            make.centerY.equalTo(titleLabel)
-            make.trailing.equalToSuperview().inset(20)
-            make.size.equalTo(24)
+            // 섹션 타이틀
+        recommendationTitleLabel.snp.makeConstraints {
+            $0.top.equalTo(profileEntryCard.snp.bottom).offset(28)
+            $0.leading.equalToSuperview().offset(20)
         }
 
-        bannerView.snp.makeConstraints { make in
-            make.top.equalTo(titleLabel.snp.bottom).offset(18)
-            make.horizontalEdges.equalToSuperview().inset(20)
-            make.height.equalTo(138)
+            // 카드 배경 박스 — 위아래 패딩 주어 카드가 배경 안에 떠있는 느낌
+        cardsBackgroundView.snp.makeConstraints {
+            $0.top.equalTo(recommendationTitleLabel.snp.bottom).offset(12)
+            $0.leading.trailing.equalToSuperview().inset(0)
+            $0.height.equalTo(268)
+        }
+        recommendationCollectionView.snp.makeConstraints {
+            $0.top.bottom.equalToSuperview().inset(14)
+            $0.leading.trailing.equalToSuperview()
         }
 
-        bannerTitleLabel.snp.makeConstraints { make in
-            make.leading.trailing.equalToSuperview().inset(18)
-            make.bottom.equalTo(bannerSubtitleLabel.snp.top).offset(-6)
-        }
-
-        bannerSubtitleLabel.snp.makeConstraints { make in
-            make.leading.trailing.equalToSuperview().inset(18)
-            make.bottom.equalToSuperview().inset(22)
-        }
-
-        quickActionCollectionView.snp.makeConstraints { make in
-            make.top.equalTo(bannerView.snp.bottom).offset(18)
-            make.leading.trailing.equalToSuperview()
-            make.height.equalTo(84)
-        }
-
-        recommendationTitleLabel.snp.makeConstraints { make in
-            make.top.equalTo(quickActionCollectionView.snp.bottom).offset(22)
-            make.leading.equalToSuperview().offset(20)
-        }
-
-        recommendationCollectionView.snp.makeConstraints { make in
-            make.top.equalTo(recommendationTitleLabel.snp.bottom).offset(14)
-            make.leading.trailing.equalToSuperview()
-            make.height.equalTo(214)
-            make.bottom.equalToSuperview().inset(20)
+        guideLabel.snp.makeConstraints {
+            $0.top.equalTo(cardsBackgroundView.snp.bottom).offset(12)
+            $0.leading.trailing.equalToSuperview().inset(20)
+            $0.bottom.equalToSuperview().inset(20)
         }
     }
 
-    func bind() {
-        let perfumeRegisterTap = PublishRelay<Void>()
-        let tastingNoteTap = PublishRelay<Void>()
-        let reportTap = PublishRelay<Void>()
+        // 취향 프로필 카드 탭 → 취향 프로필 상세 화면 이동
+    @objc func profileCardTapped() {
+        guard let item = currentProfileItem else { return }
 
+        let profileVC = TasteProfileViewController(profileItem: item)
+        navigationController?.pushViewController(profileVC, animated: true)
+    }
+}
+
+    // MARK: - Bind
+
+private extension HomeViewController {
+
+    func bind() {
         let input = HomeViewModel.Input(
             viewDidLoad: Observable.just(()),
-            perfumeRegisterTap: perfumeRegisterTap.asObservable(),
-            tastingNoteTap: tastingNoteTap.asObservable(),
-            reportTap: reportTap.asObservable(),
+            perfumeRegisterTap: .never(),
+            tastingNoteTap: .never(),
+            reportTap: .never(),
             perfumeSelect: recommendationCollectionView.rx.itemSelected.asObservable()
         )
 
         let output = viewModel.transform(input: input)
 
-        output.bannerTitle
-            .drive(bannerTitleLabel.rx.text)
-            .disposed(by: disposeBag)
-
-        output.bannerSubtitle
-            .drive(bannerSubtitleLabel.rx.text)
-            .disposed(by: disposeBag)
-
-        output.quickActions
-            .drive(with: self) { owner, actions in
-                owner.quickActions = actions
-                owner.quickActionCollectionView.reloadData()
+            // 취향 프로필 entry 카드
+        output.profile
+            .drive(with: self) { owner, item in
+                guard let item else { return }
+                owner.currentProfileItem = item
+                let profile = item.profile
+                owner.profileNameLabel.text = profile.primaryProfileName
+                owner.profileIconLabel.text = Self.profileEmoji(for: profile.primaryProfileCode)
+                owner.profileIconView.backgroundColor = Self.profileIconBg(for: profile.primaryProfileCode)
             }
             .disposed(by: disposeBag)
 
+            // 추천 향수
         output.recommendations
             .drive(with: self) { owner, items in
                 owner.recommendations = items
@@ -224,34 +278,14 @@ private extension HomeViewController {
             }
             .disposed(by: disposeBag)
 
+            // 라우팅
         output.route
-            .emit(with: self) { owner, route in
-                owner.handleRoute(route)
-            }
-            .disposed(by: disposeBag)
-
-        quickActionCollectionView.rx.itemSelected
-            .subscribe(onNext: { [weak self] indexPath in
-                guard let self, self.quickActions.indices.contains(indexPath.item) else { return }
-
-                switch self.quickActions[indexPath.item].type {
-                    case .perfumeRegister:
-                        perfumeRegisterTap.accept(())
-                    case .tastingNote:
-                        tastingNoteTap.accept(())
-                    case .report:
-                        reportTap.accept(())
-                }
-            })
+            .emit(with: self) { owner, route in owner.handleRoute(route) }
             .disposed(by: disposeBag)
 
         searchButton.rx.tap
             .subscribe(onNext: { [weak self] in
-                let alert = UIAlertController(
-                    title: "검색",
-                    message: "검색 화면 연결이 필요한 상태예요.",
-                    preferredStyle: .alert
-                )
+                let alert = UIAlertController(title: "검색", message: "검색 화면 연결 예정이에요.", preferredStyle: .alert)
                 alert.addAction(UIAlertAction(title: "확인", style: .default))
                 self?.present(alert, animated: true)
             })
@@ -260,80 +294,62 @@ private extension HomeViewController {
 
     func handleRoute(_ route: HomeRoute) {
         switch route {
-            case .perfumeRegister:
-                presentAlert(message: "향수 등록 화면으로 연결할 수 있어요.")
-            case .tastingNoteWrite:
-                presentAlert(message: "시향기 작성 화면으로 연결할 수 있어요.")
-            case .tasteReport:
-                presentAlert(message: "취향 리포트 화면으로 연결할 수 있어요.")
+            case .perfumeRegister:   presentAlert("향수 등록 화면으로 연결할 수 있어요.")
+            case .tastingNoteWrite:  presentAlert("시향기 작성 화면으로 연결할 수 있어요.")
+            case .tasteReport:       presentAlert("취향 리포트 화면으로 연결할 수 있어요.")
             case .perfumeDetail(let id):
-                let detailViewController = PerfumeDetailViewController(perfumeId: "\(id)")
-                navigationController?.pushViewController(detailViewController, animated: true)
+                if id.hasPrefix("local-") { presentAlert("현재 카드는 샘플 데이터예요."); return }
+                navigationController?.pushViewController(PerfumeDetailViewController(perfumeId: id), animated: true)
         }
     }
 
-    func presentAlert(message: String) {
-        let alert = UIAlertController(title: "이동", message: message, preferredStyle: .alert)
+    func presentAlert(_ message: String) {
+        let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "확인", style: .default))
         present(alert, animated: true)
     }
-}
 
-extension HomeViewController: UICollectionViewDataSource {
-
-    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        if collectionView == quickActionCollectionView {
-            return quickActions.count
+    static func profileEmoji(for code: String) -> String {
+        switch code {
+            case "P1": return "💧"; case "P2": return "🍋"
+            case "P3": return "🌸"; case "P4": return "🌹"
+            case "P5": return "🪵"; case "P6": return "🌿"
+            case "P7": return "🌙"; case "P8": return "🔥"
+            default:   return "✨"
         }
-        return recommendations.count
     }
 
-    func collectionView(
-        _ collectionView: UICollectionView,
-        cellForItemAt indexPath: IndexPath
-    ) -> UICollectionViewCell {
-        if collectionView == quickActionCollectionView {
-            guard let cell = collectionView.dequeueReusableCell(
-                withReuseIdentifier: HomeQuickActionCell.reuseIdentifier,
-                for: indexPath
-            ) as? HomeQuickActionCell else {
-                return UICollectionViewCell()
-            }
-
-            cell.configure(with: quickActions[indexPath.item])
-            return cell
+    static func profileIconBg(for code: String) -> UIColor {
+        switch code {
+            case "P1", "P2": return UIColor(red: 0.89, green: 0.96, blue: 0.93, alpha: 1)
+            case "P3", "P4": return UIColor(red: 0.98, green: 0.92, blue: 0.94, alpha: 1)
+            case "P5", "P6": return UIColor(red: 0.98, green: 0.95, blue: 0.87, alpha: 1)
+            case "P7", "P8": return UIColor(red: 0.93, green: 0.93, blue: 0.99, alpha: 1)
+            default:         return UIColor(red: 0.95, green: 0.93, blue: 0.91, alpha: 1)
         }
+    }
+}
 
+    // MARK: - CollectionView
+
+extension HomeViewController: UICollectionViewDataSource {
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        recommendations.count
+    }
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         guard let cell = collectionView.dequeueReusableCell(
-            withReuseIdentifier: HomePerfumeCardCell.reuseIdentifier,
-            for: indexPath
-        ) as? HomePerfumeCardCell else {
-            return UICollectionViewCell()
-        }
-
+            withReuseIdentifier: HomePerfumeCardCell.reuseIdentifier, for: indexPath
+        ) as? HomePerfumeCardCell else { return UICollectionViewCell() }
         cell.configure(with: recommendations[indexPath.item])
         return cell
     }
 }
 
 extension HomeViewController: UICollectionViewDelegateFlowLayout {
-
-    func collectionView(
-        _ collectionView: UICollectionView,
-        layout collectionViewLayout: UICollectionViewLayout,
-        sizeForItemAt indexPath: IndexPath
-    ) -> CGSize {
-        if collectionView == quickActionCollectionView {
-            return CGSize(width: 84, height: 80)
-        }
-        return CGSize(width: 94, height: 194)
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
+        CGSize(width: 148, height: 228)
     }
-
-    func collectionView(
-        _ collectionView: UICollectionView,
-        layout collectionViewLayout: UICollectionViewLayout,
-        insetForSectionAt section: Int
-    ) -> UIEdgeInsets {
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, insetForSectionAt section: Int) -> UIEdgeInsets {
         UIEdgeInsets(top: 0, left: 20, bottom: 0, right: 20)
     }
 }

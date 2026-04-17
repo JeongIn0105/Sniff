@@ -48,4 +48,12 @@ final class AuthService {
 
         _ = try await Auth.auth().signIn(with: credential)
     }
+
+    func signInAnonymouslyForDebug() async throws {
+        if Auth.auth().currentUser != nil {
+            return
+        }
+
+        _ = try await Auth.auth().signInAnonymously()
+    }
 }
