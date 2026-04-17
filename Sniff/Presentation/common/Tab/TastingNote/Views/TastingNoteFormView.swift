@@ -24,15 +24,19 @@ struct TastingNoteFormView: View {
     }
 
     var body: some View {
-        ZStack {
-            Color(.systemBackground).ignoresSafeArea()
+        VStack(spacing: 0) {
+            headerView
 
-            VStack(spacing: 0) {
-                headerView
-
-                ScrollView(showsIndicators: false) {
-                    ScrollViewReader { proxy in
-                        VStack(alignment: .leading, spacing: 32) {
+            ScrollView(showsIndicators: false) {
+                ScrollViewReader { proxy in
+                    VStack(alignment: .leading, spacing: 32) {
+                        // 수정 모드: 검색창 숨기고 읽기 전용 향수 카드 표시
+                        if vm.isEditMode {
+                            if let fragrance = vm.displayCardFragrance {
+                                editModeFragranceCard(fragrance)
+                            }
+                        } else {
+                            // 등록 모드: 기존 검색 섹션 유지
                             searchSection
                                 .zIndex(10)
                                 .id("formTop")
@@ -40,17 +44,20 @@ struct TastingNoteFormView: View {
                             if let fragrance = vm.displayCardFragrance {
                                 selectedCard(fragrance)
                             }
-
-                            ratingSection(title: "향 선호도",   value: $vm.rating,    label: vm.rating.ratingLabel)
-                            moodTagSection
-                            memoSection
-                            Spacer().frame(height: 24)
                         }
-                        .padding(.horizontal, 20)
-                        .padding(.top, 8)
-                        .padding(.bottom, 24)
-                        // 향수 선택 시 상단으로 스크롤
-                        .onChange(of: vm.selectedFragrance?.id) { _ in
+
+                        ratingSection(title: "향 선호도", value: $vm.rating, label: vm.rating.ratingLabel)
+                        moodTagSection
+                        revisitDesireSection
+                        memoSection
+                        Spacer().frame(height: 8)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, vm.isEditMode ? 24 : 8)
+                    .padding(.bottom, 16)
+                    // 향수 선택 시 상단으로 스크롤 (등록 모드에서만)
+                    .onChange(of: vm.selectedFragrance?.id) { _ in
+                        if !vm.isEditMode {
                             withAnimation(.easeOut(duration: 0.3)) {
                                 proxy.scrollTo("formTop", anchor: .top)
                             }
@@ -58,9 +65,12 @@ struct TastingNoteFormView: View {
                     }
                 }
             }
+
+            // 하단 버튼 바 — VStack 안에 배치해 스크롤 콘텐츠가 뒤로 보이지 않도록
+            bottomBar
         }
+        .background(Color(.systemBackground).ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
-        .safeAreaInset(edge: .bottom) { bottomBar }
         .onChange(of: vm.saveSuccess) { success in
             if success { onSaveSuccess(vm.savedPerfumeName); dismiss() }
         }
@@ -81,7 +91,15 @@ struct TastingNoteFormView: View {
             Text(vm.navigationTitle)
                 .font(.system(size: 20, weight: .semibold))
             HStack {
-                CircleHeaderButton(systemName: "chevron.left") { dismiss() }
+                // 뒤로 가기 버튼 (동그라미 없음)
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(.primary)
+                        .frame(width: 44, height: 44)
+                }
                 Spacer()
             }
         }
@@ -247,6 +265,87 @@ struct TastingNoteFormView: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
+    // MARK: - 수정 모드 전용 향수 카드 (읽기 전용, x버튼 없음)
+
+    private func editModeFragranceCard(_ fragrance: FragellaFragrance) -> some View {
+        HStack(spacing: 14) {
+            // 향수 이미지
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color(.systemGray6))
+                if let url = fragrance.imageURL.flatMap(URL.init) {
+                    KFImage(url)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+            }
+            .frame(width: 110, height: 110)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text(fragrance.displayBrand)
+                    .font(.system(size: 14))
+                    .foregroundColor(.secondary)
+
+                Text(fragrance.displayName)
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(.primary)
+
+                if !fragrance.mainAccords.isEmpty {
+                    HStack(spacing: 6) {
+                        ForEach(fragrance.mainAccords.prefix(3), id: \.self) { accord in
+                            HStack(spacing: 4) {
+                                Circle()
+                                    .frame(width: 5, height: 5)
+                                    .foregroundColor(accord.accordColor)
+                                Text(accord)
+                                    .font(.system(size: 13))
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                }
+            }
+            Spacer()
+        }
+    }
+
+    // MARK: - 다시 쓰고 싶은지 섹션 (단일 선택)
+
+    private var revisitDesireSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("다시 쓰고 싶은지")
+                .font(.system(size: 17, weight: .semibold))
+
+            // 2열 고정 레이아웃
+            let tags = kRevisitDesireList
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    ForEach(Array(tags[0..<2]), id: \.self) { tag in
+                        MoodChip(
+                            title: tag,
+                            isSelected: vm.revisitDesire == tag
+                        ) {
+                            vm.toggleRevisitDesire(tag)
+                        }
+                    }
+                    Spacer()
+                }
+                HStack(spacing: 8) {
+                    ForEach(Array(tags[2..<4]), id: \.self) { tag in
+                        MoodChip(
+                            title: tag,
+                            isSelected: vm.revisitDesire == tag
+                        ) {
+                            vm.toggleRevisitDesire(tag)
+                        }
+                    }
+                    Spacer()
+                }
+            }
+        }
+    }
+
     // MARK: - 별점 섹션
 
     private func ratingSection(title: String, value: Binding<Int>, label: String) -> some View {
@@ -364,30 +463,22 @@ struct TastingNoteFormView: View {
             }
             .disabled(!vm.canSave || vm.isSaving)
         }
-        .padding(.horizontal, 20).padding(.top, 12).padding(.bottom, 20)
+        .padding(.horizontal, 20)
+        .padding(.top, 12)
+        .padding(.bottom, 20)
         .background(
             Color(.systemBackground)
-                .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: -4)
+                .overlay(alignment: .top) {
+                    Rectangle()
+                        .fill(Color(.systemGray5))
+                        .frame(height: 0.5)
+                }
+                .ignoresSafeArea(edges: .bottom)
         )
     }
 }
 
 // MARK: - 서브뷰
-
-private struct CircleHeaderButton: View {
-    let systemName: String
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            ZStack {
-                Circle().fill(Color(.systemGray6)).frame(width: 52, height: 52)
-                Image(systemName: systemName)
-                    .font(.system(size: 20, weight: .semibold)).foregroundColor(.primary)
-            }
-        }
-    }
-}
 
 struct MoodChip: View {
     let title: String

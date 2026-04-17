@@ -19,14 +19,24 @@ struct TastingNote: Identifiable, Codable {
     var mainAccords: [String]
     var concentration: String?
     var rating: Int
-    var longevity: Int       // 하위 호환성을 위해 유지 (UI에서는 미사용)
+    var longevity: Int           // 하위 호환성을 위해 유지 (UI에서는 미사용)
     var moodTags: [String]
+    var revisitDesire: String?   // 다시 쓰고 싶은지 태그 (선택)
     var memo: String
     var perfumeImageURL: String?
     var fragranceID: String?
     var createdAt: Date
     var updatedAt: Date
 }
+
+// MARK: - 다시 쓰고 싶은지 태그 목록 (4개, 단일 선택)
+
+let kRevisitDesireList: [String] = [
+    "매일 뿌리고 싶어",
+    "가끔 꺼내고 싶어",
+    "기억에 남아, 근데 내 향은 아니야",
+    "다시 맡고 싶지 않아"
+]
 
 // MARK: - Fragella 향수 검색 결과 모델
 

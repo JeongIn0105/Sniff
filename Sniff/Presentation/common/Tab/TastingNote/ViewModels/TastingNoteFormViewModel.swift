@@ -34,6 +34,7 @@ final class TastingNoteFormViewModel: ObservableObject {
 
     @Published var rating: Int = 0
     @Published var selectedMoodTags: Set<String> = []
+    @Published var revisitDesire: String? = nil   // 다시 쓰고 싶은지 (단일 선택, 선택 안 해도 저장 가능)
     @Published var memo: String = ""
 
     // MARK: - Published (상태)
@@ -116,6 +117,7 @@ final class TastingNoteFormViewModel: ObservableObject {
         selectedMoodTags = Set(note.moodTags.map {
             kLegacyTagToKorean[$0] ?? $0
         })
+        revisitDesire = note.revisitDesire
         memo = note.memo
         searchText = note.perfumeName
         selectedFragrance = nil
@@ -307,6 +309,11 @@ final class TastingNoteFormViewModel: ObservableObject {
         }
     }
 
+    /// 다시 쓰고 싶은지 단일 선택 — 이미 선택된 태그를 탭하면 선택 해제
+    func toggleRevisitDesire(_ tag: String) {
+        revisitDesire = (revisitDesire == tag) ? nil : tag
+    }
+
     // MARK: - 초기화
 
     func reset() {
@@ -328,6 +335,7 @@ final class TastingNoteFormViewModel: ObservableObject {
             concentration = ""
             rating = 0
             selectedMoodTags = []
+            revisitDesire = nil
             memo = ""
         }
     }
@@ -349,6 +357,7 @@ final class TastingNoteFormViewModel: ObservableObject {
             rating: rating,
             longevity: 0,
             moodTags: orderedMoodTags(from: selectedMoodTags),
+            revisitDesire: revisitDesire,
             memo: memo.trimmingCharacters(in: .whitespacesAndNewlines),
             perfumeImageURL: selectedFragrance?.imageURL ?? editingNote?.perfumeImageURL,
             fragranceID: selectedFragrance?.id ?? editingNote?.fragranceID,

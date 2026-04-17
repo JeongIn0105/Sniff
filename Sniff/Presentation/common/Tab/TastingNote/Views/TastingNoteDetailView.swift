@@ -60,6 +60,15 @@ struct TastingNoteDetailView: View {
                         .padding(.horizontal, 20)
                         .padding(.vertical, 20)
 
+                    if let desire = currentNote.revisitDesire {
+                        revisitDesireDisplaySection(desire)
+                            .padding(.horizontal, 20)
+
+                        Divider()
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 20)
+                    }
+
                     memoDisplaySection
                         .padding(.horizontal, 20)
 
@@ -69,7 +78,7 @@ struct TastingNoteDetailView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
-        .sheet(isPresented: $showEditSheet) {
+        .fullScreenCover(isPresented: $showEditSheet) {
             TastingNoteFormView(editingNote: currentNote)
         }
         .alert("시향 기록 삭제", isPresented: $showDeleteAlert) {
@@ -95,15 +104,19 @@ struct TastingNoteDetailView: View {
                 .padding(.horizontal, 72)
 
             HStack {
-                CircleIconButton(
-                    systemName: "chevron.left",
-                    size: 24
-                ) {
+                // 뒤로 가기 버튼 (동그라미 없음)
+                Button {
                     dismiss()
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(.primary)
+                        .frame(width: 44, height: 44)
                 }
 
                 Spacer()
 
+                // 수정/삭제 메뉴 (동그라미 없음)
                 Menu {
                     Button {
                         showEditSheet = true
@@ -117,15 +130,10 @@ struct TastingNoteDetailView: View {
                         Label("삭제", systemImage: "trash")
                     }
                 } label: {
-                    ZStack {
-                        Circle()
-                            .fill(Color(.systemGray6))
-                            .frame(width: 52, height: 52)
-
-                        Image(systemName: "ellipsis")
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundColor(.primary)
-                    }
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(.primary)
+                        .frame(width: 44, height: 44)
                 }
             }
         }
@@ -226,6 +234,21 @@ struct TastingNoteDetailView: View {
         }
     }
 
+    private func revisitDesireDisplaySection(_ desire: String) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("다시 쓰고 싶은지")
+                .font(.system(size: 17, weight: .semibold))
+
+            Text(desire)
+                .font(.system(size: 14))
+                .foregroundColor(.white)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(Color.black)
+                .clipShape(Capsule())
+        }
+    }
+
     private var memoDisplaySection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("시향 메모")
@@ -253,22 +276,3 @@ struct TastingNoteDetailView: View {
     }
 }
 
-private struct CircleIconButton: View {
-    let systemName: String
-    let size: CGFloat
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            ZStack {
-                Circle()
-                    .fill(Color(.systemGray6))
-                    .frame(width: 52, height: 52)
-
-                Image(systemName: systemName)
-                    .font(.system(size: size, weight: .semibold))
-                    .foregroundColor(.primary)
-            }
-        }
-    }
-}

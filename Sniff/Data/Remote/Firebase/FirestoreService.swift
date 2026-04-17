@@ -143,6 +143,9 @@ final class FirestoreService {
             let updatedAt = (data["updatedAt"] as? Timestamp)?.dateValue()
         else { return nil }
 
+        // createdAt: 없으면 updatedAt으로 fallback (구 데이터 호환)
+        let createdAt = (data["createdAt"] as? Timestamp)?.dateValue() ?? updatedAt
+
         return TastingRecord(
             id: document.documentID,
             perfumeName: perfumeName,
@@ -150,6 +153,8 @@ final class FirestoreService {
             mainAccords: data["mainAccords"] as? [String] ?? [],
             rating: rating,
             moodTags: data["moodTags"] as? [String] ?? [],
+            revisitDesire: data["revisitDesire"] as? String,
+            createdAt: createdAt,
             updatedAt: updatedAt
         )
     }

@@ -45,7 +45,7 @@ struct TastingNoteView: View {
                     .padding(.bottom, 24)
             }
             .toolbar(.hidden, for: .navigationBar)
-            .sheet(isPresented: $viewModel.showFormSheet) {
+            .fullScreenCover(isPresented: $viewModel.showFormSheet) {
                 TastingNoteFormView { perfumeName in
                     viewModel.showToast(perfumeName: perfumeName)
                 }
@@ -213,10 +213,9 @@ struct TastingNoteRowView: View {
                                 Circle()
                                     .frame(width: 4, height: 4)
                                     .foregroundColor(accord.accordColor)
-
                                 Text(accord)
                                     .font(.system(size: 13))
-                                    .foregroundColor(accord.accordColor)
+                                    .foregroundColor(.secondary)
                             }
                         }
                     }
