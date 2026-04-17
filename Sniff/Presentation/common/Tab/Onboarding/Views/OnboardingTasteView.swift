@@ -97,11 +97,11 @@ struct OnboardingTasteView: View {
                 .padding(.bottom)
             }
 
-            // 에러 메시지 ← 추가된 부분
-            if let error = viewModel.errorMessage {
-                Text(error)
-                    .font(.caption)
+            if let errorMessage = viewModel.errorMessage, !errorMessage.isEmpty {
+                Text(errorMessage)
+                    .font(.footnote)
                     .foregroundColor(.red)
+                    .multilineTextAlignment(.center)
                     .padding(.horizontal)
             }
 

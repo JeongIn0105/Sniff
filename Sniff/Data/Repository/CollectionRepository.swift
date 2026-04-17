@@ -16,8 +16,8 @@ final class CollectionRepository: CollectionRepositoryType {
 
     private let firestoreService: FirestoreService
 
-    init(firestoreService: FirestoreService = .shared) {
-        self.firestoreService = firestoreService
+    init(firestoreService: FirestoreService? = nil) {
+        self.firestoreService = firestoreService ?? .shared
     }
 
     func fetchCollection() -> Single<[CollectedPerfume]> {

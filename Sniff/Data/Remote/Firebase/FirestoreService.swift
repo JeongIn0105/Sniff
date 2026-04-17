@@ -10,12 +10,15 @@ import FirebaseAuth
 import FirebaseFirestore
 
 enum FirestoreServiceError: LocalizedError {
-    case missingDocument(String)
+    case missingAuthenticatedUser
+    case invalidTasteAnalysisData
 
     var errorDescription: String? {
         switch self {
-        case .missingDocument(let path):
-            return "\(path) 문서를 찾을 수 없어요"
+        case .missingAuthenticatedUser:
+            return "로그인된 사용자 정보를 찾을 수 없어요"
+        case .invalidTasteAnalysisData:
+            return "저장된 취향 분석 데이터를 읽을 수 없어요"
         }
     }
 }
@@ -24,50 +27,67 @@ final class FirestoreService {
 
     static let shared = FirestoreService()
 
-    private let db = Firestore.firestore()
+    private let database = Firestore.firestore()
 
     private init() {}
 
-    func saveUserProfile(nickname: String, tasteAnalysis: TasteAnalysisResult) async throws {
-        let now = FieldValue.serverTimestamp()
-        let userRef = userDocumentRef()
+func isNicknameAvailable(_ nickname: String) async throws -> Bool {
+        let normalizedNickname = normalizedNickname(nickname)
+        guard !normalizedNickname.isEmpty else { return false }
+        let currentUserID = try authenticatedUserID()
+        let snapshot = try await database.collection("users")
+            .whereField("nicknameLowercased", isEqualTo: normalizedNickname)
+            .getDocuments()
+        return snapshot.documents.allSatisfy { $0.documentID == currentUserID }
+    }
 
-        try await userRef.setData([
+    func saveUserProfile(
+        nickname: String,
+        tasteAnalysis: TasteAnalysisResult
+    ) async throws {
+        let now = FieldValue.serverTimestamp()
+        let ref = try userDocumentRef()
+
+        let data: [String: Any] = [
             "nickname": nickname,
-            "createdAt": now,
-            "updatedAt": now,
+            "nicknameLowercased": normalizedNickname(nickname),
             "tasteAnalysis": Self.tasteAnalysisDictionary(from: tasteAnalysis),
-            "recommendationMeta": [
-                "profileVersion": 1,
-                "lastAnalyzedAt": now
-            ]
-        ], merge: true)
+            "updatedAt": now,
+            "createdAt": now
+        ]
+
+        try await ref.setData(data, merge: true)
     }
 
     func fetchTasteAnalysis() async throws -> TasteAnalysisResult {
         let snapshot = try await userDocumentRef().getDocument()
+        let data = snapshot.data() ?? [:]
 
-        guard snapshot.exists else {
-            throw FirestoreServiceError.missingDocument("users/\(currentUserID())")
+        if let nested = data["tasteAnalysis"] as? [String: Any] {
+            return try Self.decodeTasteAnalysis(from: nested)
         }
 
-        guard
-            let data = snapshot.data(),
-            let tasteAnalysis = data["tasteAnalysis"] as? [String: Any]
-        else {
-            throw FirestoreServiceError.missingDocument("users/\(currentUserID()).tasteAnalysis")
+        if let nested = data["taste_analysis"] as? [String: Any] {
+            return try Self.decodeTasteAnalysis(from: nested)
         }
 
-        return try Self.decodeTasteAnalysis(from: tasteAnalysis)
+        if Self.looksLikeTasteAnalysisPayload(data) {
+            return try Self.decodeTasteAnalysis(from: data)
+        }
+
+        throw FirestoreServiceError.invalidTasteAnalysisData
     }
 
     func fetchCollection() async throws -> [CollectedPerfume] {
         let snapshot = try await userDocumentRef()
             .collection("collection")
-            .order(by: "addedAt", descending: true)
             .getDocuments()
 
-        return snapshot.documents.compactMap(Self.makeCollectedPerfume)
+        return snapshot.documents
+            .compactMap(Self.makeCollectedPerfumeV2)
+            .sorted { lhs, rhs in
+                (lhs.createdAt ?? .distantPast) > (rhs.createdAt ?? .distantPast)
+            }
     }
 
     func fetchLikedPerfumes() async throws -> [LikedPerfume] {
@@ -82,21 +102,129 @@ final class FirestoreService {
     func fetchTastingRecords() async throws -> [TastingRecord] {
         let snapshot = try await userDocumentRef()
             .collection("tastingRecords")
-            .order(by: "updatedAt", descending: true)
             .getDocuments()
 
-        return snapshot.documents.compactMap(Self.makeTastingRecord)
+        return snapshot.documents
+            .compactMap(Self.makeTastingRecordV2)
+            .sorted { $0.updatedAt > $1.updatedAt }
     }
 
-    private func userDocumentRef() -> DocumentReference {
-        db.collection("users").document(currentUserID())
+    func saveCollectedPerfume(
+        _ perfume: FragellaPerfume,
+        memo: String? = nil
+    ) async throws {
+        let now = FieldValue.serverTimestamp()
+        let ref = try userDocumentRef()
+            .collection("collection")
+            .document(perfume.id)
+
+        var data: [String: Any] = [
+            "name": perfume.name,
+            "brand": perfume.brand,
+            "imageUrl": perfume.imageUrl as Any,
+            "mainAccords": perfume.mainAccords,
+            "accordStrengths": Self.accordStrengthsForStorage(from: perfume),
+            "concentration": perfume.concentration as Any,
+            "gender": perfume.gender as Any,
+            "addedAt": now,
+            "updatedAt": now
+        ]
+
+        if let memo, !memo.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            data["memo"] = memo
+        }
+
+        try await ref.setData(data, merge: true)
     }
 
-    private func currentUserID() -> String {
-        Auth.auth().currentUser?.uid ?? "debug-user"
+    func saveTastingRecord(
+        id: String? = nil,
+        fragellaPerfume: FragellaPerfume,
+        rating: Int,
+        moodTags: [String],
+        memo: String?,
+        wantToRevisit: String? = nil
+    ) async throws {
+        let now = FieldValue.serverTimestamp()
+        let ref = try userDocumentRef()
+            .collection("tastingRecords")
+            .document(id ?? UUID().uuidString)
+
+        var data: [String: Any] = [
+            "perfumeName": fragellaPerfume.name,
+            "brandName": fragellaPerfume.brand,
+            "imageUrl": fragellaPerfume.imageUrl as Any,
+            "mainAccords": fragellaPerfume.mainAccords,
+            "accordStrengths": Self.accordStrengthsForStorage(from: fragellaPerfume),
+            "rating": rating,
+            "moodTags": moodTags,
+            "updatedAt": now
+        ]
+
+        if let memo, !memo.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            data["memo"] = memo
+        }
+
+        if let wantToRevisit, !wantToRevisit.isEmpty {
+            data["wantToRevisit"] = wantToRevisit
+        }
+
+        if id == nil {
+            data["createdAt"] = now
+        }
+
+        try await ref.setData(data, merge: true)
+    }
+}
+
+private extension FirestoreService {
+
+    func authenticatedUserID() throws -> String {
+        guard let userID = Auth.auth().currentUser?.uid else {
+            throw FirestoreServiceError.missingAuthenticatedUser
+        }
+        return userID
     }
 
-    private static func tasteAnalysisDictionary(from result: TasteAnalysisResult) -> [String: Any] {
+    func userDocumentRef() throws -> DocumentReference {
+        database.collection("users").document(try authenticatedUserID())
+    }
+
+    func normalizedNickname(_ nickname: String) -> String {
+        nickname.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
+    static func accordStrengthsForStorage(from perfume: FragellaPerfume) -> [String: String] {
+        if !perfume.mainAccordStrengths.isEmpty {
+            return perfume.mainAccordStrengths.reduce(into: [String: String]()) { result, pair in
+                guard let canonical = ScentFamilyNormalizer.canonicalName(for: pair.key) else { return }
+                let existingWeight: Double
+                if
+                    let storedRawValue = result[canonical],
+                    let storedStrength = AccordStrength(rawDescription: storedRawValue)
+                {
+                    existingWeight = storedStrength.weight
+                } else {
+                    existingWeight = -1
+                }
+
+                if pair.value.weight > existingWeight {
+                    result[canonical] = pair.value.rawValue
+                }
+            }
+        }
+
+        let fallbackStrengths: [AccordStrength] = [.dominant, .prominent, .moderate, .subtle]
+        return Dictionary(
+            uniqueKeysWithValues: perfume.mainAccords.enumerated().compactMap { index, accord in
+                guard let canonical = ScentFamilyNormalizer.canonicalName(for: accord) else { return nil }
+                let strength = index < fallbackStrengths.count ? fallbackStrengths[index] : .subtle
+                return (canonical, strength.rawValue)
+            }
+        )
+    }
+
+    static func tasteAnalysisDictionary(from result: TasteAnalysisResult) -> [String: Any] {
         [
             "primary_profile_code": result.primaryProfileCode,
             "primary_profile_name": result.primaryProfileName,
@@ -117,21 +245,18 @@ final class FirestoreService {
         ]
     }
 
-    private static func decodeTasteAnalysis(from data: [String: Any]) throws -> TasteAnalysisResult {
-        let jsonData = try JSONSerialization.data(withJSONObject: data)
-        return try JSONDecoder().decode(TasteAnalysisResult.self, from: jsonData)
+    static func decodeTasteAnalysis(from dictionary: [String: Any]) throws -> TasteAnalysisResult {
+        let data = try JSONSerialization.data(withJSONObject: dictionary)
+        return try JSONDecoder().decode(TasteAnalysisResult.self, from: data)
     }
 
-    private static func makeCollectedPerfume(from document: QueryDocumentSnapshot) -> CollectedPerfume? {
+private static func makeCollectedPerfume(from document: QueryDocumentSnapshot) -> CollectedPerfume? {
         let data = document.data()
-
         guard
             let name = data["name"] as? String,
             let brand = data["brand"] as? String
         else { return nil }
-
         let timestamp = data["addedAt"] as? Timestamp
-
         return CollectedPerfume(
             id: document.documentID,
             name: name,
@@ -145,14 +270,11 @@ final class FirestoreService {
 
     private static func makeLikedPerfume(from document: QueryDocumentSnapshot) -> LikedPerfume? {
         let data = document.data()
-
         guard
             let name  = data["name"]  as? String,
             let brand = data["brand"] as? String
         else { return nil }
-
         let timestamp = data["likedAt"] as? Timestamp
-
         return LikedPerfume(
             id: document.documentID,
             name: name,
@@ -166,17 +288,13 @@ final class FirestoreService {
 
     private static func makeTastingRecord(from document: QueryDocumentSnapshot) -> TastingRecord? {
         let data = document.data()
-
         guard
             let perfumeName = data["perfumeName"] as? String,
             let brandName = data["brandName"] as? String,
             let rating = data["rating"] as? Int,
             let updatedAt = (data["updatedAt"] as? Timestamp)?.dateValue()
         else { return nil }
-
-        // createdAt: 없으면 updatedAt으로 fallback (구 데이터 호환)
         let createdAt = (data["createdAt"] as? Timestamp)?.dateValue() ?? updatedAt
-
         return TastingRecord(
             id: document.documentID,
             perfumeName: perfumeName,
@@ -188,5 +306,12 @@ final class FirestoreService {
             createdAt: createdAt,
             updatedAt: updatedAt
         )
+    }
+
+    static func looksLikeTasteAnalysisPayload(_ dictionary: [String: Any]) -> Bool {
+        dictionary["primary_profile_code"] != nil
+        || dictionary["recommendation_direction"] != nil
+        || dictionary["analysis_summary"] != nil
+    }
     }
 }

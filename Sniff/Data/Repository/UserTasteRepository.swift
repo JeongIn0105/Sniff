@@ -11,6 +11,7 @@ import RxSwift
 protocol UserTasteRepositoryType {
     func fetchTasteAnalysis() -> Single<TasteAnalysisResult>
     func analyzeTaste(input: TasteAnalysisInput) async throws -> TasteAnalysisResult
+    func checkNicknameAvailability(_ nickname: String) async throws -> Bool
     func saveUserProfile(nickname: String, tasteAnalysis: TasteAnalysisResult) async throws
 }
 
@@ -21,9 +22,9 @@ final class UserTasteRepository: UserTasteRepositoryType {
 
     init(
         geminiService: GeminiTasteAnalysisService? = nil,
-        firestoreService: FirestoreService = .shared
+        firestoreService: FirestoreService? = nil
     ) {
-        self.firestoreService = firestoreService
+        self.firestoreService = firestoreService ?? .shared
 
         if let geminiService {
             self.geminiService = geminiService
@@ -62,6 +63,10 @@ final class UserTasteRepository: UserTasteRepositoryType {
         }
 
         return try await geminiService.requestTasteAnalysis(input: input)
+    }
+
+    func checkNicknameAvailability(_ nickname: String) async throws -> Bool {
+        try await firestoreService.isNicknameAvailable(nickname)
     }
 
     func saveUserProfile(nickname: String, tasteAnalysis: TasteAnalysisResult) async throws {

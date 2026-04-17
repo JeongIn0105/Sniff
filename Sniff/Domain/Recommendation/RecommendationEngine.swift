@@ -12,7 +12,7 @@ final class RecommendationEngine {
 
     private let aggregator = PreferenceAggregator()
     private let queryBuilder = RecommendationQueryBuilder()
-    private let scorer = PerfumeScorer()
+    let scorer = PerfumeScorer()
 
     func recommend(
         onboarding: TasteAnalysisResult,
@@ -27,34 +27,37 @@ final class RecommendationEngine {
         )
 
         let queries = queryBuilder.buildQueries(from: profile)
-
-        let requests = queries.map {
-            FragellaService.shared.search(query: $0, limit: 10)
+        let searchRequests = queries.map {
+            FragellaService.shared
+                .search(query: $0, limit: 10)
+                .catchAndReturn([])
         }
 
-        return Single.zip(requests)
-            .map { $0.flatMap { $0 } }
-            .map { perfumes in
-                Dictionary(grouping: perfumes, by: { $0.id })
-                    .compactMap { $0.value.first }
-            }
-            .map { perfumes in
-                perfumes.sorted {
-                    self.scorer.score(perfume: $0, profile: profile)
-                    >
-                    self.scorer.score(perfume: $1, profile: profile)
+        return Single.zip(searchRequests)
+            .map { [weak self] responses in
+                guard let self else {
+                    return RecommendationResult(profile: profile, perfumes: [])
                 }
-            }
-            .map { sorted in
-                RecommendationResult(
+
+                let flattenedPerfumes = responses.flatMap { $0 }
+                let uniquePerfumes = self.uniquePerfumes(from: flattenedPerfumes)
+                let candidatePerfumes = uniquePerfumes.isEmpty
+                    ? self.fallbackPerfumes(for: profile)
+                    : uniquePerfumes
+
+                let recommendations = candidatePerfumes
+                    .map { self.makeRecommendedPerfume(from: $0, profile: profile) }
+                    .sorted { lhs, rhs in
+                        if lhs.score == rhs.score {
+                            return lhs.perfume.name < rhs.perfume.name
+                        }
+                        return lhs.score > rhs.score
+                    }
+
+                return RecommendationResult(
                     profile: profile,
-                    perfumes: Array(sorted.prefix(10))
+                    perfumes: Array(recommendations.prefix(10))
                 )
             }
     }
-}
-
-struct RecommendationResult {
-    let profile: UserTasteProfile
-    let perfumes: [FragellaPerfume]
 }

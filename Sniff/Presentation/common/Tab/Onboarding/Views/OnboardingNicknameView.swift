@@ -34,17 +34,19 @@ struct OnboardingNicknameView: View {
 
             Button {
                 isNicknameFieldFocused = false
-                viewModel.currentStep = .experience
+                Task {
+                    await viewModel.confirmNicknameAndProceed()
+                }
             } label: {
                 Text(AppStrings.Nickname.confirm)
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
-                    .background(viewModel.canProceedFromNickname ? Color.black : Color(.systemGray4))
+                    .background(viewModel.canSubmitNickname ? Color.black : Color(.systemGray4))
                     .clipShape(RoundedRectangle(cornerRadius: 12))
             }
-            .disabled(!viewModel.canProceedFromNickname)
+            .disabled(!viewModel.canSubmitNickname)
             .padding(.horizontal, 20)
             .padding(.bottom, 24)
         }
@@ -114,21 +116,30 @@ struct OnboardingNicknameView: View {
 
                 Button {
                     isNicknameFieldFocused = false
-                    viewModel.checkNicknameDuplication()
+                    Task {
+                        await viewModel.checkNicknameDuplication()
+                    }
                 } label: {
                     Text(AppStrings.Nickname.duplicateCheck)
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(.black)
                         .fixedSize(horizontal: true, vertical: false)
                 }
-                .disabled(!viewModel.canCheckNicknameDuplication)
-                .opacity(viewModel.canCheckNicknameDuplication ? 1 : 0.45)
+                .disabled(!viewModel.canCheckNicknameDuplication || viewModel.isLoading)
+                .opacity(viewModel.canCheckNicknameDuplication && !viewModel.isLoading ? 1 : 0.45)
             }
 
             if let message = viewModel.nicknameStatusMessage {
                 Text(message)
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(viewModel.nicknameStatusColor)
+            }
+
+            if let errorMessage = viewModel.errorMessage, !errorMessage.isEmpty {
+                Text(errorMessage)
+                    .font(.system(size: 12))
+                    .foregroundColor(.red)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             Text(AppStrings.Nickname.description)
