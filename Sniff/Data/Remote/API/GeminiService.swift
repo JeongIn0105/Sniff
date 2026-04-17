@@ -1,79 +1,21 @@
-<<<<<<< HEAD
 //
-//  GeminiService.swift
-//  Sniff
-//
-//  Created by t2025-m0239 on 2026.04.13.
-//
-=======
-    //
     //  GeminiService.swift
     //  Sniff
     //
     //  Created by t2025-m0239 on 2026.04.13.
     //
->>>>>>> origin/main
 
 import Foundation
 import RxSwift
 
-<<<<<<< HEAD
-// MARK: - Input Model
-=======
     // MARK: - Input Model
->>>>>>> origin/main
 struct TasteAnalysisInput {
     let experience: String
     let vibes: [String]
     let images: [String]
 }
 
-<<<<<<< HEAD
-// MARK: - Output Model
-struct TasteAnalysisResult: Decodable {
-    let primaryProfileCode: String
-    let primaryProfileName: String
-    let secondaryProfileCode: String
-    let secondaryProfileName: String
-    let analysisSummary: String
-    let evidenceTags: EvidenceTags
-    let recommendationDirection: RecommendationDirection
-
-    enum CodingKeys: String, CodingKey {
-        case primaryProfileCode = "primary_profile_code"
-        case primaryProfileName = "primary_profile_name"
-        case secondaryProfileCode = "secondary_profile_code"
-        case secondaryProfileName = "secondary_profile_name"
-        case analysisSummary = "analysis_summary"
-        case evidenceTags = "evidence_tags"
-        case recommendationDirection = "recommendation_direction"
-    }
-}
-
-struct EvidenceTags: Decodable {
-    let experience: String
-    let vibes: [String]
-    let images: [String]
-}
-
-struct RecommendationDirection: Decodable {
-    let preferredImpression: [String]
-    let preferredFamilies: [String]
-    let intensityLevel: String
-    let safeStartingPoint: String
-
-    enum CodingKeys: String, CodingKey {
-        case preferredImpression = "preferred_impression"
-        case preferredFamilies = "preferred_families"
-        case intensityLevel = "intensity_level"
-        case safeStartingPoint = "safe_starting_point"
-    }
-}
-
-// MARK: - Service
-=======
     // MARK: - Service
->>>>>>> origin/main
 final class GeminiTasteAnalysisService {
 
     private let apiKey: String
@@ -87,15 +29,11 @@ final class GeminiTasteAnalysisService {
         "https://generativelanguage.googleapis.com/v1beta/models/\(model):generateContent?key=\(apiKey)"
     }
 
-<<<<<<< HEAD
-    // MARK: - RxSwift 기반 취향 분석 호출
-=======
     func requestTasteAnalysis(input: TasteAnalysisInput) async throws -> TasteAnalysisResult {
         try await request(input: input)
     }
 
         // MARK: - RxSwift 기반 취향 분석 호출
->>>>>>> origin/main
     func analyzeTaste(input: TasteAnalysisInput) -> Single<TasteAnalysisResult> {
         Single.create { [weak self] single in
             guard let self else {
@@ -118,11 +56,7 @@ final class GeminiTasteAnalysisService {
         }
     }
 
-<<<<<<< HEAD
-    // MARK: - 실제 네트워크 요청
-=======
         // MARK: - 실제 네트워크 요청
->>>>>>> origin/main
     private func request(input: TasteAnalysisInput) async throws -> TasteAnalysisResult {
         guard let url = URL(string: baseURL) else {
             throw GeminiError.invalidURL
@@ -150,11 +84,7 @@ final class GeminiTasteAnalysisService {
         return try parseResponse(data: data)
     }
 
-<<<<<<< HEAD
-    // MARK: - 요청 바디 조립
-=======
         // MARK: - 요청 바디 조립
->>>>>>> origin/main
     private func buildRequestBody(input: TasteAnalysisInput) -> [String: Any] {
         let vibesString = input.vibes.map { "\"\($0)\"" }.joined(separator: ", ")
         let imagesString = input.images.map { "\"\($0)\"" }.joined(separator: ", ")
@@ -187,11 +117,7 @@ final class GeminiTasteAnalysisService {
         ]
     }
 
-<<<<<<< HEAD
-    // MARK: - 응답 파싱
-=======
         // MARK: - 응답 파싱
->>>>>>> origin/main
     private func parseResponse(data: Data) throws -> TasteAnalysisResult {
         guard
             let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -214,11 +140,7 @@ final class GeminiTasteAnalysisService {
     }
 }
 
-<<<<<<< HEAD
-// MARK: - Error
-=======
     // MARK: - Error
->>>>>>> origin/main
 enum GeminiError: Error, LocalizedError {
     case serviceDeallocated
     case invalidURL
@@ -229,20 +151,6 @@ enum GeminiError: Error, LocalizedError {
 
     var errorDescription: String? {
         switch self {
-<<<<<<< HEAD
-        case .serviceDeallocated:
-            return "서비스 객체가 해제되었어요"
-        case .invalidURL:
-            return "잘못된 URL이에요"
-        case .invalidResponse:
-            return "서버 응답이 올바르지 않아요"
-        case .httpError(let code, let message):
-            return "서버 응답 오류가 발생했어요. (\(code))\n\(message)"
-        case .parsingFailed(let rawText):
-            return "결과를 분석하는 데 실패했어요\n\(rawText)"
-        case .decodingFailed(let decodedText):
-            return "결과 디코딩에 실패했어요\n\(decodedText)"
-=======
             case .serviceDeallocated:
                 return "서비스 객체가 해제되었어요"
             case .invalidURL:
@@ -255,7 +163,6 @@ enum GeminiError: Error, LocalizedError {
                 return "결과를 분석하는 데 실패했어요\n\(rawText)"
             case .decodingFailed(let decodedText):
                 return "결과 디코딩에 실패했어요\n\(decodedText)"
->>>>>>> origin/main
         }
     }
 }

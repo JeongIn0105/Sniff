@@ -17,12 +17,13 @@ struct TastingRecord {
     let accordStrengths: [String: AccordStrength]
     let rating: Int
     let moodTags: [String]
-    let memo: String?
-
-        // 재사용 의향 태그
-        // "매일 뿌리고 싶어" / "가끔 꺼내고 싶어" / "기억에 남아, 근데 내 향은 아니야" / "다시 맡고 싶지 않아"
+let memo: String?
+    /// 재사용 의향 태그
+    /// "매일 뿌리고 싶어" / "가끔 꺼내고 싶어" / "기억에 남아, 근데 내 향은 아니야" / "다시 맡고 싶지 않아"
     let wantToRevisit: String?
-
+    let revisitDesire: String?
+    /// 최초 시향 날짜 — recencyMultiplier 계산 기준으로 사용
+    let createdAt: Date
     let updatedAt: Date
 }
 

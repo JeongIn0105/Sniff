@@ -12,14 +12,20 @@ struct CollectedPerfume {
     let id: String
     let name: String
     let brand: String
+let scentFamily: String?
+    let scentFamily2: String?
+    let imageURL: String?
     let mainAccords: [String]
     let accordStrengths: [String: AccordStrength]
-
-        // 보유 향수 메모 — 취득 맥락, 보관 정보 등 자유 텍스트
-        // 시향기의 memo(감각적 기록)와 성격이 다름
+    /// 보유 향수 메모 — 취득 맥락, 보관 정보 등 자유 텍스트
+    /// 시향기의 memo(감각적 기록)와 성격이 다름
     let memo: String?
-
     let createdAt: Date?
+
+    /// 화면 표시용 향 계열 배열 (nil 제거)
+    var scentFamilies: [String] {
+        [scentFamily, scentFamily2].compactMap { $0 }.filter { !$0.isEmpty }
+    }
 }
 
 extension CollectedPerfume {

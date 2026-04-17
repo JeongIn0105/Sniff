@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import Foundation
 import RxSwift
 import RxCocoa
 import UIKit
@@ -85,43 +84,36 @@ final class HomeViewModel {
             }
             .share(replay: 1, scope: .whileConnected)
 
-        let recommendationResult = sourceData
-            .flatMapLatest { [weak self] data -> Observable<RecommendationResult?> in
-                guard let self, let (onboarding, collection, tasting) = data else {
-                    return .just(nil)
-                }
-
-                return self.recommendationEngine.recommend(
-                    onboarding: onboarding,
-                    collection: collection,
-                    tastingRecords: tasting
-                )
-                .map(Optional.some)
-                .catchAndReturn(nil)
-                .asObservable()
-            }
-            .share(replay: 1, scope: .whileConnected)
-
-        let banner = recommendationResult
-            .map { [weak self] result -> HomeTasteBannerItem in
-                guard let self, let result else { return Self.defaultBanner() }
-                return self.makeBanner(from: result.profile)
-            }
-            .asDriver(onErrorJustReturn: Self.defaultBanner())
-
-            // 취향 프로필 카드용 — profile + count 정보 함께 전달
-        let profile = Observable.combineLatest(sourceData, recommendationResult)
-            .map { source, result -> HomeProfileItem? in
-                guard
-                    let (_, collection, tasting) = source,
-                    let result = result
-                else { return nil }
-
-                return HomeProfileItem(
-                    profile: result.profile,
+// MARK: - 추천 결과
+    private func loadRecommendation(
+        onboarding: OnboardingData,
+        collection: [CollectedPerfume],
+        tasting: [TastingRecord]
+    ) async {
+        let result = try? await recommendationEngine.recommend(
+            onboarding: onboarding,
+            collection: collection,
+            tastingRecords: tasting
+        )
+        await MainActor.run {
+            self.recommendationResult = result
+            self.banner = result.map { makeBanner(from: $0.profile) } ?? Self.defaultBanner()
+            self.profile = result.map {
+                HomeProfileItem(
+                    profile: $0.profile,
                     collectionCount: collection.count,
                     tastingCount: tasting.count
                 )
+            }
+            self.bannerTitle = result.map { "\($0.profile.primaryProfileName) 취향과 함께" }
+                ?? "킁킁 서비스와 함께"
+            self.bannerSubtitle = {
+                guard let result else { return "나에게 맞는 향수를 찾아가요" }
+                let familySummary = result.profile.preferredFamilies.prefix(2).joined(separator: " · ")
+                return familySummary.isEmpty ? "나에게 맞는 향수를 찾아가요" : "\(familySummary) 무드의 향수를 찾아가요"
+            }()
+        }
+    }
             }
             .asDriver(onErrorJustReturn: nil)
 
@@ -194,10 +186,13 @@ private extension HomeViewModel {
         : accords.map { "• \($0)" }.joined(separator: "  ")
     }
 
+if accords.isEmpty { return "• Floral  • Musky" }
+        return accords.map { "• \($0)" }.joined(separator: "  ")
+    }
+
     func makeBanner(from profile: UserTasteProfile) -> HomeTasteBannerItem {
         let familyText = profile.preferredFamilies.prefix(2).joined(separator: " · ")
         let summary: String
-
         if !profile.safeStartingPoint.isEmpty {
             summary = profile.safeStartingPoint
         } else if !profile.analysisSummary.isEmpty {
@@ -207,7 +202,6 @@ private extension HomeViewModel {
         } else {
             summary = "나에게 맞는 향수를 찾아가요"
         }
-
         return HomeTasteBannerItem(
             title: profile.primaryProfileName,
             summary: summary,
@@ -223,4 +217,3 @@ private extension HomeViewModel {
         )
     }
 }
-

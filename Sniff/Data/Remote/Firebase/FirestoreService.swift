@@ -6,8 +6,6 @@
 //
 
 import Foundation
-<<<<<<< HEAD
-=======
 import FirebaseAuth
 import FirebaseFirestore
 
@@ -33,15 +31,13 @@ final class FirestoreService {
 
     private init() {}
 
-    func isNicknameAvailable(_ nickname: String) async throws -> Bool {
+func isNicknameAvailable(_ nickname: String) async throws -> Bool {
         let normalizedNickname = normalizedNickname(nickname)
         guard !normalizedNickname.isEmpty else { return false }
-
         let currentUserID = try authenticatedUserID()
         let snapshot = try await database.collection("users")
             .whereField("nicknameLowercased", isEqualTo: normalizedNickname)
             .getDocuments()
-
         return snapshot.documents.allSatisfy { $0.documentID == currentUserID }
     }
 
@@ -92,6 +88,15 @@ final class FirestoreService {
             .sorted { lhs, rhs in
                 (lhs.createdAt ?? .distantPast) > (rhs.createdAt ?? .distantPast)
             }
+    }
+
+    func fetchLikedPerfumes() async throws -> [LikedPerfume] {
+        let snapshot = try await userDocumentRef()
+            .collection("likes")
+            .order(by: "likedAt", descending: true)
+            .getDocuments()
+
+        return snapshot.documents.compactMap(Self.makeLikedPerfume)
     }
 
     func fetchTastingRecords() async throws -> [TastingRecord] {
@@ -245,10 +250,68 @@ private extension FirestoreService {
         return try JSONDecoder().decode(TasteAnalysisResult.self, from: data)
     }
 
+private static func makeCollectedPerfume(from document: QueryDocumentSnapshot) -> CollectedPerfume? {
+        let data = document.data()
+        guard
+            let name = data["name"] as? String,
+            let brand = data["brand"] as? String
+        else { return nil }
+        let timestamp = data["addedAt"] as? Timestamp
+        return CollectedPerfume(
+            id: document.documentID,
+            name: name,
+            brand: brand,
+            scentFamily: data["scentFamily"] as? String,
+            scentFamily2: data["scentFamily2"] as? String,
+            imageURL: data["imageURL"] as? String,
+            createdAt: timestamp?.dateValue()
+        )
+    }
+
+    private static func makeLikedPerfume(from document: QueryDocumentSnapshot) -> LikedPerfume? {
+        let data = document.data()
+        guard
+            let name  = data["name"]  as? String,
+            let brand = data["brand"] as? String
+        else { return nil }
+        let timestamp = data["likedAt"] as? Timestamp
+        return LikedPerfume(
+            id: document.documentID,
+            name: name,
+            brand: brand,
+            scentFamily: data["scentFamily"] as? String,
+            scentFamily2: data["scentFamily2"] as? String,
+            imageURL: data["imageURL"] as? String,
+            likedAt: timestamp?.dateValue()
+        )
+    }
+
+    private static func makeTastingRecord(from document: QueryDocumentSnapshot) -> TastingRecord? {
+        let data = document.data()
+        guard
+            let perfumeName = data["perfumeName"] as? String,
+            let brandName = data["brandName"] as? String,
+            let rating = data["rating"] as? Int,
+            let updatedAt = (data["updatedAt"] as? Timestamp)?.dateValue()
+        else { return nil }
+        let createdAt = (data["createdAt"] as? Timestamp)?.dateValue() ?? updatedAt
+        return TastingRecord(
+            id: document.documentID,
+            perfumeName: perfumeName,
+            brandName: brandName,
+            mainAccords: data["mainAccords"] as? [String] ?? [],
+            rating: rating,
+            moodTags: data["moodTags"] as? [String] ?? [],
+            revisitDesire: data["revisitDesire"] as? String,
+            createdAt: createdAt,
+            updatedAt: updatedAt
+        )
+    }
+
     static func looksLikeTasteAnalysisPayload(_ dictionary: [String: Any]) -> Bool {
         dictionary["primary_profile_code"] != nil
         || dictionary["recommendation_direction"] != nil
         || dictionary["analysis_summary"] != nil
     }
+    }
 }
->>>>>>> origin/main

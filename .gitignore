@@ -1,7 +1,29 @@
-<<<<<<< HEAD
-GoogleService-Info.plist
-=======
-Sniff/Config/Secrets.xcconfig
+# Xcode
+DerivedData/
+build/
 *.xcuserstate
 xcuserdata/
->>>>>>> origin/main
+
+# Swift Package Manager
+.build/
+Packages/
+
+# CocoaPods
+Pods/
+
+# Carthage
+Carthage/Build/
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/
+
+# macOS
+.DS_Store
+
+# Local config / secrets
+Secrets.xcconfig
+
+# Local instruction file
+AGENTS.md
