@@ -6,12 +6,14 @@
 //
 
 import Foundation
+import Combine
 import AuthenticationServices
 import CryptoKit
 import Security
 import Combine
-
-@MainActor
+@preconcurrency import FirebaseAuth
+@preconcurrency import FirebaseFirestore
+// MARK: - 로그인 ViewModel
 final class LoginViewModel: ObservableObject {
 
     // DEBUG 임시 우회:
@@ -45,80 +47,58 @@ final class LoginViewModel: ObservableObject {
             await processAppleLoginResult(result, onSuccess: onSuccess)
         }
     }
-
-    private func processAppleLoginResult(
-        _ result: Result<ASAuthorization, Error>,
-        onSuccess: @escaping () -> Void
-    ) async {
+    
+    // MARK: - Apple 로그인
+    @MainActor
+    func signInWithApple(presentationAnchor: ASPresentationAnchor) {
         isLoading = true
-        defer { isLoading = false }
-
-        do {
-            let authorization = try result.get()
-
-            guard
-                let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential,
-                let nonce = currentNonce
-            else {
-                throw AuthServiceError.missingIdentityToken
+        appleSignInHelper.startSignIn(presentationAnchor: presentationAnchor) { [weak self] result in
+            guard let self else { return }
+            Task { @MainActor in
+                self.isLoading = false
+                switch result {
+                case .success(let authResult):
+                    await self.handleSignInSuccess(authResult: authResult)
+                case .failure(let error):
+                    self.errorMessage = error.localizedDescription
+                    self.showError = true
+                }
             }
+do {
+    try await authService.signInWithApple(
+        identityToken: appleIDCredential.identityToken,
+        rawNonce: nonce
+    )
 
-            try await authService.signInWithApple(
-                identityToken: appleIDCredential.identityToken,
-                rawNonce: nonce
-            )
-
-            errorMessage = nil
-            onSuccess()
-        } catch {
+    errorMessage = nil
+    onSuccess()
+} catch {
 #if DEBUG
-            if shouldBypassAppleLoginFailureInDebug {
-                try? await authService.signInAnonymouslyForDebug()
-                errorMessage = "DEBUG 임시 우회: Apple 로그인 실패를 건너뛰고 다음 화면으로 이동합니다."
-                onSuccess()
-                return
-            }
+    if shouldBypassAppleLoginFailureInDebug {
+        try? await authService.signInAnonymouslyForDebug()
+        errorMessage = "DEBUG 임시 우회: Apple 로그인 실패를 건너뛰고 다음 화면으로 이동합니다."
+        onSuccess()
+        return
+    }
 #endif
-            errorMessage = error.localizedDescription
+    errorMessage = error.localizedDescription
+}
         }
     }
-
-    private func sha256(_ input: String) -> String {
-        let inputData = Data(input.utf8)
-        let hashedData = SHA256.hash(data: inputData)
-        return hashedData.compactMap {
-            String(format: "%02x", $0)
-        }.joined()
-    }
-
-    private func randomNonceString(length: Int = 32) -> String {
-        precondition(length > 0)
-        let charset: [Character] = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
-        var result = ""
-        var remainingLength = length
-
-        while remainingLength > 0 {
-            let randoms: [UInt8] = (0..<16).map { _ in
-                var random: UInt8 = 0
-                let errorCode = SecRandomCopyBytes(kSecRandomDefault, 1, &random)
-                if errorCode != errSecSuccess {
-                    fatalError("Nonce 생성에 실패했어요. OSStatus \(errorCode)")
-                }
-                return random
+    
+    // MARK: - 신규/기존 사용자 분기
+    @MainActor
+    private func handleSignInSuccess(authResult: AuthDataResult) async {
+        let uid = authResult.user.uid
+        do {
+            let document = try await db.collection("users").document(uid).getDocument()
+            if document.exists {
+                onExistingUser()  // 기존 사용자 → 홈
+            } else {
+                onNewUser()       // 신규 사용자 → 닉네임
             }
-
-            randoms.forEach { random in
-                if remainingLength == 0 {
-                    return
-                }
-
-                if Int(random) < charset.count {
-                    result.append(charset[Int(random)])
-                    remainingLength -= 1
-                }
-            }
+        } catch {
+            onNewUser()
         }
-
-        return result
     }
 }

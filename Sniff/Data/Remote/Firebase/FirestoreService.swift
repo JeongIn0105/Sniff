@@ -6,6 +6,8 @@
 //
 
 import Foundation
+<<<<<<< HEAD
+=======
 import FirebaseAuth
 import FirebaseFirestore
 
@@ -249,3 +251,4 @@ private extension FirestoreService {
         || dictionary["analysis_summary"] != nil
     }
 }
+>>>>>>> origin/main

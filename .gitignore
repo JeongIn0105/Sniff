@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+GoogleService-Info.plist
+=======
 Sniff/Config/Secrets.xcconfig
 *.xcuserstate
 xcuserdata/
+>>>>>>> origin/main

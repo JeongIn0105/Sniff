@@ -119,6 +119,9 @@ struct FragellaPerfume {
             ? fallbackStrengths[index]
             : .subtle
         }
+    
+    private let baseURL = "https://api.fragella.com/api/v1"
+
 
         return normalized
     }
@@ -151,6 +154,9 @@ private enum FragellaResponseParser {
         if let array = jsonObject as? [[String: Any]] {
             return array.compactMap(parsePerfume(dictionary:))
         }
+    }
+        // MARK: - 추천용 향수 조회 (핵심🔥)
+    func fetchByFamilies(families: [String], limit: Int = 20) -> Single<[FragellaPerfume]> {
 
         guard let dictionary = jsonObject as? [String: Any] else {
             throw FragellaError.decodingFailed
@@ -300,9 +306,12 @@ private enum FragellaResponseParser {
     // MARK: - FragellaService
 
 final class FragellaService {
+  static let shared = FragellaService()
+  private init() {}
+  
+  var request = URLRequest(url: url)
+        request.setValue(try apiKey(), forHTTPHeaderField: "x-api-key")
 
-    static let shared = FragellaService()
-    private init() {}
 
     private let baseURL = "https://api.fragella.com/api/v1"
 
@@ -340,9 +349,19 @@ final class FragellaService {
         return try FragellaResponseParser.parsePerfumeList(from: data)
     }
 
-    private func requestDetail(perfumeId: String) async throws -> FragellaPerfume {
-        guard let url = URL(string: "\(baseURL)/fragrances/\(perfumeId)") else {
-            throw FragellaError.invalidURL
+private func requestDetail(perfumeId: String) async throws -> FragellaPerfume {
+    guard let url = URL(string: "\(baseURL)/fragrances/\(perfumeId)") else {
+        throw FragellaError.invalidURL
+    }
+
+    var request = URLRequest(url: url)
+    request.setValue(try apiKey(), forHTTPHeaderField: "x-api-key")
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw FragellaError.invalidResponse
+
         }
         var req = URLRequest(url: url)
         req.setValue(try apiKey(), forHTTPHeaderField: "x-api-key")
