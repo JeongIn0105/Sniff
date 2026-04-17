@@ -70,6 +70,15 @@ final class FirestoreService {
         return snapshot.documents.compactMap(Self.makeCollectedPerfume)
     }
 
+    func fetchLikedPerfumes() async throws -> [LikedPerfume] {
+        let snapshot = try await userDocumentRef()
+            .collection("likes")
+            .order(by: "likedAt", descending: true)
+            .getDocuments()
+
+        return snapshot.documents.compactMap(Self.makeLikedPerfume)
+    }
+
     func fetchTastingRecords() async throws -> [TastingRecord] {
         let snapshot = try await userDocumentRef()
             .collection("tastingRecords")
@@ -129,7 +138,29 @@ final class FirestoreService {
             brand: brand,
             scentFamily: data["scentFamily"] as? String,
             scentFamily2: data["scentFamily2"] as? String,
+            imageURL: data["imageURL"] as? String,
             createdAt: timestamp?.dateValue()
+        )
+    }
+
+    private static func makeLikedPerfume(from document: QueryDocumentSnapshot) -> LikedPerfume? {
+        let data = document.data()
+
+        guard
+            let name  = data["name"]  as? String,
+            let brand = data["brand"] as? String
+        else { return nil }
+
+        let timestamp = data["likedAt"] as? Timestamp
+
+        return LikedPerfume(
+            id: document.documentID,
+            name: name,
+            brand: brand,
+            scentFamily: data["scentFamily"] as? String,
+            scentFamily2: data["scentFamily2"] as? String,
+            imageURL: data["imageURL"] as? String,
+            likedAt: timestamp?.dateValue()
         )
     }
 

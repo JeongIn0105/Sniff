@@ -71,24 +71,58 @@ struct TastingNoteView: View {
     }
 
     private var headerView: some View {
-        HStack(alignment: .center) {
-            Text("시향 기록")
-                .font(.system(size: 30, weight: .bold))
+        VStack(alignment: .leading, spacing: 16) {
+            // 타이틀 + 삭제 버튼
+            HStack(alignment: .center) {
+                Text("시향 기록")
+                    .font(.system(size: 30, weight: .bold))
 
-            Spacer()
+                Spacer()
 
-            Button(viewModel.isDeleteMode ? "완료" : "삭제") {
-                guard !viewModel.isEmpty else { return }
-                viewModel.toggleDeleteMode()
+                Button(viewModel.isDeleteMode ? "완료" : "삭제") {
+                    guard !viewModel.isEmpty else { return }
+                    viewModel.toggleDeleteMode()
+                }
+                .font(.system(size: 17, weight: .medium))
+                .foregroundColor(.primary)
+                .disabled(viewModel.isEmpty)
+                .opacity(viewModel.isEmpty ? 0.35 : 1)
             }
-            .font(.system(size: 17, weight: .medium))
-            .foregroundColor(.primary)
-            .disabled(viewModel.isEmpty)
-            .opacity(viewModel.isEmpty ? 0.35 : 1)
+
+            // 보유 향수 / LIKE 향수 태그 버튼
+            HStack(spacing: 10) {
+                NavigationLink {
+                    OwnedPerfumeListView()
+                } label: {
+                    Text("보유 향수")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.primary)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(Color(.systemBackground))
+                        .clipShape(Capsule())
+                        .overlay(Capsule().stroke(Color(.systemGray3), lineWidth: 1))
+                }
+
+                NavigationLink {
+                    LikedPerfumeListView()
+                } label: {
+                    Text("LIKE 향수")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.primary)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(Color(.systemBackground))
+                        .clipShape(Capsule())
+                        .overlay(Capsule().stroke(Color(.systemGray3), lineWidth: 1))
+                }
+
+                Spacer()
+            }
         }
         .padding(.horizontal, 20)
         .padding(.top, 22)
-        .padding(.bottom, 20)
+        .padding(.bottom, 16)
     }
 
     private var emptyStateView: some View {
@@ -113,12 +147,6 @@ struct TastingNoteView: View {
     private var noteListView: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 0) {
-                Text("등록한 향수")
-                    .font(.system(size: 22, weight: .bold))
-                    .padding(.horizontal, 20)
-                    .padding(.top, 8)
-                    .padding(.bottom, 12)
-
                 ForEach(viewModel.notes) { note in
                     NavigationLink {
                         TastingNoteDetailView(note: note, viewModel: viewModel)

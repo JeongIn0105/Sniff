@@ -373,7 +373,13 @@ enum PerfumeKoreanTranslator {
             if !matched {
                 let word = words[i]
                 if let eng = koreanWordToEnglish[word] {
+                    // 정확히 일치하는 단어
                     translatedWords.append(eng)
+                    anyTranslated = true
+                } else if let prefixMatch = koreanWordToEnglish
+                    .first(where: { $0.key.hasPrefix(word) && $0.key != word }) {
+                    // 접두사 매칭: "어벤투" → "어벤투스" 키를 찾아 "aventus" 반환
+                    translatedWords.append(prefixMatch.value)
                     anyTranslated = true
                 } else {
                     translatedWords.append(word)
