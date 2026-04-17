@@ -33,7 +33,6 @@ final class TastingNoteFormViewModel: ObservableObject {
     // MARK: - Published (직접 입력)
 
     @Published var rating: Int = 0
-    @Published var longevity: Int = 0
     @Published var selectedMoodTags: Set<String> = []
     @Published var memo: String = ""
 
@@ -113,7 +112,6 @@ final class TastingNoteFormViewModel: ObservableObject {
         }
         concentration = note.concentration ?? ""
         rating = note.rating
-        longevity = note.longevity
         // 이전 영문 무드태그 → 한국어 마이그레이션
         selectedMoodTags = Set(note.moodTags.map {
             kLegacyTagToKorean[$0] ?? $0
@@ -128,7 +126,7 @@ final class TastingNoteFormViewModel: ObservableObject {
 
     private func setupSearchDebounce() {
         $searchText
-            .debounce(for: .milliseconds(300), scheduler: RunLoop.main)
+            .debounce(for: .milliseconds(150), scheduler: RunLoop.main)
             .removeDuplicates()
             .sink { [weak self] query in
                 guard let self else { return }
@@ -237,8 +235,19 @@ final class TastingNoteFormViewModel: ObservableObject {
             }
 
             guard latestSearchQuery == requestQuery else { return }
+            // 1차: 즉시 표시 (빠른 UX)
             searchResults = results
             isSearching = false
+
+            // 2차: 백그라운드에서 이미지 실존 검증 후 결과 정제
+            let verifyQuery = requestQuery
+            let verifyResults = results
+            Task {
+                let verified = await TastingNoteFragellaAPI.verifyImages(verifyResults)
+                if self.latestSearchQuery == verifyQuery {
+                    self.searchResults = verified
+                }
+            }
         } catch {
             guard latestSearchQuery == requestQuery else { return }
             searchResults = []
@@ -318,7 +327,6 @@ final class TastingNoteFormViewModel: ObservableObject {
             mainAccords = []
             concentration = ""
             rating = 0
-            longevity = 0
             selectedMoodTags = []
             memo = ""
         }
@@ -339,7 +347,7 @@ final class TastingNoteFormViewModel: ObservableObject {
             mainAccords: mainAccords,
             concentration: concentration.isEmpty ? nil : concentration,
             rating: rating,
-            longevity: longevity,
+            longevity: 0,
             moodTags: orderedMoodTags(from: selectedMoodTags),
             memo: memo.trimmingCharacters(in: .whitespacesAndNewlines),
             perfumeImageURL: selectedFragrance?.imageURL ?? editingNote?.perfumeImageURL,
@@ -411,7 +419,7 @@ private enum TastingNoteFragellaAPI {
             throw FragellaAPIError.serverError(statusCode: http.statusCode, message: msg)
         }
 
-        // Primary 이미지가 있는 결과만 포함 (fallback 이미지는 실제 없는 경우가 많음)
+        // Primary 이미지 URL이 있는 결과만 포함 (이미지 실존 검증은 백그라운드에서 수행)
         return try parseFragrances(from: data).filter { $0.imageURL != nil }
     }
 
@@ -464,6 +472,45 @@ private enum TastingNoteFragellaAPI {
                 imageURL: imageURL
             )
         }
+    }
+
+    // MARK: - 이미지 실존 검증 (동시 HEAD 요청, 4초 타임아웃)
+
+    static func verifyImages(_ fragrances: [FragellaFragrance]) async -> [FragellaFragrance] {
+        guard !fragrances.isEmpty else { return fragrances }
+
+        typealias IndexedResult = (index: Int, valid: Bool)
+
+        let results: [IndexedResult] = await withTaskGroup(of: IndexedResult.self) { group in
+            for (i, fragrance) in fragrances.enumerated() {
+                guard let urlString = fragrance.imageURL,
+                      let url = URL(string: urlString) else {
+                    continue
+                }
+                group.addTask {
+                    var req = URLRequest(url: url)
+                    req.httpMethod = "HEAD"
+                    req.timeoutInterval = 2.5
+                    // 일부 CDN은 HEAD 미지원 → Range 헤더로 최소 바이트만 요청
+                    req.setValue("bytes=0-0", forHTTPHeaderField: "Range")
+
+                    guard let (_, resp) = try? await URLSession.shared.data(for: req),
+                          let http = resp as? HTTPURLResponse else {
+                        return (i, true)  // 네트워크 오류는 일단 유효로 처리
+                    }
+                    // 2xx / 3xx / 206 → 유효, 404/410 등 4xx·5xx → 무효
+                    return (i, http.statusCode < 400)
+                }
+            }
+            var collected: [IndexedResult] = []
+            for await r in group { collected.append(r) }
+            return collected
+        }
+
+        let validIndices = Set(results.filter { $0.valid }.map { $0.index })
+        return fragrances.enumerated()
+            .filter { validIndices.contains($0.offset) }
+            .map { $0.element }
     }
 
     // MARK: - 파싱 헬퍼

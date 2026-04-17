@@ -240,26 +240,155 @@ enum PerfumeKoreanTranslator {
         accords.map { korean(for: $0) }
     }
 
+    // MARK: - 한국어 향수명 단어 → 영문 역변환 사전
+    // (PerfumeNameTranslationService.wordDict 의 value→key 역방향)
+
+    static let koreanWordToEnglish: [String: String] = [
+        // ── 크리드 ──
+        "어벤투스": "aventus", "히말라야": "himalaya", "카르미나": "carmina",
+        "타바롬": "tabarome", "에롤파": "erolfa", "델피너스": "delphinus",
+        "밀레짐": "millesime", "임페리알레": "imperiale", "부아": "bois",
+        "포르투갈": "portugal", "스파이스": "spice", "실버": "silver",
+        "마운틴": "mountain", "아이리쉬": "irish", "트위드": "tweed",
+        "바이킹": "viking", "서블라임": "sublime",
+        "플뢰리시모": "fleurissimo", "플로라리": "floralie",
+        "센타우루스": "centaurus", "셀렉션": "selection", "베르트": "verte",
+        "튜베르즈": "tubereuse", "인디아나": "indiana", "상탈": "santal",
+        // ── 조 말론 ──
+        "버라이어티": "variety", "그레이프프루트": "grapefruit",
+        "워터릴리": "waterlily", "가든": "garden", "하이아신스": "hyacinth",
+        "타바코": "tobacco", "만다린": "mandarin", "베르가못": "bergamot",
+        "릴리": "lily", "피오니": "peony", "스웨이드": "suede",
+        "몰약": "myrrh", "인센스": "incense", "넥터린": "nectarine",
+        "블로섬": "blossom", "비터스": "bitters", "얼": "earl",
+        "프리지아": "freesia", "포메그라닛": "pomegranate", "칠리": "chilli",
+        "바질": "basil", "페탈스": "petals", "블랙베리": "blackberry",
+        "베이": "bay", "코리앤더": "coriander", "오스만투스": "osmanthus",
+        "포피": "poppy", "발리": "barley", "스칼렛": "scarlet",
+        "문릿": "moonlit", "카모마일": "camomile",
+        // ── 프랑스어 ──
+        "누아르": "noir", "블랑": "blanc", "루즈": "rouge",
+        "뿌르": "pour", "옴므": "homme", "팜므": "femme",
+        "소바쥬": "sauvage", "블루": "bleu",
+        "찬스": "chance", "코코": "coco", "알뤼르": "allure",
+        "마드모아젤": "mademoiselle", "미스": "miss",
+        "플뢰르": "fleur", "솔레이": "soleil", "뉘": "nuit",
+        "자르당": "jardin", "베티버": "vetiver", "패출리": "patchouli",
+        "이리스": "iris", "바닐": "vanille",
+        // ── 이탈리아어 ──
+        "지오": "gio", "프로푸모": "profumo", "인텐사": "intensa",
+        "테라": "terra", "벨라": "bella", "비타": "vita",
+        "아모르": "amor", "로사": "rosa", "프로폰도": "profondo",
+        // ── 일반 향수 단어 ──
+        "플로럴": "floral", "프레시": "fresh", "스위트": "sweet",
+        "우즈": "woods", "포레스트": "forest", "아쿠아": "aqua",
+        "오션": "ocean", "코코넛": "coconut",
+        "써머": "summer", "스프링": "spring", "윈터": "winter",
+        "오텀": "autumn", "나이트": "night",
+        "블랙": "black", "화이트": "white", "골드": "gold",
+        "골든": "golden", "로열": "royal", "인텐스": "intense",
+        "익스트림": "extreme", "앱솔루트": "absolute",
+        "컬렉션": "collection", "에디션": "edition",
+        "스페셜": "special", "시그니처": "signature",
+        // ── 자연 재료 ──
+        "시더": "cedar", "샌달우드": "sandalwood",
+        "라벤더": "lavender", "재스민": "jasmine",
+        "바이올렛": "violet", "앰버": "amber",
+        "머스크": "musk", "바닐라": "vanilla",
+        "시트러스": "citrus", "레몬": "lemon",
+        "오렌지": "orange", "라임": "lime",
+        "피치": "peach", "체리": "cherry",
+        "애플": "apple", "플럼": "plum", "피그": "fig",
+        "유즈": "yuzu", "진저": "ginger", "페퍼": "pepper",
+        "카다멈": "cardamom", "시나몬": "cinnamon",
+        "사프란": "saffron", "튜베로즈": "tuberose",
+        "마그놀리아": "magnolia", "미모사": "mimosa",
+        "카네이션": "carnation", "오키드": "orchid",
+        "로터스": "lotus", "허니서클": "honeysuckle",
+        "엘더플라워": "elderflower", "프랑킨센스": "frankincense",
+        "통카": "tonka",
+        // ── 형용사/수식어 ──
+        "와일드": "wild", "퓨어": "pure", "딥": "deep",
+        "리치": "rich", "라이트": "light", "다크": "dark",
+        "소프트": "soft", "웜": "warm", "쿨": "cool",
+        "그랑": "grand", "파인": "fine", "노블": "noble",
+        "젠틀": "gentle", "디바인": "divine",
+        "시크릿": "secret", "미스터리": "mystery",
+        "매직": "magic", "드림": "dream", "레전드": "legend",
+        "클래식": "classic", "모던": "modern", "어반": "urban",
+        "럭셔리": "luxury", "프리미엄": "premium",
+        // ── 공간/장소 ──
+        "파리": "paris", "로마": "rome", "런던": "london",
+        "밀란": "milan", "도쿄": "tokyo",
+        "아일랜드": "island", "리버": "river", "밸리": "valley",
+        // ── 특정 향수 고유명 ──
+        "샬리마르": "shalimar", "옵세션": "obsession",
+        "이터니티": "eternity", "유포리아": "euphoria",
+        "앙쥬": "angel", "에이리언": "alien",
+        "플라워밤": "flowerbomb", "봉봉": "bonbon",
+        "올림피아": "olympea", "인빅투스": "invictus",
+        "엘릭시르": "elixir", "파렌하이트": "fahrenheit",
+        "파리스": "paris", "보야쥬": "voyage",
+        "파우더리": "powdery", "스모키": "smoky",
+        "미네럴": "mineral", "솔트": "salt",
+        "드리프트우드": "driftwood", "코랄": "coral",
+        "헤븐": "heaven", "파라다이스": "paradise",
+        // ── 기타 ──
+        "콜론": "cologne", "파르팡": "parfum", "뚜왈렛": "toilette",
+        "엑스트레": "extrait", "포르테": "forte",
+    ]
+
     // MARK: - 한국어 검색어 → 영문 변환 (검색 fallback 용)
-    // 완전히 일치하는 한국어 accord/brand 이름이면 영문으로 변환
+    // 한국어 향수명/브랜드명을 단어 단위로 영문으로 변환하여 Fragella API 검색 가능하게 함
 
     static func toEnglishQuery(_ query: String) -> String? {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
 
-        // accord 역변환
+        // 1) accord 역변환 (정확히 일치)
         if let english = koreanToAccord[trimmed] { return english }
 
-        // 브랜드 역변환
+        // 2) 브랜드 역변환 (정확히 일치)
         if let english = koreanToBrand[trimmed] { return english }
 
-        // 부분 매칭: 브랜드명 포함된 경우
+        // 3) 단어별 역변환: 한국어 단어를 영문 단어로 변환
+        let words = trimmed.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
+        var translatedWords: [String] = []
+        var anyTranslated = false
+
+        // 멀티워드 브랜드 우선 매칭 (최대 3단어)
+        var i = 0
+        while i < words.count {
+            var matched = false
+            for len in stride(from: min(3, words.count - i), through: 1, by: -1) {
+                let phrase = words[i..<(i + len)].joined(separator: " ")
+                if let eng = koreanToBrand[phrase] {
+                    translatedWords.append(eng)
+                    i += len
+                    anyTranslated = true
+                    matched = true
+                    break
+                }
+            }
+            if !matched {
+                let word = words[i]
+                if let eng = koreanWordToEnglish[word] {
+                    translatedWords.append(eng)
+                    anyTranslated = true
+                } else {
+                    translatedWords.append(word)
+                }
+                i += 1
+            }
+        }
+
+        if anyTranslated { return translatedWords.joined(separator: " ") }
+
+        // 4) 부분 매칭: 문자열 내 브랜드명 포함 여부
         for (korean, english) in koreanToBrand {
             if trimmed.localizedCaseInsensitiveContains(korean) {
-                return trimmed.replacingOccurrences(
-                    of: korean,
-                    with: english,
-                    options: .caseInsensitive
-                )
+                let replaced = trimmed.replacingOccurrences(of: korean, with: english, options: .caseInsensitive)
+                if replaced != trimmed { return replaced }
             }
         }
 

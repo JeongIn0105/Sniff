@@ -31,22 +31,31 @@ struct TastingNoteFormView: View {
                 headerView
 
                 ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 32) {
-                        searchSection.zIndex(10)
+                    ScrollViewReader { proxy in
+                        VStack(alignment: .leading, spacing: 32) {
+                            searchSection
+                                .zIndex(10)
+                                .id("formTop")
 
-                        if let fragrance = vm.displayCardFragrance {
-                            selectedCard(fragrance)
+                            if let fragrance = vm.displayCardFragrance {
+                                selectedCard(fragrance)
+                            }
+
+                            ratingSection(title: "향 선호도",   value: $vm.rating,    label: vm.rating.ratingLabel)
+                            moodTagSection
+                            memoSection
+                            Spacer().frame(height: 24)
                         }
-
-                        ratingSection(title: "향 선호도",   value: $vm.rating,    label: vm.rating.ratingLabel)
-                        ratingSection(title: "향수 지속력", value: $vm.longevity, label: vm.longevity.longevityLabel)
-                        moodTagSection
-                        memoSection
-                        Spacer().frame(height: 24)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 8)
+                        .padding(.bottom, 24)
+                        // 향수 선택 시 상단으로 스크롤
+                        .onChange(of: vm.selectedFragrance?.id) { _ in
+                            withAnimation(.easeOut(duration: 0.3)) {
+                                proxy.scrollTo("formTop", anchor: .top)
+                            }
+                        }
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 8)
-                    .padding(.bottom, 24)
                 }
             }
         }
@@ -185,7 +194,7 @@ struct TastingNoteFormView: View {
                         ForEach(fragrance.mainAccords.prefix(2), id: \.self) { accord in
                             HStack(spacing: 3) {
                                 Circle().frame(width: 4, height: 4).foregroundColor(accord.accordColor)
-                                Text(accord).font(.system(size: 13)).foregroundColor(accord.accordColor)
+                                Text(accord).font(.system(size: 13)).foregroundColor(.secondary)
                             }
                         }
                     }
@@ -219,7 +228,7 @@ struct TastingNoteFormView: View {
                     ForEach(fragrance.mainAccords.prefix(3), id: \.self) { a in
                         HStack(spacing: 3) {
                             Circle().frame(width: 5, height: 5).foregroundColor(a.accordColor)
-                            Text(a).font(.system(size: 13)).foregroundColor(a.accordColor)
+                            Text(a).font(.system(size: 13)).foregroundColor(.secondary)
                         }
                     }
                 }
@@ -262,16 +271,33 @@ struct TastingNoteFormView: View {
         }
     }
 
-    // MARK: - 무드&이미지 태그
+    // MARK: - 무드&이미지 태그 (4-4-4-3-3 고정 레이아웃)
+
+    private var moodTagRows: [[String]] {
+        let tags = vm.allMoodTags
+        guard tags.count >= 18 else { return [tags] }
+        return [
+            Array(tags[0..<4]),
+            Array(tags[4..<8]),
+            Array(tags[8..<12]),
+            Array(tags[12..<15]),
+            Array(tags[15..<18]),
+        ]
+    }
 
     private var moodTagSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("향수의 무드&이미지").font(.system(size: 17, weight: .semibold))
+            Text("분위기&이미지").font(.system(size: 17, weight: .semibold))
 
-            ChipFlowLayout(spacing: 8) {
-                ForEach(vm.allMoodTags, id: \.self) { tag in
-                    MoodChip(title: tag, isSelected: vm.selectedMoodTags.contains(tag)) {
-                        vm.toggleMoodTag(tag)
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(moodTagRows.indices, id: \.self) { rowIndex in
+                    HStack(spacing: 8) {
+                        ForEach(moodTagRows[rowIndex], id: \.self) { tag in
+                            MoodChip(title: tag, isSelected: vm.selectedMoodTags.contains(tag)) {
+                                vm.toggleMoodTag(tag)
+                            }
+                        }
+                        Spacer()
                     }
                 }
             }
@@ -372,11 +398,11 @@ struct MoodChip: View {
         Button(action: onTap) {
             Text(title)
                 .font(.system(size: 14))
-                .foregroundColor(isSelected ? title.moodTagColor : Color(.systemGray2))
+                .foregroundColor(isSelected ? .white : Color(.label))
                 .padding(.horizontal, 14).padding(.vertical, 8)
-                .background(isSelected ? title.moodTagBackgroundColor : Color.clear)
+                .background(isSelected ? Color.black : Color.clear)
                 .clipShape(Capsule())
-                .overlay(Capsule().stroke(isSelected ? title.moodTagBorderColor : Color(.systemGray4), lineWidth: 1))
+                .overlay(Capsule().stroke(isSelected ? Color.clear : Color(.systemGray4), lineWidth: 1))
         }
     }
 }

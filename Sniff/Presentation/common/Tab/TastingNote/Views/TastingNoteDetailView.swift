@@ -53,17 +53,6 @@ struct TastingNoteDetailView: View {
                         .padding(.horizontal, 20)
                         .padding(.vertical, 20)
 
-                    ratingDisplaySection(
-                        title: "향수 지속력",
-                        rating: currentNote.longevity,
-                        label: currentNote.longevity.longevityLabel
-                    )
-                    .padding(.horizontal, 20)
-
-                    Divider()
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 20)
-
                     moodTagDisplaySection
                         .padding(.horizontal, 20)
 
@@ -92,15 +81,17 @@ struct TastingNoteDetailView: View {
             }
             Button("취소", role: .cancel) { }
         } message: {
-            Text("이 시향 기록을 삭제할까요? 삭제 후 복구할 수 없어요.")
+            Text("이 시향 기록을 삭제할까요?\n삭제 후 복구할 수 없어요.")
         }
     }
 
     private var headerView: some View {
         ZStack {
             Text("\(currentNote.perfumeName) 시향 기록")
-                .font(.system(size: 20, weight: .semibold))
-                .lineLimit(1)
+                .font(.system(size: 17, weight: .semibold))
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
                 .padding(.horizontal, 72)
 
             HStack {
@@ -140,7 +131,7 @@ struct TastingNoteDetailView: View {
         }
         .padding(.horizontal, 20)
         .padding(.top, 14)
-        .padding(.bottom, 24)
+        .padding(.bottom, 20)
     }
 
     private var perfumeInfoCard: some View {
@@ -178,7 +169,7 @@ struct TastingNoteDetailView: View {
 
                                 Text(accord)
                                     .font(.system(size: 13))
-                                    .foregroundColor(accord.accordColor)
+                                    .foregroundColor(.secondary)
                             }
                         }
                     }
@@ -218,19 +209,18 @@ struct TastingNoteDetailView: View {
 
     private var moodTagDisplaySection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("향수의 무드&이미지")
+            Text("분위기&이미지")
                 .font(.system(size: 17, weight: .semibold))
 
             ChipFlowLayout(spacing: 8) {
                 ForEach(currentNote.moodTags, id: \.self) { tag in
                     Text(tag)
                         .font(.system(size: 14))
-                        .foregroundColor(tag.moodTagColor)
+                        .foregroundColor(.white)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 8)
-                        .background(tag.moodTagBackgroundColor)
+                        .background(Color.black)
                         .clipShape(Capsule())
-                        .overlay(Capsule().stroke(tag.moodTagBorderColor, lineWidth: 1))
                 }
             }
         }
