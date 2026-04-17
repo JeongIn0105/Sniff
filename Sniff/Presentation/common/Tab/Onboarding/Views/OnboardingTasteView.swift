@@ -101,6 +101,14 @@ struct OnboardingTasteView: View {
                 .padding(.bottom)
             }
 
+            if let errorMessage = viewModel.errorMessage, !errorMessage.isEmpty {
+                Text(errorMessage)
+                    .font(.footnote)
+                    .foregroundColor(.red)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+            }
+
             Button {
                 Task {
                     await viewModel.analyzeTaste()

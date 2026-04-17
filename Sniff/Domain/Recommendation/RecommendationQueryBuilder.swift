@@ -10,27 +10,48 @@ import Foundation
 struct RecommendationQueryBuilder {
 
     func buildQueries(from profile: UserTasteProfile) -> [String] {
-        let mapped = profile.preferredFamilies.map(mapFamilyToQuery(_:))
-        let unique = Array(Set(mapped))
-        return Array(unique.prefix(5))
+        buildSearchTerms(from: profile)
     }
 
-    private func mapFamilyToQuery(_ family: String) -> String {
+    private func mapFamilyToSearchQueries(_ family: String) -> [String] {
         switch family {
-            case "Fresh": return "fresh"
-            case "Citrus": return "citrus"
-            case "Water": return "aquatic"
-            case "Green": return "green"
-            case "Floral": return "floral"
-            case "Soft Floral": return "soft floral"
-            case "Fruity": return "fruity"
-            case "Amber": return "amber"
-            case "Woody": return "woody"
-            case "Woody Amber": return "woody"
-            case "Dry Woods": return "dry woods"
-            case "Mossy Woods": return "mossy woods"
-            case "Aromatic": return "aromatic"
-            default: return "perfume"
+        case "Fresh": return ["fresh", "citrus"]
+        case "Citrus": return ["citrus", "fresh"]
+        case "Water": return ["aquatic", "fresh"]
+        case "Green": return ["green", "woody"]
+        case "Floral": return ["floral"]
+        case "Soft Floral": return ["soft floral", "floral"]
+        case "Fruity": return ["fruity", "floral"]
+        case "Amber": return ["amber"]
+        case "Woody": return ["woody"]
+        case "Woody Amber": return ["woody", "amber"]
+        case "Dry Woods": return ["dry woods", "woody"]
+        case "Mossy Woods": return ["mossy woods", "woody"]
+        case "Aromatic": return ["aromatic", "fresh"]
+        case "Musk": return ["musk", "soft floral"]
+        default: return []
         }
+    }
+
+    private func buildSearchTerms(from profile: UserTasteProfile) -> [String] {
+        let mapped = profile.preferredFamilies.flatMap(mapFamilyToSearchQueries(_:))
+        let unique = uniquePreservingOrder(mapped)
+        let terms = Array(unique.prefix(5))
+
+        if !terms.isEmpty {
+            return terms
+        }
+
+        if let impression = profile.preferredImpressions.first?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !impression.isEmpty {
+            return [impression]
+        }
+
+        return ["perfume"]
+    }
+
+    private func uniquePreservingOrder(_ values: [String]) -> [String] {
+        var seen = Set<String>()
+        return values.filter { seen.insert($0).inserted }
     }
 }

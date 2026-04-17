@@ -16,8 +16,8 @@ final class TastingRecordRepository: TastingRecordRepositoryType {
 
     private let firestoreService: FirestoreService
 
-    init(firestoreService: FirestoreService = .shared) {
-        self.firestoreService = firestoreService
+    init(firestoreService: FirestoreService? = nil) {
+        self.firestoreService = firestoreService ?? .shared
     }
 
     func fetchTastingRecords() -> Single<[TastingRecord]> {
