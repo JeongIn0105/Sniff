@@ -13,48 +13,6 @@
 import UIKit
 import SnapKit
 
-    // MARK: - ScentFamilyColor
-
-private enum ScentFamilyColor {
-    static func barColor(for family: String) -> UIColor {
-        switch family {
-            case "Floral", "Soft Floral":           return UIColor(hex: "#e8a4b8")
-            case "Amber", "Woody Amber":            return UIColor(hex: "#c8782a")
-            case "Woody", "Dry Woods", "Mossy Woods": return UIColor(hex: "#a07850")
-            case "Fresh", "Citrus", "Water":        return UIColor(hex: "#7ecbb8")
-            case "Aquatic":                         return UIColor(hex: "#4a90b8")
-            case "Spicy", "Aromatic":               return UIColor(hex: "#9a3a4a")
-            case "Musk":                            return UIColor(hex: "#9FB8C4")
-            case "Fruity", "Green":                 return UIColor(hex: "#8fba5a")
-            default:                                return UIColor(hex: "#b0a898")
-        }
-    }
-
-    static func iconBackground(for profileCode: String) -> UIColor {
-        switch profileCode {
-            case "P1", "P2":        return UIColor(hex: "#E1F5EE")
-            case "P3", "P4":        return UIColor(hex: "#FBEAF0")
-            case "P5", "P6":        return UIColor(hex: "#FAEEDA")
-            case "P7", "P8":        return UIColor(hex: "#EEEDFE")
-            default:                return UIColor(hex: "#F1EFE8")
-        }
-    }
-
-    static func iconEmoji(for profileCode: String) -> String {
-        switch profileCode {
-            case "P1": return "💧"
-            case "P2": return "🍋"
-            case "P3": return "🌸"
-            case "P4": return "🌹"
-            case "P5": return "🪵"
-            case "P6": return "🌿"
-            case "P7": return "🌙"
-            case "P8": return "🔥"
-            default:   return "✨"
-        }
-    }
-}
-
     // MARK: - TasteProfileCardView
 
 final class TasteProfileCardView: UIView {
@@ -340,19 +298,5 @@ final class TasteProfileCardView: UIView {
         row.snp.makeConstraints { $0.height.equalTo(20) }
 
         return row
-    }
-}
-
-    // MARK: - UIColor hex 확장
-
-private extension UIColor {
-    convenience init(hex: String) {
-        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-        var int: UInt64 = 0
-        Scanner(string: hex).scanHexInt64(&int)
-        let r = CGFloat((int >> 16) & 0xFF) / 255
-        let g = CGFloat((int >> 8) & 0xFF) / 255
-        let b = CGFloat(int & 0xFF) / 255
-        self.init(red: r, green: g, blue: b, alpha: 1)
     }
 }

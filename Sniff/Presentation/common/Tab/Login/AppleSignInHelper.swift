@@ -7,13 +7,17 @@
 
 import AuthenticationServices
 import CryptoKit
-import FirebaseAuth
+
+struct AppleSignInPayload {
+    let identityToken: Data
+    let rawNonce: String
+}
 
 // MARK: - Apple 로그인 헬퍼
 final class AppleSignInHelper: NSObject {
     
     private(set) var currentNonce: String?
-    var onCompletion: ((Result<AuthDataResult, Error>) -> Void)?
+    var onCompletion: ((Result<AppleSignInPayload, Error>) -> Void)?
     
     // MARK: - Nonce 생성
     func generateNonce() -> String {
@@ -42,7 +46,7 @@ final class AppleSignInHelper: NSObject {
     
     // MARK: - 로그인 요청
     func startSignIn(presentationAnchor: ASPresentationAnchor,
-                     completion: @escaping (Result<AuthDataResult, Error>) -> Void) {
+                     completion: @escaping (Result<AppleSignInPayload, Error>) -> Void) {
         let nonce = generateNonce()
         currentNonce = nonce
         onCompletion = completion
@@ -66,27 +70,13 @@ extension AppleSignInHelper: ASAuthorizationControllerDelegate {
         guard
             let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential,
             let nonce = currentNonce,
-            let appleIDToken = appleIDCredential.identityToken,
-            let idTokenString = String(data: appleIDToken, encoding: .utf8)
+            let appleIDToken = appleIDCredential.identityToken
         else {
             onCompletion?(.failure(AuthError.invalidCredential))
             return
         }
-        
-        let credential = OAuthProvider.appleCredential(
-            withIDToken: idTokenString,
-            rawNonce: nonce,
-            fullName: appleIDCredential.fullName
-        )
-        
-        Task {
-            do {
-                let result = try await Auth.auth().signIn(with: credential)
-                await MainActor.run { self.onCompletion?(.success(result)) }
-            } catch {
-                await MainActor.run { self.onCompletion?(.failure(error)) }
-            }
-        }
+
+        onCompletion?(.success(AppleSignInPayload(identityToken: appleIDToken, rawNonce: nonce)))
     }
     
     func authorizationController(controller: ASAuthorizationController,

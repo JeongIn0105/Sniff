@@ -8,97 +8,70 @@
 import Foundation
 import Combine
 import AuthenticationServices
-import CryptoKit
-import Security
-import Combine
-@preconcurrency import FirebaseAuth
-@preconcurrency import FirebaseFirestore
-// MARK: - 로그인 ViewModel
-final class LoginViewModel: ObservableObject {
 
-    // DEBUG 임시 우회:
-    // Apple 로그인(Error 1000 등) 이슈가 있을 때도 홈/온보딩 흐름을 확인할 수 있도록,
-    // 디버그 빌드에서만 로그인 실패 시 다음 화면으로 진입하게 해둡니다.
-    // 실제 로그인 연동이 안정화되면 false 로 바꾸거나 제거하세요.
-    private let shouldBypassAppleLoginFailureInDebug = true
+@MainActor
+final class LoginViewModel: ObservableObject {
 
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var showError = false
 
-    private let authService: AuthService
-    private var currentNonce: String?
+    private let authService: AuthServiceType
+    private let userProfileStatusRepository: UserProfileStatusRepositoryType
+    private let appleSignInHelper: AppleSignInHelper
+    private let onNewUser: () -> Void
+    private let onExistingUser: () -> Void
 
-    init(authService: AuthService? = nil) {
-        self.authService = authService ?? .shared
-    }
-
-    func prepareAppleLoginRequest(_ request: ASAuthorizationAppleIDRequest) {
-        let nonce = randomNonceString()
-        currentNonce = nonce
-        request.requestedScopes = [.fullName, .email]
-        request.nonce = sha256(nonce)
-    }
-
-    func handleAppleLoginResult(
-        _ result: Result<ASAuthorization, Error>,
-        onSuccess: @escaping () -> Void
+    init(
+        authService: AuthServiceType,
+        userProfileStatusRepository: UserProfileStatusRepositoryType,
+        appleSignInHelper: AppleSignInHelper,
+        onNewUser: @escaping () -> Void,
+        onExistingUser: @escaping () -> Void
     ) {
-        Task {
-            await processAppleLoginResult(result, onSuccess: onSuccess)
-        }
+        self.authService = authService
+        self.userProfileStatusRepository = userProfileStatusRepository
+        self.appleSignInHelper = appleSignInHelper
+        self.onNewUser = onNewUser
+        self.onExistingUser = onExistingUser
     }
-    
-    // MARK: - Apple 로그인
-    @MainActor
+
     func signInWithApple(presentationAnchor: ASPresentationAnchor) {
         isLoading = true
+
         appleSignInHelper.startSignIn(presentationAnchor: presentationAnchor) { [weak self] result in
             guard let self else { return }
+
             Task { @MainActor in
-                self.isLoading = false
                 switch result {
-                case .success(let authResult):
-                    await self.handleSignInSuccess(authResult: authResult)
+                case .success(let payload):
+                    await self.handleSignInSuccess(payload: payload)
+
                 case .failure(let error):
+                    self.isLoading = false
                     self.errorMessage = error.localizedDescription
                     self.showError = true
                 }
             }
-do {
-    try await authService.signInWithApple(
-        identityToken: appleIDCredential.identityToken,
-        rawNonce: nonce
-    )
-
-    errorMessage = nil
-    onSuccess()
-} catch {
-#if DEBUG
-    if shouldBypassAppleLoginFailureInDebug {
-        try? await authService.signInAnonymouslyForDebug()
-        errorMessage = "DEBUG 임시 우회: Apple 로그인 실패를 건너뛰고 다음 화면으로 이동합니다."
-        onSuccess()
-        return
-    }
-#endif
-    errorMessage = error.localizedDescription
-}
         }
     }
-    
-    // MARK: - 신규/기존 사용자 분기
-    @MainActor
-    private func handleSignInSuccess(authResult: AuthDataResult) async {
-        let uid = authResult.user.uid
+
+    private func handleSignInSuccess(payload: AppleSignInPayload) async {
         do {
-            let document = try await db.collection("users").document(uid).getDocument()
-            if document.exists {
-                onExistingUser()  // 기존 사용자 → 홈
+            let userID = try await authService.signInWithApple(
+                identityToken: payload.identityToken,
+                rawNonce: payload.rawNonce
+            )
+            isLoading = false
+            if try await userProfileStatusRepository.hasUserProfile(userID: userID) {
+                onExistingUser()
             } else {
-                onNewUser()       // 신규 사용자 → 닉네임
+                onNewUser()
             }
         } catch {
-            onNewUser()
+            isLoading = false
+            errorMessage = error.localizedDescription
+            showError = true
         }
     }
 }

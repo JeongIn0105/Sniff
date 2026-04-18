@@ -22,7 +22,7 @@ enum AuthServiceError: LocalizedError {
     }
 }
 
-final class AuthService {
+final class AuthService: AuthServiceType {
 
     static let shared = AuthService()
 
@@ -31,7 +31,7 @@ final class AuthService {
     func signInWithApple(
         identityToken: Data?,
         rawNonce: String
-    ) async throws {
+    ) async throws -> String {
         guard let identityToken else {
             throw AuthServiceError.missingIdentityToken
         }
@@ -46,7 +46,8 @@ final class AuthService {
             fullName: nil
         )
 
-        _ = try await Auth.auth().signIn(with: credential)
+        let result = try await Auth.auth().signIn(with: credential)
+        return result.user.uid
     }
 
     func signInAnonymouslyForDebug() async throws {

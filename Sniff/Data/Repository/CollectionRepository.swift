@@ -8,10 +8,6 @@
 import Foundation
 import RxSwift
 
-protocol CollectionRepositoryType {
-    func fetchCollection() -> Single<[CollectedPerfume]>
-}
-
 final class CollectionRepository: CollectionRepositoryType {
 
     private let firestoreService: FirestoreService

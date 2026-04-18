@@ -5,77 +5,94 @@
 //  Created by t2025-m0239 on 2026.04.13.
 //
 
+    // PerfumeDetailViewModel.swift
+    // Sniff — 향수 상세 ViewModel
+
 import Foundation
-<<<<<<< HEAD
-=======
 import RxSwift
 import RxCocoa
 
 final class PerfumeDetailViewModel {
 
+        // MARK: - Input
     struct Input {
         let viewDidLoad: Observable<Void>
+        let addToCollectionTap: Observable<Void>
+        let addTastingRecordTap: Observable<Void>
     }
 
+        // MARK: - Output
     struct Output {
-        let perfumeName: Driver<String>
-        let brandName: Driver<String>
-        let imageURL: Driver<String?>
-        let notesText: Driver<String>
+        let perfume: Driver<Perfume?>
+        let isLoading: Driver<Bool>
+        let errorMessage: Driver<String?>
+        let onAddToCollection: Observable<Perfume>
+        let onAddTastingRecord: Observable<Perfume>
     }
 
+        // MARK: - Properties
     private let perfumeId: String
+    private let fetchPerfumeDetailUseCase: FetchPerfumeDetailUseCaseType
     private let disposeBag = DisposeBag()
 
-    init(perfumeId: String) {
+    private let perfumeRelay = BehaviorRelay<Perfume?>(value: nil)
+    private let isLoadingRelay = BehaviorRelay<Bool>(value: false)
+    private let errorRelay = BehaviorRelay<String?>(value: nil)
+
+        // MARK: - Init
+        // perfumeId로 API 조회하는 경우
+    init(perfumeId: String, fetchPerfumeDetailUseCase: FetchPerfumeDetailUseCaseType) {
         self.perfumeId = perfumeId
+        self.fetchPerfumeDetailUseCase = fetchPerfumeDetailUseCase
     }
 
+        // 이미 데이터가 있는 경우 (검색 결과에서 넘어올 때) — API 재호출 불필요
+    init(perfume: Perfume, fetchPerfumeDetailUseCase: FetchPerfumeDetailUseCaseType) {
+        self.perfumeId = perfume.id
+        self.fetchPerfumeDetailUseCase = fetchPerfumeDetailUseCase
+        self.perfumeRelay.accept(perfume)
+    }
+
+        // MARK: - Transform
     func transform(input: Input) -> Output {
 
-        let perfumeRelay = PublishRelay<FragellaPerfume>()
-
+            // viewDidLoad 시 데이터가 없으면 API 호출
         input.viewDidLoad
-            .flatMapLatest { _ in
-                FragellaService.shared.fetchDetail(perfumeId: self.perfumeId)
-            }
-            .bind(to: perfumeRelay)
+            .filter { [weak self] _ in self?.perfumeRelay.value == nil }
+            .subscribe(onNext: { [weak self] in
+                self?.fetchDetail()
+            })
             .disposed(by: disposeBag)
 
-        let name = perfumeRelay
-            .map { $0.name }
-            .asDriver(onErrorJustReturn: "")
+        let onAddToCollection = input.addToCollectionTap
+            .compactMap { [weak self] in self?.perfumeRelay.value }
 
-        let brand = perfumeRelay
-            .map { $0.brand }
-            .asDriver(onErrorJustReturn: "")
-
-        let imageURL = perfumeRelay
-            .map { $0.imageUrl }
-            .asDriver(onErrorJustReturn: nil)
-
-        let notes = perfumeRelay
-            .map { perfume in
-                let top = perfume.topNotes?.joined(separator: ", ") ?? "-"
-                let middle = perfume.middleNotes?.joined(separator: ", ") ?? "-"
-                let base = perfume.baseNotes?.joined(separator: ", ") ?? "-"
-
-                return """
-                TOP: \(top)
-                
-                MIDDLE: \(middle)
-                
-                BASE: \(base)
-                """
-            }
-            .asDriver(onErrorJustReturn: "")
+        let onAddTastingRecord = input.addTastingRecordTap
+            .compactMap { [weak self] in self?.perfumeRelay.value }
 
         return Output(
-            perfumeName: name,
-            brandName: brand,
-            imageURL: imageURL,
-            notesText: notes
+            perfume: perfumeRelay.asDriver(),
+            isLoading: isLoadingRelay.asDriver(),
+            errorMessage: errorRelay.asDriver(),
+            onAddToCollection: onAddToCollection,
+            onAddTastingRecord: onAddTastingRecord
         )
     }
+
+        // MARK: - Private
+    private func fetchDetail() {
+        isLoadingRelay.accept(true)
+        fetchPerfumeDetailUseCase.execute(perfumeId: perfumeId)
+            .subscribe(
+                onSuccess: { [weak self] perfume in
+                    self?.isLoadingRelay.accept(false)
+                    self?.perfumeRelay.accept(perfume)
+                },
+                onFailure: { [weak self] error in
+                    self?.isLoadingRelay.accept(false)
+                    self?.errorRelay.accept(error.localizedDescription)
+                }
+            )
+            .disposed(by: disposeBag)
+    }
 }
->>>>>>> origin/main

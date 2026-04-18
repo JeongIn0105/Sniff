@@ -130,12 +130,6 @@ enum AppStrings {
 
         // MARK: - 닉네임
     enum Nickname {
-<<<<<<< HEAD
-        static let title = "킁킁에서 사용할\n이름을 알려주세요"
-        static let placeholder = "닉네임을 입력해주세요"
-        static let hint = "한글/영문/숫자 2~10자로 입력해주세요"
-        static let confirm = "시작하기"
-=======
         static let title = "킁킁에서 사용할\n닉네임을 설정해주세요"
         static let placeholder = "닉네임을 입력해주세요"
         static let description = "한글, 영문 숫자 포함 2~10자 제한"
@@ -144,7 +138,6 @@ enum AppStrings {
         static let unavailable = "중복된 닉네임입니다."
         static let invalid = "한글, 영문, 숫자 포함 2~10자로 입력해주세요."
         static let confirm = "다음"
->>>>>>> origin/main
         static func welcome(nickname: String) -> String {
             "반가워요, \(nickname)님! 🌸\n취향에 맞는 향수를 찾아드릴게요"
         }

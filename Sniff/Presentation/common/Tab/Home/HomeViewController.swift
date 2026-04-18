@@ -13,7 +13,7 @@ import RxCocoa
 
 final class HomeViewController: UIViewController {
 
-    private let viewModel = HomeViewModel()
+    private let viewModel: HomeViewModel
     private let disposeBag = DisposeBag()
     private var recommendations: [HomePerfumeItem] = []
     private var currentProfileItem: HomeViewModel.HomeProfileItem?
@@ -120,6 +120,13 @@ final class HomeViewController: UIViewController {
         l.numberOfLines = 0
         return l
     }()
+
+    init(viewModel: HomeViewModel) {
+        self.viewModel = viewModel
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
 
         // MARK: - Lifecycle
 
@@ -299,7 +306,8 @@ private extension HomeViewController {
             case .tasteReport:       presentAlert("취향 리포트 화면으로 연결할 수 있어요.")
             case .perfumeDetail(let id):
                 if id.hasPrefix("local-") { presentAlert("현재 카드는 샘플 데이터예요."); return }
-                navigationController?.pushViewController(PerfumeDetailViewController(perfumeId: id), animated: true)
+                let detailViewController = PerfumeDetailSceneFactory.makeViewController(perfumeId: id)
+                navigationController?.pushViewController(detailViewController, animated: true)
         }
     }
 

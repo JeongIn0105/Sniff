@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 //
 //  MainTabView.swift
 //  Sniff
@@ -7,54 +6,22 @@
 //
 
 import SwiftUI
-=======
-    //
-    //  MainTabView.swift
-    //  Sniff
-    //
-    //  Created by t2025-m0239 on 2026.04.13.
-    //
-
-import SwiftUI
 import UIKit
->>>>>>> origin/main
 
 struct MainTabView: View {
     var body: some View {
         TabView {
-<<<<<<< HEAD
-            Text("홈")
-=======
             HomeTabContainerView()
->>>>>>> origin/main
                 .tabItem {
                     Image(systemName: "house")
                     Text("홈")
                 }
-<<<<<<< HEAD
-            Text("검색")
-=======
 
-            PlaceholderTabView(title: "검색")
->>>>>>> origin/main
+            SearchTabContainerView()
                 .tabItem {
                     Image(systemName: "magnifyingglass")
                     Text("검색")
                 }
-<<<<<<< HEAD
-            Text("시향기")
-                .tabItem {
-                    Image(systemName: "note.text")
-                    Text("시향기")
-                }
-            Text("MY")
-                .tabItem {
-                    Image(systemName: "person")
-                    Text("MY")
-                }
-        }
-        .accentColor(.black)
-=======
 
             PlaceholderTabView(title: "시향 기록")
                 .tabItem {
@@ -74,10 +41,20 @@ struct MainTabView: View {
 
 private struct HomeTabContainerView: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UINavigationController {
-        let homeViewController = HomeViewController()
+        let homeViewController = HomeSceneFactory.makeViewController()
         let navigationController = UINavigationController(rootViewController: homeViewController)
         navigationController.navigationBar.isHidden = true
-        navigationController.tabBarItem.title = "홈"
+        return navigationController
+    }
+
+    func updateUIViewController(_ uiViewController: UINavigationController, context: Context) {}
+}
+
+private struct SearchTabContainerView: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> UINavigationController {
+        let searchViewController = SearchSceneFactory.makeSearchViewController()
+        let navigationController = UINavigationController(rootViewController: searchViewController)
+        navigationController.navigationBar.isHidden = true
         return navigationController
     }
 
@@ -99,6 +76,5 @@ private struct PlaceholderTabView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color(.systemBackground))
         }
->>>>>>> origin/main
     }
 }

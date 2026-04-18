@@ -62,11 +62,11 @@ extension CollectedPerfume {
     }
 }
 
-    // 보유 향수 → FragellaPerfume 변환 헬퍼
+    // 보유 향수 → Perfume 변환 헬퍼
     // 보유 향수에서 시향 기록 남길 때 Fragella API 재호출 없이 사용
 extension CollectedPerfume {
-    func toFragellaPerfume() -> FragellaPerfume {
-        FragellaPerfume(
+    func toPerfume() -> Perfume {
+        Perfume(
             id: id,
             name: name,
             brand: brand,
