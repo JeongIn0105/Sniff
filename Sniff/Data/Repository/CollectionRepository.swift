@@ -10,6 +10,7 @@ import RxSwift
 
 protocol CollectionRepositoryType {
     func fetchCollection() -> Single<[CollectedPerfume]>
+    func deleteCollectionItems(ids: [String]) async throws
 }
 
 final class CollectionRepository: CollectionRepositoryType {
@@ -40,5 +41,9 @@ final class CollectionRepository: CollectionRepositoryType {
                 task.cancel()
             }
         }
+    }
+
+    func deleteCollectionItems(ids: [String]) async throws {
+        try await firestoreService.deleteCollectionItems(ids: ids)
     }
 }

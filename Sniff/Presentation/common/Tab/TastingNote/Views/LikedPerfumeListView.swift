@@ -16,7 +16,7 @@ struct LikedPerfumeListView: View {
         VStack(spacing: 0) {
             headerView
 
-            if viewModel.isLoading {
+            if viewModel.isLoading && viewModel.perfumes.isEmpty {
                 Spacer()
                 ProgressView()
                 Spacer()
@@ -28,6 +28,9 @@ struct LikedPerfumeListView: View {
         }
         .background(Color(.systemBackground).ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
+        .task {
+            await viewModel.load()
+        }
         .alert("오류", isPresented: Binding(
             get: { viewModel.errorMessage != nil },
             set: { if !$0 { viewModel.clearError() } }
@@ -42,7 +45,7 @@ struct LikedPerfumeListView: View {
 
     private var headerView: some View {
         ZStack {
-            Text("LIKE 향수")
+            Text("LIKE 향수 \(viewModel.perfumeCount)개")
                 .font(.system(size: 20, weight: .semibold))
 
             HStack {
@@ -67,10 +70,10 @@ struct LikedPerfumeListView: View {
     private var emptyStateView: some View {
         VStack(spacing: 12) {
             Spacer()
-            Text("LIKE한 향수가 없어요")
+            Text("등록된 LIKE 향수가 없어요")
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundColor(Color(.systemGray2))
-            Text("마음에 드는 향수에 LIKE를 눌러보세요")
+            Text("향수 카드의 하트 아이콘을 눌러 추가해주세요")
                 .font(.system(size: 16))
                 .foregroundColor(Color(.systemGray2))
             Spacer()
@@ -83,19 +86,97 @@ struct LikedPerfumeListView: View {
 
     private var perfumeListView: some View {
         ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 4) {
                 ForEach(viewModel.perfumes) { perfume in
-                    PerfumeRowView(
-                        name: perfume.name,
-                        brand: perfume.brand,
-                        scentFamilies: perfume.scentFamilies,
-                        imageURL: perfume.imageURL,
-                        date: perfume.likedAt
-                    )
+                    perfumeRow(perfume)
                     Divider()
-                        .padding(.leading, 88)
+                        .padding(.leading, 104)
                 }
                 Spacer().frame(height: 40)
+            }
+            .padding(.horizontal, 20)
+        }
+    }
+
+    private func perfumeRow(_ perfume: LikedPerfumeListViewModel.PerfumeRowItem) -> some View {
+        HStack(alignment: .top, spacing: 14) {
+            perfumeImage(url: perfume.imageURL)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(perfume.name)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(.primary)
+                    .lineLimit(2)
+
+                Text(perfume.brand)
+                    .font(.system(size: 14))
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+
+                accordChips(perfume.accordTags)
+
+                if perfume.hasTastingRecord {
+                    Text("시향 기록")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 5)
+                        .background(Color(.secondarySystemBackground))
+                        .clipShape(Capsule())
+                }
+            }
+
+            Spacer(minLength: 8)
+
+            Button {
+                Task { await viewModel.removeLike(id: perfume.id) }
+            } label: {
+                Image(systemName: "heart.fill")
+                    .font(.system(size: 24))
+                    .foregroundColor(Color(.systemGray))
+                    .frame(width: 32, height: 32)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.vertical, 12)
+    }
+
+    private func perfumeImage(url: String?) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(.secondarySystemBackground))
+
+            if let url, let imageURL = URL(string: url) {
+                KFImage(imageURL)
+                    .placeholder {
+                        Image(systemName: "shippingbox")
+                            .font(.system(size: 24))
+                            .foregroundColor(Color(.systemGray3))
+                    }
+                    .resizable()
+                    .scaledToFit()
+                    .padding(12)
+            } else {
+                Image(systemName: "shippingbox")
+                    .font(.system(size: 24))
+                    .foregroundColor(Color(.systemGray3))
+            }
+        }
+        .frame(width: 72, height: 72)
+    }
+
+    private func accordChips(_ accords: [String]) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 6) {
+                ForEach(accords, id: \.self) { accord in
+                    Text(accord)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 5)
+                        .background(Color(.secondarySystemBackground))
+                        .clipShape(Capsule())
+                }
             }
         }
     }

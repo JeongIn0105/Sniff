@@ -29,7 +29,7 @@ struct MainTabView: View {
                     Text("시향 기록")
                 }
 
-            PlaceholderTabView(title: "MY")
+            MyPageView()
                 .tabItem {
                     Image(systemName: "person.circle")
                     Text("MY")

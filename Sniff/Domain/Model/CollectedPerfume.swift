@@ -5,14 +5,13 @@
 //  Created by t2025-m0239 on 2026.04.14.
 //
 
-
 import Foundation
 
 struct CollectedPerfume {
     let id: String
     let name: String
     let brand: String
-let scentFamily: String?
+    let scentFamily: String?
     let scentFamily2: String?
     let imageURL: String?
     let mainAccords: [String]
@@ -28,26 +27,59 @@ let scentFamily: String?
     }
 }
 
+// MARK: - 편의 생성자 (VectorParsing / OwnedPerfumeListViewModel / FirestoreService 등 다양한 호출 패턴 대응)
 extension CollectedPerfume {
+
+    /// VectorParsing (makeCollectedPerfumeV2) 용: mainAccords + accordStrengths + memo
     init(
         id: String,
         name: String,
         brand: String,
+        imageURL: String?,
         mainAccords: [String],
+        accordStrengths: [String: AccordStrength],
+        memo: String?,
         createdAt: Date?
     ) {
         self.init(
             id: id,
             name: name,
             brand: brand,
+            scentFamily: nil,
+            scentFamily2: nil,
+            imageURL: imageURL,
             mainAccords: mainAccords,
+            accordStrengths: accordStrengths,
+            memo: memo,
+            createdAt: createdAt
+        )
+    }
+
+    /// OwnedPerfumeListViewModel / 구 FirestoreService 용: scentFamily + imageURL (mainAccords 없음)
+    init(
+        id: String,
+        name: String,
+        brand: String,
+        scentFamily: String?,
+        scentFamily2: String?,
+        imageURL: String?,
+        createdAt: Date?
+    ) {
+        self.init(
+            id: id,
+            name: name,
+            brand: brand,
+            scentFamily: scentFamily,
+            scentFamily2: scentFamily2,
+            imageURL: imageURL,
+            mainAccords: [],
             accordStrengths: [:],
             memo: nil,
             createdAt: createdAt
         )
     }
 
-        // accordStrengths는 있지만 memo 없는 경우용
+    /// accordStrengths 있고 memo 없는 경우
     init(
         id: String,
         name: String,
@@ -60,23 +92,44 @@ extension CollectedPerfume {
             id: id,
             name: name,
             brand: brand,
+            imageURL: nil,
             mainAccords: mainAccords,
             accordStrengths: accordStrengths,
             memo: nil,
             createdAt: createdAt
         )
     }
+
+    /// mainAccords 만 있는 최소 생성자
+    init(
+        id: String,
+        name: String,
+        brand: String,
+        mainAccords: [String],
+        createdAt: Date?
+    ) {
+        self.init(
+            id: id,
+            name: name,
+            brand: brand,
+            imageURL: nil,
+            mainAccords: mainAccords,
+            accordStrengths: [:],
+            memo: nil,
+            createdAt: createdAt
+        )
+    }
 }
 
-    // 보유 향수 → FragellaPerfume 변환 헬퍼
-    // 보유 향수에서 시향 기록 남길 때 Fragella API 재호출 없이 사용
+// MARK: - FragellaPerfume 변환
+// 보유 향수에서 시향 기록 남길 때 Fragella API 재호출 없이 사용
 extension CollectedPerfume {
     func toFragellaPerfume() -> FragellaPerfume {
         FragellaPerfume(
             id: id,
             name: name,
             brand: brand,
-            imageUrl: nil,
+            imageUrl: imageURL,
             mainAccords: mainAccords,
             mainAccordStrengths: accordStrengths,
             topNotes: nil,

@@ -12,6 +12,7 @@ import FirebaseFirestore
 enum FirestoreServiceError: LocalizedError {
     case missingAuthenticatedUser
     case invalidTasteAnalysisData
+    case invalidUserProfile
 
     var errorDescription: String? {
         switch self {
@@ -19,6 +20,8 @@ enum FirestoreServiceError: LocalizedError {
             return "로그인된 사용자 정보를 찾을 수 없어요"
         case .invalidTasteAnalysisData:
             return "저장된 취향 분석 데이터를 읽을 수 없어요"
+        case .invalidUserProfile:
+            return "저장된 사용자 정보를 읽을 수 없어요"
         }
     }
 }
@@ -31,7 +34,7 @@ final class FirestoreService {
 
     private init() {}
 
-func isNicknameAvailable(_ nickname: String) async throws -> Bool {
+    func isNicknameAvailable(_ nickname: String) async throws -> Bool {
         let normalizedNickname = normalizedNickname(nickname)
         guard !normalizedNickname.isEmpty else { return false }
         let currentUserID = try authenticatedUserID()
@@ -57,6 +60,25 @@ func isNicknameAvailable(_ nickname: String) async throws -> Bool {
         ]
 
         try await ref.setData(data, merge: true)
+    }
+
+    func fetchUserProfile() async throws -> SniffUser {
+        let snapshot = try await userDocumentRef().getDocument()
+        let data = snapshot.data() ?? [:]
+        let nickname = (data["nickname"] as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
+        guard !nickname.isEmpty else {
+            throw FirestoreServiceError.invalidUserProfile
+        }
+
+        return SniffUser(
+            uid: try authenticatedUserID(),
+            nickname: nickname,
+            email: Auth.auth().currentUser?.email,
+            onboardingCompleted: data["onboardingCompleted"] as? Bool,
+            experienceLevel: data["experienceLevel"] as? String
+        )
     }
 
     func fetchTasteAnalysis() async throws -> TasteAnalysisResult {
@@ -90,6 +112,19 @@ func isNicknameAvailable(_ nickname: String) async throws -> Bool {
             }
     }
 
+    func deleteCollectionItems(ids: [String]) async throws {
+        guard !ids.isEmpty else { return }
+
+        let collectionRef = try userDocumentRef().collection("collection")
+        let batch = database.batch()
+
+        ids.forEach { id in
+            batch.deleteDocument(collectionRef.document(id))
+        }
+
+        try await batch.commit()
+    }
+
     func fetchLikedPerfumes() async throws -> [LikedPerfume] {
         let snapshot = try await userDocumentRef()
             .collection("likes")
@@ -97,6 +132,13 @@ func isNicknameAvailable(_ nickname: String) async throws -> Bool {
             .getDocuments()
 
         return snapshot.documents.compactMap(Self.makeLikedPerfume)
+    }
+
+    func removeLikedPerfume(id: String) async throws {
+        try await userDocumentRef()
+            .collection("likes")
+            .document(id)
+            .delete()
     }
 
     func fetchTastingRecords() async throws -> [TastingRecord] {
@@ -270,18 +312,28 @@ private static func makeCollectedPerfume(from document: QueryDocumentSnapshot) -
 
     private static func makeLikedPerfume(from document: QueryDocumentSnapshot) -> LikedPerfume? {
         let data = document.data()
+        let name = (data["name"] as? String) ?? (data["perfumeName"] as? String)
+        let brand = (data["brand"] as? String) ?? (data["brandName"] as? String)
+
         guard
-            let name  = data["name"]  as? String,
-            let brand = data["brand"] as? String
+            let name,
+            let brand
         else { return nil }
         let timestamp = data["likedAt"] as? Timestamp
+        let rawMainAccords = data["mainAccords"] as? [String] ?? []
+        let legacyAccords = [data["scentFamily"] as? String, data["scentFamily2"] as? String]
+            .compactMap { $0 }
+        let mainAccords = ScentFamilyNormalizer.canonicalNames(
+            for: rawMainAccords.isEmpty ? legacyAccords : rawMainAccords
+        )
         return LikedPerfume(
             id: document.documentID,
             name: name,
             brand: brand,
             scentFamily: data["scentFamily"] as? String,
             scentFamily2: data["scentFamily2"] as? String,
-            imageURL: data["imageURL"] as? String,
+            imageURL: data["imageUrl"] as? String ?? data["imageURL"] as? String,
+            mainAccords: mainAccords,
             likedAt: timestamp?.dateValue()
         )
     }
@@ -312,6 +364,5 @@ private static func makeCollectedPerfume(from document: QueryDocumentSnapshot) -
         dictionary["primary_profile_code"] != nil
         || dictionary["recommendation_direction"] != nil
         || dictionary["analysis_summary"] != nil
-    }
     }
 }

@@ -6,81 +6,113 @@
 // MARK: - LIKE 향수 목록 뷰모델
 import Foundation
 import Combine
-import FirebaseAuth
-import FirebaseFirestore
+import RxSwift
 
 @MainActor
 final class LikedPerfumeListViewModel: ObservableObject {
 
-    // MARK: - Published
+    struct PerfumeRowItem: Identifiable {
+        let id: String
+        let name: String
+        let brand: String
+        let imageURL: String?
+        let accordTags: [String]
+        let hasTastingRecord: Bool
+    }
 
-    @Published private(set) var perfumes: [LikedPerfume] = []
+    @Published private(set) var perfumes: [PerfumeRowItem] = []
     @Published private(set) var isLoading: Bool = false
     @Published var errorMessage: String?
 
-    // MARK: - Computed
-
     var isEmpty: Bool { perfumes.isEmpty }
+    var perfumeCount: Int { perfumes.count }
 
-    // MARK: - Private
+    private let firestoreService: FirestoreService
+    private let tastingRepository: TastingRecordRepositoryType
+    private let disposeBag = DisposeBag()
 
-    private var listenerRegistration: ListenerRegistration?
-
-    private var uid: String? { Auth.auth().currentUser?.uid }
-
-    private var likesRef: CollectionReference? {
-        guard let uid else { return nil }
-        return Firestore.firestore()
-            .collection("users").document(uid)
-            .collection("likes")
+    init(
+        firestoreService: FirestoreService? = nil,
+        tastingRepository: TastingRecordRepositoryType? = nil
+    ) {
+        self.firestoreService = firestoreService ?? .shared
+        self.tastingRepository = tastingRepository ?? TastingRecordRepository()
     }
 
-    // MARK: - Init / Deinit
-
-    init() { fetchPerfumes() }
-
-    deinit { listenerRegistration?.remove() }
-
-    // MARK: - 목록 실시간 조회
-
-    func fetchPerfumes() {
-        guard let ref = likesRef else { return }
+    func load() async {
         isLoading = true
+        defer { isLoading = false }
 
-        listenerRegistration = ref
-            .order(by: "likedAt", descending: true)
-            .addSnapshotListener { [weak self] snapshot, error in
-                guard let self else { return }
-                self.isLoading = false
-                if let error {
-                    let nsError = error as NSError
-                    // Firestore 권한 에러(코드 7)는 규칙 미설정 상태이므로 빈 목록으로 처리
-                    if nsError.domain == "FIRFirestoreErrorDomain" && nsError.code == 7 {
-                        self.perfumes = []
-                    } else {
-                        self.errorMessage = error.localizedDescription
+        do {
+            let likedPerfumes = try await firestoreService.fetchLikedPerfumes()
+
+            let tastingKeys: Set<String>
+            do {
+                let tastingRecords = try await fetchTastingRecords()
+                tastingKeys = Set(
+                    tastingRecords.map { record in
+                        makeRecordKey(perfumeName: record.perfumeName, brandName: record.brandName)
                     }
-                    return
-                }
-                self.perfumes = snapshot?.documents.compactMap { doc in
-                    let data = doc.data()
-                    guard
-                        let name  = data["name"]  as? String,
-                        let brand = data["brand"] as? String
-                    else { return nil }
-                    let ts = data["likedAt"] as? Timestamp
-                    return LikedPerfume(
-                        id: doc.documentID,
-                        name: name,
-                        brand: brand,
-                        scentFamily: data["scentFamily"] as? String,
-                        scentFamily2: data["scentFamily2"] as? String,
-                        imageURL: data["imageURL"] as? String,
-                        likedAt: ts?.dateValue()
-                    )
-                } ?? []
+                )
+            } catch {
+                tastingKeys = []
             }
+
+            perfumes = likedPerfumes.map { perfume in
+                PerfumeRowItem(
+                    id: perfume.id,
+                    name: perfume.name,
+                    brand: perfume.brand,
+                    imageURL: perfume.imageURL,
+                    accordTags: previewAccords(mainAccords: perfume.mainAccords, fallback: perfume.scentFamilies),
+                    hasTastingRecord: tastingKeys.contains(
+                        makeRecordKey(perfumeName: perfume.name, brandName: perfume.brand)
+                    )
+                )
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func removeLike(id: String) async {
+        let previousItems = perfumes
+        perfumes.removeAll { $0.id == id }
+
+        do {
+            try await firestoreService.removeLikedPerfume(id: id)
+        } catch {
+            perfumes = previousItems
+            errorMessage = error.localizedDescription
+        }
     }
 
     func clearError() { errorMessage = nil }
+}
+
+private extension LikedPerfumeListViewModel {
+
+    func fetchTastingRecords() async throws -> [TastingRecord] {
+        try await withCheckedThrowingContinuation { continuation in
+            tastingRepository.fetchTastingRecords()
+                .subscribe(
+                    onSuccess: { items in
+                        continuation.resume(returning: items)
+                    },
+                    onFailure: { error in
+                        continuation.resume(throwing: error)
+                    }
+                )
+                .disposed(by: disposeBag)
+        }
+    }
+
+    func previewAccords(mainAccords: [String], fallback: [String]) -> [String] {
+        let source = mainAccords.isEmpty ? fallback : mainAccords
+        return Array(source.prefix(2))
+    }
+
+    func makeRecordKey(perfumeName: String, brandName: String) -> String {
+        "\(brandName.lowercased())|\(perfumeName.lowercased())"
+    }
 }
