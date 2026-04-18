@@ -10,6 +10,7 @@ import SwiftUI
 struct SettingsView: View {
 
     @EnvironmentObject private var appStateManager: AppStateManager
+    @Environment(\.openURL) private var openURL
     @StateObject private var viewModel = SettingsViewModel()
 
     var body: some View {
@@ -18,14 +19,14 @@ struct SettingsView: View {
                 AccountInfoView()
             } label: {
                 settingsRow(
-                    title: "계정 정보",
                     primaryValue: viewModel.nickname,
-                    secondaryValue: viewModel.email
+                    secondaryValue: viewModel.email,
+                    showsChevron: false
                 )
             }
 
             Button {
-                viewModel.showPrivacyPolicyAlert = true
+                openPrivacyPolicy()
             } label: {
                 rowContainer(title: "개인정보처리방침", showsChevron: true)
             }
@@ -57,16 +58,11 @@ struct SettingsView: View {
             guard didLogout else { return }
             appStateManager.state = .login
         }
-        .alert("로그아웃 할까요?", isPresented: $viewModel.showLogoutAlert) {
-            Button("로그아웃", role: .destructive) {
+        .alert(AppStrings.Settings.logoutTitle, isPresented: $viewModel.showLogoutAlert) {
+            Button(AppStrings.Settings.logoutConfirm, role: .destructive) {
                 viewModel.logout()
             }
-            Button("아니요", role: .cancel) { }
-        }
-        .alert("개인정보처리방침", isPresented: $viewModel.showPrivacyPolicyAlert) {
-            Button("확인", role: .cancel) { }
-        } message: {
-            Text("이번 단계에서는 행 구조만 먼저 연결했습니다.")
+            Button(AppStrings.Settings.logoutCancel, role: .cancel) { }
         }
         .alert("오류", isPresented: Binding(
             get: { viewModel.errorMessage != nil },
@@ -79,9 +75,9 @@ struct SettingsView: View {
     }
 
     private func settingsRow(
-        title: String,
         primaryValue: String,
-        secondaryValue: String?
+        secondaryValue: String?,
+        showsChevron: Bool = true
     ) -> some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
@@ -99,9 +95,11 @@ struct SettingsView: View {
 
             Spacer()
 
-            Image(systemName: "chevron.right")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(Color(.systemGray3))
+            if showsChevron {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(Color(.systemGray3))
+            }
         }
         .padding(.vertical, 6)
     }
@@ -131,6 +129,14 @@ struct SettingsView: View {
             }
         }
         .padding(.vertical, 8)
+    }
+
+    private func openPrivacyPolicy() {
+        guard let url = viewModel.privacyPolicyURL else {
+            viewModel.errorMessage = "개인정보처리방침 주소가 아직 등록되지 않았어요"
+            return
+        }
+        openURL(url)
     }
 }
 

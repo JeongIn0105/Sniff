@@ -12,21 +12,22 @@ import FirebaseAuth
 @MainActor
 final class AccountInfoViewModel: ObservableObject {
 
-    struct PlaceholderItem {
+    struct NoticeItem {
         let title: String
         let message: String
     }
 
     @Published private(set) var email: String?
-    @Published private(set) var placeholderItem: PlaceholderItem?
-    @Published var showPlaceholderAlert = false
+    @Published private(set) var noticeItem: NoticeItem?
+    @Published var showNoticeAlert = false
 
     init() {
         email = Auth.auth().currentUser?.email
     }
 
-    func showPlaceholder(title: String, message: String) {
-        placeholderItem = PlaceholderItem(title: title, message: message)
-        showPlaceholderAlert = true
+    func showNotice(title: String, message: String) {
+        email = Auth.auth().currentUser?.email
+        noticeItem = NoticeItem(title: title, message: message)
+        showNoticeAlert = true
     }
 }

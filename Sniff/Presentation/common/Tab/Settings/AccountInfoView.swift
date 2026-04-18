@@ -14,36 +14,32 @@ struct AccountInfoView: View {
     var body: some View {
         List {
             Button {
-                viewModel.showPlaceholder(
+                viewModel.showNotice(
                     title: "이메일 변경",
-                    message: "다음 단계에서 실제 이메일 변경 흐름을 연결할 예정입니다."
+                    message: "이메일 변경 기능은 다음 단계에서 연결할 예정입니다."
                 )
             } label: {
-                accountRow(title: "이메일 변경", value: viewModel.email)
+                accountRow(title: "이메일 변경", value: viewModel.email, showsChevron: false)
             }
             .buttonStyle(.plain)
 
             Button {
-                viewModel.showPlaceholder(
+                viewModel.showNotice(
                     title: "로그인 기기 관리",
-                    message: "다음 단계에서 실제 로그인 기기 관리 기능을 연결할 예정입니다."
+                    message: "로그인 기기 관리 기능은 다음 단계에서 연결할 예정입니다."
                 )
             } label: {
-                accountRow(title: "로그인 기기 관리")
+                accountRow(title: "로그인 기기 관리", showsChevron: false)
             }
             .buttonStyle(.plain)
 
             Button {
-                viewModel.showPlaceholder(
+                viewModel.showNotice(
                     title: "회원 탈퇴",
-                    message: "이번 단계에서는 회원 탈퇴 화면 구조만 우선 반영했습니다."
+                    message: "회원 탈퇴는 Firestore 데이터 삭제 후 Auth 삭제 순서로 다음 단계에서 연결할 예정입니다."
                 )
             } label: {
-                Text("회원 탈퇴")
-                    .font(.system(size: 16))
-                    .foregroundColor(.primary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.vertical, 10)
+                accountRow(title: "회원 탈퇴", showsChevron: false, accentColor: .red)
             }
             .buttonStyle(.plain)
         }
@@ -51,20 +47,25 @@ struct AccountInfoView: View {
         .navigationTitle("계정 정보")
         .navigationBarTitleDisplayMode(.inline)
         .alert(
-            viewModel.placeholderItem?.title ?? "안내",
-            isPresented: $viewModel.showPlaceholderAlert
+            viewModel.noticeItem?.title ?? "안내",
+            isPresented: $viewModel.showNoticeAlert
         ) {
             Button("확인", role: .cancel) { }
         } message: {
-            Text(viewModel.placeholderItem?.message ?? "")
+            Text(viewModel.noticeItem?.message ?? "")
         }
     }
 
-    private func accountRow(title: String, value: String? = nil) -> some View {
+    private func accountRow(
+        title: String,
+        value: String? = nil,
+        showsChevron: Bool = true,
+        accentColor: Color = .primary
+    ) -> some View {
         HStack(spacing: 12) {
             Text(title)
                 .font(.system(size: 16))
-                .foregroundColor(.primary)
+                .foregroundColor(accentColor)
 
             Spacer(minLength: 12)
 
@@ -75,10 +76,13 @@ struct AccountInfoView: View {
                     .lineLimit(1)
             }
 
-            Image(systemName: "chevron.right")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(Color(.systemGray3))
+            if showsChevron {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(Color(.systemGray3))
+            }
         }
+        .padding(.vertical, 8)
         .contentShape(Rectangle())
     }
 }

@@ -16,7 +16,6 @@ final class SettingsViewModel: ObservableObject {
     @Published private(set) var email: String?
     @Published private(set) var appVersion: String = "-"
     @Published var showLogoutAlert = false
-    @Published var showPrivacyPolicyAlert = false
     @Published var didLogout = false
     @Published var errorMessage: String?
 
@@ -56,6 +55,12 @@ final class SettingsViewModel: ObservableObject {
 
     func clearError() {
         errorMessage = nil
+    }
+
+    var privacyPolicyURL: URL? {
+        let rawValue = Bundle.main.object(forInfoDictionaryKey: "PrivacyPolicyURL") as? String
+        guard let rawValue else { return nil }
+        return URL(string: rawValue)
     }
 
     private static func currentAppVersion() -> String {
