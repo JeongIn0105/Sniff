@@ -33,10 +33,10 @@ final class PerfumeGridCell: UICollectionViewCell {
         $0.clipsToBounds = true
     }
 
-    let wishlistButton = UIButton(type: .system).then {
-        $0.setImage(UIImage(systemName: "heart"), for: .normal)
-        $0.setImage(UIImage(systemName: "heart.fill"), for: .selected)
-        $0.tintColor = .label
+    let wishlistButton = UIButton(type: .custom).then {
+        $0.setImage(UIImage(systemName: "heart")?.withRenderingMode(.alwaysTemplate), for: .normal)
+        $0.setImage(UIImage(systemName: "heart.fill")?.withRenderingMode(.alwaysTemplate), for: .selected)
+        $0.tintColor = .white
         $0.backgroundColor = .clear
     }
 
@@ -99,7 +99,7 @@ final class PerfumeGridCell: UICollectionViewCell {
         }
 
         wishlistButton.snp.makeConstraints {
-            $0.top.leading.equalToSuperview().offset(8)
+            $0.trailing.bottom.equalToSuperview().inset(8)
             $0.size.equalTo(28)
         }
 
@@ -123,9 +123,10 @@ final class PerfumeGridCell: UICollectionViewCell {
 
         // MARK: - Configure
 
-    func configure(with perfume: Perfume) {
+    func configure(with perfume: Perfume, isLiked: Bool = false) {
         brandLabel.text = perfume.brand
         nameLabel.text = perfume.name
+        wishlistButton.isSelected = isLiked
 
         if let urlStr = perfume.imageUrl, let url = URL(string: urlStr) {
             bottleImageView.kf.setImage(
@@ -164,7 +165,7 @@ private final class AccordPillView: UIView {
         }
 
         let label = UILabel().then {
-            $0.text = LocalizationMapper.accord(accord)
+            $0.text = accord
             $0.font = .systemFont(ofSize: 11)
             $0.textColor = .secondaryLabel
         }

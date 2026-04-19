@@ -37,4 +37,48 @@ final class CollectionRepository: CollectionRepositoryType {
             }
         }
     }
+
+    func saveCollectedPerfume(_ perfume: Perfume, memo: String? = nil) -> Completable {
+        Completable.create { [weak self] completable in
+            guard let self else {
+                completable(.error(AppSecretsError.missingValue("FIRESTORE_SERVICE")))
+                return Disposables.create()
+            }
+
+            let task = Task {
+                do {
+                    try await self.firestoreService.saveCollectedPerfume(perfume, memo: memo)
+                    completable(.completed)
+                } catch {
+                    completable(.error(error))
+                }
+            }
+
+            return Disposables.create {
+                task.cancel()
+            }
+        }
+    }
+
+    func deleteCollectedPerfume(id: String) -> Completable {
+        Completable.create { [weak self] completable in
+            guard let self else {
+                completable(.error(AppSecretsError.missingValue("FIRESTORE_SERVICE")))
+                return Disposables.create()
+            }
+
+            let task = Task {
+                do {
+                    try await self.firestoreService.deleteCollectedPerfume(id: id)
+                    completable(.completed)
+                } catch {
+                    completable(.error(error))
+                }
+            }
+
+            return Disposables.create {
+                task.cancel()
+            }
+        }
+    }
 }

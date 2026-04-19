@@ -16,6 +16,9 @@ enum SearchSceneFactory {
             searchPerfumesUseCase: searchPerfumesUseCase,
             recentSearchStore: RecentSearchStore()
         )
-        return SearchViewController(viewModel: viewModel)
+        return SearchViewController(
+            viewModel: viewModel,
+            collectionRepository: CollectionRepository()
+        )
     }
 }

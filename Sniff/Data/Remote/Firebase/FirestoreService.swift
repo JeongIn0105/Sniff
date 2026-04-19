@@ -156,6 +156,13 @@ final class FirestoreService {
         try await ref.setData(data, merge: true)
     }
 
+    func deleteCollectedPerfume(id: String) async throws {
+        try await userDocumentRef()
+            .collection("collection")
+            .document(id)
+            .delete()
+    }
+
     func saveTastingRecord(
         id: String? = nil,
         fragellaPerfume: Perfume,

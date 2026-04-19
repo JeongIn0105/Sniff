@@ -7,10 +7,18 @@
 import Foundation
 
 struct HomePerfumeItem {
+    let perfume: Perfume
     let id: String
     let brandName: String
     let perfumeName: String
     let accordsText: String
     let recommendationReason: String
     let imageURL: String?
+
+    var parsedAccords: [String] {
+        accordsText
+            .components(separatedBy: "•")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+    }
 }

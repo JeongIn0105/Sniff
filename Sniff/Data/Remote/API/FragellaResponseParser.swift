@@ -13,7 +13,7 @@ enum FragellaResponseParser {
         let jsonObject = try JSONSerialization.jsonObject(with: data)
 
         if let array = jsonObject as? [[String: Any]] {
-            return array.compactMap(parsePerfume(dictionary:))
+            return array.compactMap { parsePerfume(dictionary: $0) }
         }
 
         guard let dictionary = jsonObject as? [String: Any] else {
@@ -22,7 +22,7 @@ enum FragellaResponseParser {
 
         for key in ["data", "results", "items", "fragrances", "perfumes"] {
             if let array = dictionary[key] as? [[String: Any]] {
-                return array.compactMap(parsePerfume(dictionary:))
+                return array.compactMap { parsePerfume(dictionary: $0) }
             }
         }
 
@@ -45,19 +45,31 @@ enum FragellaResponseParser {
             let name = stringValue(forKeys: ["name", "Name", "perfume_name", "fragrance_name"], in: dictionary),
             let brand = stringValue(forKeys: ["brand", "Brand", "brand_name", "house"], in: dictionary)
         else { return nil }
+        if isLowConfidence(in: dictionary) { return nil }
 
         let id = stringValue(forKeys: ["id", "ID", "perfume_id", "fragrance_id"], in: dictionary)
             ?? makeSyntheticID(name: name, brand: brand)
+
+        let rawMainAccords = rawMainAccords(in: dictionary)
 
         return Perfume(
             id: id,
             name: name,
             brand: brand,
+            nameAliases: stringArrayValue(
+                forKeys: ["aliases", "name_aliases", "nameAliases", "perfume_aliases"],
+                in: dictionary
+            ) ?? [],
+            brandAliases: stringArrayValue(
+                forKeys: ["brand_aliases", "brandAliases", "house_aliases"],
+                in: dictionary
+            ) ?? [],
             imageUrl: stringValue(
                 forKeys: ["image_url", "Image URL", "image", "imageURL", "thumbnail_url", "thumbnail", "photo_url"],
                 in: dictionary
             ),
-            mainAccords: mainAccords(in: dictionary),
+            rawMainAccords: rawMainAccords,
+            mainAccords: ScentFamilyNormalizer.canonicalNames(for: rawMainAccords),
             mainAccordStrengths: mainAccordStrengths(in: dictionary),
             topNotes: noteNames(in: dictionary, keys: ["Top", "top"])
                 ?? stringArrayValue(forKeys: ["top_notes", "topNotes"], in: dictionary),
@@ -65,10 +77,14 @@ enum FragellaResponseParser {
                 ?? stringArrayValue(forKeys: ["middle_notes", "middleNotes", "heart_notes"], in: dictionary),
             baseNotes: noteNames(in: dictionary, keys: ["Base", "base"])
                 ?? stringArrayValue(forKeys: ["base_notes", "baseNotes"], in: dictionary),
-            concentration: stringValue(forKeys: ["concentration", "OilType"], in: dictionary),
+            concentration: stringValue(
+                forKeys: ["concentration", "Concentration", "OilType", "oilType", "oil_type", "Oil Type"],
+                in: dictionary
+            ),
             gender: stringValue(forKeys: ["gender", "Gender", "target_gender"], in: dictionary),
             season: seasonRankingNames(in: dictionary)
                 ?? stringArrayValue(forKeys: ["season", "seasons"], in: dictionary),
+            seasonRanking: seasonRankingEntries(in: dictionary),
             situation: stringArrayValue(
                 forKeys: ["situation", "situations", "occasion", "occasions"],
                 in: dictionary
@@ -78,16 +94,16 @@ enum FragellaResponseParser {
         )
     }
 
-    private static func mainAccords(in dictionary: [String: Any]) -> [String] {
+    private static func rawMainAccords(in dictionary: [String: Any]) -> [String] {
         if let accords = stringArrayValue(forKeys: ["Main Accords", "main_accords"], in: dictionary) {
-            return ScentFamilyNormalizer.canonicalNames(for: accords)
+            return accords
         }
 
         let fallback = [
             stringValue(forKeys: ["scent_family", "accord", "main_accord"], in: dictionary),
             stringValue(forKeys: ["scent_family2", "secondary_accord", "sub_accord"], in: dictionary)
         ].compactMap { $0 }
-        return ScentFamilyNormalizer.canonicalNames(for: fallback)
+        return fallback
     }
 
     private static func mainAccordStrengths(in dictionary: [String: Any]) -> [String: AccordStrength] {
@@ -131,6 +147,23 @@ enum FragellaResponseParser {
         return seasons.isEmpty ? nil : seasons
     }
 
+    private static func seasonRankingEntries(in dictionary: [String: Any]) -> [SeasonRankingEntry] {
+        guard let raw = dictionary["Season Ranking"] as? [[String: Any]] else { return [] }
+
+        return raw.enumerated().compactMap { index, item in
+            guard let rawName = item["name"] as? String else { return nil }
+            let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.isEmpty else { return nil }
+
+            let fallbackScore = Double(max(raw.count - index, 1))
+            let score =
+                numericValue(forKeys: ["score", "value", "percentage", "percent", "rank", "votes"], in: item)
+                ?? fallbackScore
+
+            return SeasonRankingEntry(name: name, score: score)
+        }
+    }
+
     private static func stringValue(forKeys keys: [String], in dictionary: [String: Any]) -> String? {
         for key in keys {
             guard let raw = dictionary[key] else { continue }
@@ -171,6 +204,25 @@ enum FragellaResponseParser {
             }
         }
         return nil
+    }
+
+    private static func numericValue(forKeys keys: [String], in dictionary: [String: Any]) -> Double? {
+        for key in keys {
+            guard let raw = dictionary[key] else { continue }
+            if let number = raw as? NSNumber { return number.doubleValue }
+            if let string = raw as? String {
+                let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
+                if let value = Double(trimmed) { return value }
+            }
+        }
+        return nil
+    }
+
+    private static func isLowConfidence(in dictionary: [String: Any]) -> Bool {
+        guard let confidence = stringValue(forKeys: ["Confidence", "confidence"], in: dictionary) else {
+            return false
+        }
+        return confidence.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "low"
     }
 
     private static func makeSyntheticID(name: String, brand: String) -> String {

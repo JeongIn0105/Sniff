@@ -7,6 +7,7 @@
 
 import AuthenticationServices
 import CryptoKit
+import Security
 
 struct AppleSignInPayload {
     let identityToken: Data
@@ -26,7 +27,10 @@ final class AppleSignInHelper: NSObject {
         var remainingLength = 32
         while remainingLength > 0 {
             var randoms = [UInt8](repeating: 0, count: 16)
-            SecRandomCopyBytes(kSecRandomDefault, randoms.count, &randoms)
+            let status = SecRandomCopyBytes(kSecRandomDefault, randoms.count, &randoms)
+            guard status == errSecSuccess else {
+                return UUID().uuidString.replacingOccurrences(of: "-", with: "")
+            }
             randoms.forEach { random in
                 if remainingLength == 0 { return }
                 if random < charset.count {
@@ -90,9 +94,18 @@ extension AppleSignInHelper: ASAuthorizationControllerDelegate {
 // MARK: - ASAuthorizationControllerPresentationContextProviding
 extension AppleSignInHelper: ASAuthorizationControllerPresentationContextProviding {
     func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
-        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let window = scene.windows.first else { return ASPresentationAnchor() }
-        return window
+        let scenes = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+
+        if let keyWindow = scenes
+            .flatMap(\.windows)
+            .first(where: \.isKeyWindow) {
+            return keyWindow
+        }
+
+        return scenes
+            .flatMap(\.windows)
+            .first ?? ASPresentationAnchor()
     }
 }
 

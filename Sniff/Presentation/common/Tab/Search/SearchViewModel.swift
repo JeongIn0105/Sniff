@@ -165,14 +165,13 @@ final class SearchViewModel {
         searchPerfumesUseCase.execute(query: query, limit: 5)
             .subscribe(onSuccess: { [weak self] perfumes in
                 guard let self else { return }
+                let rankedPerfumes = self.rankMatchingPerfumes(perfumes, for: query)
                 var items: [SuggestionItem] = []
 
-                    // 브랜드 중복 제거
-                let brands = Array(Set(perfumes.map { $0.brand })).prefix(3)
-                items += brands.map { .brand(name: $0) }
+                let brands = self.makeBrandResults(from: rankedPerfumes, query: query).prefix(3)
+                items += brands.map { .brand(name: $0.brand) }
 
-                    // 향수명
-                items += perfumes.prefix(5).map {
+                items += rankedPerfumes.prefix(5).map {
                     .perfume(name: $0.name, brand: $0.brand)
                 }
 
@@ -188,19 +187,9 @@ final class SearchViewModel {
                 onSuccess: { [weak self] perfumes in
                     guard let self else { return }
                     self.isLoadingRelay.accept(false)
-
-                        // 브랜드 필터링 — 쿼리가 브랜드명과 일치하는 경우
-                    let brands = perfumes.filter {
-                        $0.brand.lowercased().contains(query.lowercased())
-                    }
-                        // 중복 제거 (브랜드 이름 기준)
-                    let uniqueBrands = Array(
-                        Dictionary(grouping: brands, by: { $0.brand })
-                            .compactMapValues { $0.first }
-                            .values
-                    )
-                    self.brandResultsRelay.accept(uniqueBrands)
-                    self.perfumeResultsRelay.accept(perfumes)
+                    let rankedPerfumes = self.rankMatchingPerfumes(perfumes, for: query)
+                    self.brandResultsRelay.accept(self.makeBrandResults(from: rankedPerfumes, query: query))
+                    self.perfumeResultsRelay.accept(rankedPerfumes)
                 },
                 onFailure: { [weak self] _ in
                     self?.isLoadingRelay.accept(false)
@@ -216,11 +205,23 @@ final class SearchViewModel {
     ) -> [Perfume] {
         var result = perfumes
 
+        if !filter.scentFamilies.isEmpty {
+            let targetFamilies = Set(filter.scentFamilies.flatMap(\.matchingRawAccords))
+            result = result.filter { perfume in
+                let perfumeAccords = Set(perfume.rawMainAccords.map {
+                    $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                })
+                return !perfumeAccords.isDisjoint(with: targetFamilies)
+            }
+        }
+
             // 무드&이미지 필터
         if !filter.moodTags.isEmpty {
-            let targetAccords = Set(filter.moodTags.flatMap { $0.relatedAccords })
+            let targetAccords = Set(
+                ScentFamilyNormalizer.canonicalNames(for: filter.moodTags.flatMap { $0.relatedAccords })
+            )
             result = result.filter { perfume in
-                let perfumeAccords = Set(perfume.mainAccords.map { $0.lowercased() })
+                let perfumeAccords = Set(ScentFamilyNormalizer.canonicalNames(for: perfume.mainAccords))
                 return !perfumeAccords.isDisjoint(with: targetAccords)
             }
         }
@@ -249,8 +250,6 @@ final class SearchViewModel {
         switch sort {
             case .recommended:
                 break // API 기본 순서 유지
-            case .newest:
-                break // Fragella에 날짜 정보 없음 → 순서 유지
             case .nameAsc:
                 result.sort { $0.name < $1.name }
             case .nameDesc:
@@ -258,5 +257,80 @@ final class SearchViewModel {
         }
 
         return result
+    }
+
+    private func makeBrandResults(from perfumes: [Perfume], query: String) -> [Perfume] {
+        let grouped = Dictionary(grouping: perfumes) { normalizeForSearch($0.brand) }
+
+        return grouped.values
+            .compactMap { group in
+                group.max { lhs, rhs in
+                    brandMatchScore(for: lhs, query: query) < brandMatchScore(for: rhs, query: query)
+                }
+            }
+            .filter { brandMatchScore(for: $0, query: query) > 0 }
+            .sorted {
+                let lhsScore = brandMatchScore(for: $0, query: query)
+                let rhsScore = brandMatchScore(for: $1, query: query)
+                if lhsScore != rhsScore { return lhsScore > rhsScore }
+                return $0.brand.localizedCaseInsensitiveCompare($1.brand) == .orderedAscending
+            }
+    }
+
+    private func rankMatchingPerfumes(_ perfumes: [Perfume], for query: String) -> [Perfume] {
+        perfumes
+            .map { perfume in (perfume: perfume, score: searchScore(for: perfume, query: query)) }
+            .filter { $0.score > 0 }
+            .sorted { lhs, rhs in
+                if lhs.score != rhs.score { return lhs.score > rhs.score }
+                if lhs.perfume.brand != rhs.perfume.brand {
+                    return lhs.perfume.brand.localizedCaseInsensitiveCompare(rhs.perfume.brand) == .orderedAscending
+                }
+                return lhs.perfume.name.localizedCaseInsensitiveCompare(rhs.perfume.name) == .orderedAscending
+            }
+            .map(\.perfume)
+    }
+
+    private func searchScore(for perfume: Perfume, query: String) -> Int {
+        let normalizedQuery = normalizeForSearch(query)
+        guard !normalizedQuery.isEmpty else { return 0 }
+
+        let normalizedBrand = normalizeForSearch(perfume.brand)
+        let normalizedName = normalizeForSearch(perfume.name)
+        let normalizedBrandAliases = perfume.brandAliases.map { normalizeForSearch($0) }
+        let normalizedNameAliases = perfume.nameAliases.map { normalizeForSearch($0) }
+
+        if normalizedBrand == normalizedQuery { return 1_000 }
+        if normalizedBrandAliases.contains(normalizedQuery) { return 950 }
+        if normalizedName == normalizedQuery { return 900 }
+        if normalizedNameAliases.contains(normalizedQuery) { return 850 }
+        if normalizedBrand.contains(normalizedQuery) { return 800 }
+        if normalizedBrandAliases.contains(where: { $0.contains(normalizedQuery) }) { return 760 }
+        if normalizedName.contains(normalizedQuery) { return 700 }
+        if normalizedNameAliases.contains(where: { $0.contains(normalizedQuery) }) { return 660 }
+
+        return 0
+    }
+
+    private func brandMatchScore(for perfume: Perfume, query: String) -> Int {
+        let normalizedQuery = normalizeForSearch(query)
+        guard !normalizedQuery.isEmpty else { return 0 }
+
+        let normalizedBrand = normalizeForSearch(perfume.brand)
+        let normalizedAliases = perfume.brandAliases.map { normalizeForSearch($0) }
+
+        if normalizedBrand == normalizedQuery { return 1_000 }
+        if normalizedAliases.contains(normalizedQuery) { return 950 }
+        if normalizedBrand.contains(normalizedQuery) { return 800 }
+        if normalizedAliases.contains(where: { $0.contains(normalizedQuery) }) { return 760 }
+        return 0
+    }
+
+    private func normalizeForSearch(_ value: String) -> String {
+        value
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+            .lowercased()
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .joined()
     }
 }

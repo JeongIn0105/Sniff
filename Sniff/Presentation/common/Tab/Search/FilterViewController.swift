@@ -19,6 +19,7 @@ final class FilterViewController: UIViewController {
     private let viewModel: FilterViewModel
     private let disposeBag = DisposeBag()
 
+    private let scentFamilyToggleRelay = PublishRelay<ScentFamilyFilter>()
     private let moodTagToggleRelay = PublishRelay<MoodTag>()
     private let concentrationToggleRelay = PublishRelay<Concentration>()
     private let seasonToggleRelay = PublishRelay<Season>()
@@ -41,11 +42,12 @@ final class FilterViewController: UIViewController {
 
     private let scrollView = UIScrollView().then {
         $0.showsVerticalScrollIndicator = false
+        $0.alwaysBounceVertical = true
     }
 
     private let contentStackView = UIStackView().then {
         $0.axis = .vertical
-        $0.spacing = 28
+        $0.spacing = 14
     }
 
         // 선택된 필터 상단 바
@@ -73,7 +75,7 @@ final class FilterViewController: UIViewController {
     }
 
     private let applyButton = UIButton(type: .system).then {
-        $0.setTitle("58개 향수 보기", for: .normal)
+        $0.setTitle("향수 58개 보기", for: .normal)
         $0.titleLabel?.font = .systemFont(ofSize: 16, weight: .semibold)
         $0.setTitleColor(.white, for: .normal)
         $0.setTitleColor(.systemGray3, for: .disabled)
@@ -119,14 +121,14 @@ final class FilterViewController: UIViewController {
         }
 
         titleLabel.snp.makeConstraints {
-            $0.top.equalTo(handleView.snp.bottom).offset(16)
+            $0.top.equalTo(handleView.snp.bottom).offset(12)
             $0.leading.equalToSuperview().offset(20)
         }
 
         activeFilterScrollView.snp.makeConstraints {
-            $0.top.equalTo(titleLabel.snp.bottom).offset(12)
+            $0.top.equalTo(titleLabel.snp.bottom).offset(8)
             $0.leading.trailing.equalToSuperview()
-            $0.height.equalTo(36)
+            $0.height.equalTo(32)
         }
 
         activeFilterStackView.snp.makeConstraints {
@@ -136,11 +138,11 @@ final class FilterViewController: UIViewController {
 
         bottomView.snp.makeConstraints {
             $0.leading.trailing.bottom.equalToSuperview()
-            $0.height.equalTo(100)
+            $0.height.equalTo(92)
         }
 
         scrollView.snp.makeConstraints {
-            $0.top.equalTo(activeFilterScrollView.snp.bottom).offset(8)
+            $0.top.equalTo(activeFilterScrollView.snp.bottom).offset(4)
             $0.leading.trailing.equalToSuperview()
             $0.bottom.equalTo(bottomView.snp.top)
         }
@@ -148,25 +150,26 @@ final class FilterViewController: UIViewController {
             // 스크롤 내용
         scrollView.addSubview(contentStackView)
         contentStackView.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(8)
-            $0.leading.trailing.equalToSuperview()
-            $0.bottom.equalToSuperview().offset(-16)
-            $0.width.equalTo(scrollView)
+            $0.top.equalTo(scrollView.contentLayoutGuide.snp.top).offset(4)
+            $0.leading.equalTo(scrollView.contentLayoutGuide.snp.leading)
+            $0.trailing.equalTo(scrollView.contentLayoutGuide.snp.trailing)
+            $0.bottom.equalTo(scrollView.contentLayoutGuide.snp.bottom).offset(-12)
+            $0.width.equalTo(scrollView.frameLayoutGuide.snp.width)
         }
 
             // 필터 섹션 추가
         contentStackView.addArrangedSubview(makeSectionView(
-            title: "무드&이미지",
-            tags: MoodTag.allCases.map { $0.displayName },
-            type: .mood
+            title: "향 계열",
+            tags: ScentFamilyFilter.allCases.map { $0.displayName },
+            type: .scentFamily
         ))
 
         contentStackView.addArrangedSubview(makeDivider())
 
         contentStackView.addArrangedSubview(makeSectionView(
-            title: "농도",
-            tags: Concentration.allCases.map { $0.displayName },
-            type: .concentration
+            title: "분위기 / 이미지",
+            tags: MoodTag.allCases.map { $0.displayName },
+            type: .mood
         ))
 
         contentStackView.addArrangedSubview(makeDivider())
@@ -182,16 +185,16 @@ final class FilterViewController: UIViewController {
 
         resetButton.snp.makeConstraints {
             $0.leading.equalToSuperview().offset(20)
-            $0.top.equalToSuperview().offset(16)
+            $0.top.equalToSuperview().offset(12)
             $0.width.equalTo(100)
-            $0.height.equalTo(52)
+            $0.height.equalTo(48)
         }
 
         applyButton.snp.makeConstraints {
             $0.leading.equalTo(resetButton.snp.trailing).offset(12)
             $0.trailing.equalToSuperview().offset(-20)
             $0.top.equalTo(resetButton)
-            $0.height.equalTo(52)
+            $0.height.equalTo(48)
         }
     }
 
@@ -199,6 +202,7 @@ final class FilterViewController: UIViewController {
 
     private func bindViewModel() {
         let input = FilterViewModel.Input(
+            scentFamilyToggle: scentFamilyToggleRelay.asObservable(),
             moodTagToggle: moodTagToggleRelay.asObservable(),
             concentrationToggle: concentrationToggleRelay.asObservable(),
             seasonToggle: seasonToggleRelay.asObservable(),
@@ -212,7 +216,7 @@ final class FilterViewController: UIViewController {
         output.resultCount
             .observe(on: MainScheduler.instance)
             .subscribe(onNext: { [weak self] count in
-                self?.applyButton.setTitle("\(count)개 향수 보기", for: .normal)
+                self?.applyButton.setTitle("향수 \(count)개 보기", for: .normal)
             })
             .disposed(by: disposeBag)
 
@@ -262,14 +266,17 @@ final class FilterViewController: UIViewController {
     private var tagButtons: [String: UIButton] = [:]
 
     private func updateTagButtons(filter: SearchFilter) {
+        ScentFamilyFilter.allCases.forEach { family in
+            tagButtons[family.displayName]?.isSelected = filter.scentFamilies.contains(family)
+        }
         MoodTag.allCases.forEach { tag in
-            tagButtons[tag.rawValue]?.isSelected = filter.moodTags.contains(tag)
+            tagButtons[tag.displayName]?.isSelected = filter.moodTags.contains(tag)
         }
         Concentration.allCases.forEach { conc in
-            tagButtons[conc.rawValue]?.isSelected = filter.concentrations.contains(conc)
+            tagButtons[conc.displayName]?.isSelected = filter.concentrations.contains(conc)
         }
         Season.allCases.forEach { season in
-            tagButtons[season.rawValue]?.isSelected = filter.seasons.contains(season)
+            tagButtons[season.displayName]?.isSelected = filter.seasons.contains(season)
         }
     }
 
@@ -278,7 +285,8 @@ final class FilterViewController: UIViewController {
     private func updateActiveFilterBar(filter: SearchFilter) {
         activeFilterStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
 
-        let allSelected: [String] = filter.moodTags.map { $0.displayName }
+        let allSelected: [String] = filter.scentFamilies.map { $0.displayName }
+        + filter.moodTags.map { $0.displayName }
         + filter.concentrations.map { $0.displayName }
         + filter.seasons.map { $0.displayName }
 
@@ -297,7 +305,9 @@ final class FilterViewController: UIViewController {
         button.setTitleColor(.white, for: .normal)
         button.backgroundColor = .label
         button.layer.cornerRadius = 16
-        button.contentEdgeInsets = UIEdgeInsets(top: 6, left: 12, bottom: 6, right: 12)
+        var configuration = UIButton.Configuration.plain()
+        configuration.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 12, bottom: 6, trailing: 12)
+        button.configuration = configuration
 
             // 탭 시 해당 필터 해제
         button.rx.tap
@@ -310,7 +320,9 @@ final class FilterViewController: UIViewController {
     }
 
     private func removeFilter(named title: String) {
-        if let tag = MoodTag(rawValue: title) {
+        if let family = ScentFamilyFilter(rawValue: title) {
+            scentFamilyToggleRelay.accept(family)
+        } else if let tag = MoodTag(rawValue: title) {
             moodTagToggleRelay.accept(tag)
         } else if let conc = Concentration(rawValue: title) {
             concentrationToggleRelay.accept(conc)
@@ -321,7 +333,7 @@ final class FilterViewController: UIViewController {
 
         // MARK: - Section 생성
 
-    private enum TagType { case mood, concentration, season }
+    private enum TagType { case scentFamily, mood, concentration, season }
 
     private func makeSectionView(title: String, tags: [String], type: TagType) -> UIView {
         let container = UIView()
@@ -331,15 +343,44 @@ final class FilterViewController: UIViewController {
             $0.font = .systemFont(ofSize: 16, weight: .semibold)
         }
 
-        container.addSubview(titleLabel)
+        let headerView = UIView()
+        headerView.addSubview(titleLabel)
         titleLabel.snp.makeConstraints {
+            $0.leading.top.bottom.equalToSuperview()
+        }
+
+        if type == .concentration {
+            let infoButton = UIButton(type: .system).then {
+                $0.setImage(UIImage(systemName: "questionmark.circle"), for: .normal)
+                $0.tintColor = .systemGray2
+            }
+            headerView.addSubview(infoButton)
+            infoButton.snp.makeConstraints {
+                $0.leading.equalTo(titleLabel.snp.trailing).offset(4)
+                $0.centerY.equalTo(titleLabel)
+                $0.trailing.lessThanOrEqualToSuperview()
+            }
+            infoButton.rx.tap
+                .subscribe(onNext: { [weak self] in
+                    self?.presentConcentrationInfoSheet()
+                })
+                .disposed(by: disposeBag)
+        }
+
+        container.addSubview(headerView)
+        headerView.snp.makeConstraints {
             $0.top.equalToSuperview()
             $0.leading.equalToSuperview().offset(20)
+            $0.trailing.lessThanOrEqualToSuperview().offset(-20)
         }
 
         let wrapView = TagWrapView(tags: tags) { [weak self] selectedTag in
             guard let self else { return }
             switch type {
+                case .scentFamily:
+                    if let family = ScentFamilyFilter(rawValue: selectedTag) {
+                        self.scentFamilyToggleRelay.accept(family)
+                    }
                 case .mood:
                     if let tag = MoodTag(rawValue: selectedTag) {
                         self.moodTagToggleRelay.accept(tag)
@@ -357,17 +398,17 @@ final class FilterViewController: UIViewController {
 
             // 버튼 등록
         wrapView.buttons.forEach { btn in
-            if let title = btn.title(for: .normal) {
-                tagButtons[title] = btn
+            if let filterButton = btn as? FilterTagButton {
+                tagButtons[filterButton.baseTitle] = filterButton
             }
         }
 
         container.addSubview(wrapView)
         wrapView.snp.makeConstraints {
-            $0.top.equalTo(titleLabel.snp.bottom).offset(12)
+            $0.top.equalTo(headerView.snp.bottom).offset(8)
             $0.leading.equalToSuperview().offset(20)
             $0.trailing.equalToSuperview().offset(-20)
-            $0.bottom.equalToSuperview()
+            $0.bottom.equalToSuperview().offset(-2)
         }
 
         return container
@@ -380,6 +421,18 @@ final class FilterViewController: UIViewController {
         }
         return view
     }
+
+    private func presentConcentrationInfoSheet() {
+        let infoViewController = ConcentrationInfoViewController()
+        infoViewController.modalPresentationStyle = .pageSheet
+
+        if let sheet = infoViewController.sheetPresentationController {
+            sheet.detents = [.medium()]
+            sheet.prefersGrabberVisible = true
+        }
+
+        present(infoViewController, animated: true)
+    }
 }
 
     // MARK: - TagWrapView
@@ -391,7 +444,7 @@ final class TagWrapView: UIView {
     private let onSelect: (String) -> Void
     private(set) var buttons: [UIButton] = []
     private let spacing: CGFloat = 8
-    private let lineSpacing: CGFloat = 10
+    private let lineSpacing: CGFloat = 8
 
     init(tags: [String], onSelect: @escaping (String) -> Void) {
         self.tags = tags
@@ -404,16 +457,16 @@ final class TagWrapView: UIView {
 
     private func setupButtons() {
         tags.forEach { tag in
-            let button = UIButton(type: .system)
-            button.setTitle(tag, for: .normal)
+            let button = FilterTagButton(type: .system)
+            button.baseTitle = tag
             button.titleLabel?.font = .systemFont(ofSize: 14)
-            button.setTitleColor(.label, for: .normal)
-            button.setTitleColor(.white, for: .selected)
             button.backgroundColor = .systemBackground
             button.layer.cornerRadius = 18
             button.layer.borderWidth = 1
             button.layer.borderColor = UIColor.systemGray3.cgColor
-            button.contentEdgeInsets = UIEdgeInsets(top: 8, left: 14, bottom: 8, right: 14)
+            var configuration = UIButton.Configuration.plain()
+            configuration.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16)
+            button.configuration = configuration
             button.addTarget(self, action: #selector(tagTapped(_:)), for: .touchUpInside)
             addSubview(button)
             buttons.append(button)
@@ -421,13 +474,8 @@ final class TagWrapView: UIView {
     }
 
     @objc private func tagTapped(_ sender: UIButton) {
-        sender.isSelected.toggle()
-        sender.backgroundColor = sender.isSelected ? .label : .systemBackground
-        sender.layer.borderColor = sender.isSelected
-        ? UIColor.label.cgColor
-        : UIColor.systemGray3.cgColor
-        if let title = sender.title(for: .normal) {
-            onSelect(title)
+        if let button = sender as? FilterTagButton {
+            onSelect(button.baseTitle)
         }
     }
 
@@ -439,8 +487,8 @@ final class TagWrapView: UIView {
 
         buttons.forEach { button in
             button.sizeToFit()
-            let w = button.frame.width + 28
-            let h: CGFloat = 36
+            let w = button.frame.width + 20
+            let h: CGFloat = 38
 
             if x + w > bounds.width && x > 0 {
                 x = 0
@@ -456,5 +504,114 @@ final class TagWrapView: UIView {
         layoutSubviews()
         let maxY = buttons.map { $0.frame.maxY }.max() ?? 0
         return CGSize(width: UIView.noIntrinsicMetric, height: maxY)
+    }
+}
+
+private final class FilterTagButton: UIButton {
+    var baseTitle: String = "" {
+        didSet {
+            updateAppearance()
+        }
+    }
+
+    override var isSelected: Bool {
+        didSet {
+            updateAppearance()
+        }
+    }
+
+    private func updateAppearance() {
+        let title = isSelected ? "✓ \(baseTitle)" : baseTitle
+        setTitle(title, for: .normal)
+        setTitleColor(.label, for: .normal)
+        setTitleColor(.label, for: .selected)
+        setTitleColor(.label, for: .highlighted)
+        tintColor = .label
+        backgroundColor = .systemBackground
+        layer.borderColor = isSelected ? UIColor.label.cgColor : UIColor.systemGray3.cgColor
+    }
+}
+
+private final class ConcentrationInfoViewController: UIViewController {
+    private struct ConcentrationDescription {
+        let title: String
+        let description: String
+    }
+
+    private let items: [ConcentrationDescription] = [
+        .init(title: "퍼퓸", description: "오일 함량이 가장 높아 향이 진하고 오래 유지되는 편이에요."),
+        .init(title: "오드퍼퓸(EDP)", description: "일상에서 가장 무난하게 쓰기 좋고 지속력도 비교적 안정적이에요."),
+        .init(title: "오드뚜왈렛(EDT)", description: "EDP보다 가볍고 산뜻해서 데일리로 부담 없이 쓰기 좋아요."),
+        .init(title: "오드콜로뉴(EDC)", description: "향이 가장 가볍고 지속 시간이 짧아 리프레시용에 가까워요."),
+        .init(title: "오프레시", description: "아주 옅고 가벼운 타입으로 짧게 향을 더하는 느낌에 가까워요.")
+    ]
+
+    private let titleLabel = UILabel().then {
+        $0.text = "농도 설명"
+        $0.font = .systemFont(ofSize: 18, weight: .semibold)
+    }
+
+    private let stackView = UIStackView().then {
+        $0.axis = .vertical
+        $0.spacing = 16
+    }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .systemBackground
+        setupUI()
+    }
+
+    private func setupUI() {
+        view.addSubview(titleLabel)
+        view.addSubview(stackView)
+
+        titleLabel.snp.makeConstraints {
+            $0.top.equalTo(view.safeAreaLayoutGuide).offset(20)
+            $0.leading.equalToSuperview().offset(20)
+        }
+
+        stackView.snp.makeConstraints {
+            $0.top.equalTo(titleLabel.snp.bottom).offset(20)
+            $0.leading.trailing.equalToSuperview().inset(20)
+            $0.bottom.lessThanOrEqualTo(view.safeAreaLayoutGuide).offset(-20)
+        }
+
+        items.forEach { item in
+            stackView.addArrangedSubview(ConcentrationInfoRowView(title: item.title, description: item.description))
+        }
+    }
+}
+
+private final class ConcentrationInfoRowView: UIView {
+    init(title: String, description: String) {
+        super.init(frame: .zero)
+
+        let titleLabel = UILabel().then {
+            $0.text = title
+            $0.font = .systemFont(ofSize: 15, weight: .semibold)
+            $0.textColor = .label
+        }
+
+        let descriptionLabel = UILabel().then {
+            $0.text = description
+            $0.font = .systemFont(ofSize: 13)
+            $0.textColor = .secondaryLabel
+            $0.numberOfLines = 0
+        }
+
+        let stack = UIStackView(arrangedSubviews: [titleLabel, descriptionLabel]).then {
+            $0.axis = .vertical
+            $0.spacing = 4
+        }
+
+        addSubview(stack)
+        stack.snp.makeConstraints {
+            $0.edges.equalToSuperview()
+        }
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError()
     }
 }

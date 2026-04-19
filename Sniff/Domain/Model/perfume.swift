@@ -42,11 +42,19 @@ enum AccordStrength: String {
     }
 }
 
+struct SeasonRankingEntry {
+    let name: String
+    let score: Double
+}
+
 struct Perfume {
     let id: String
     let name: String
     let brand: String
+    let nameAliases: [String]
+    let brandAliases: [String]
     let imageUrl: String?
+    let rawMainAccords: [String]
     let mainAccords: [String]
     let mainAccordStrengths: [String: AccordStrength]
     let topNotes: [String]?
@@ -55,6 +63,7 @@ struct Perfume {
     let concentration: String?
     let gender: String?
     let season: [String]?
+    let seasonRanking: [SeasonRankingEntry]
     let situation: [String]?
     let longevity: String?
     let sillage: String?
@@ -63,7 +72,10 @@ struct Perfume {
         id: String,
         name: String,
         brand: String,
+        nameAliases: [String] = [],
+        brandAliases: [String] = [],
         imageUrl: String?,
+        rawMainAccords: [String] = [],
         mainAccords: [String],
         mainAccordStrengths: [String: AccordStrength] = [:],
         topNotes: [String]?,
@@ -72,6 +84,7 @@ struct Perfume {
         concentration: String?,
         gender: String?,
         season: [String]?,
+        seasonRanking: [SeasonRankingEntry] = [],
         situation: [String]?,
         longevity: String?,
         sillage: String?
@@ -79,7 +92,10 @@ struct Perfume {
         self.id = id
         self.name = name
         self.brand = brand
+        self.nameAliases = Self.normalizeAliases(nameAliases)
+        self.brandAliases = Self.normalizeAliases(brandAliases)
         self.imageUrl = Self.normalizeImageURL(imageUrl)
+        self.rawMainAccords = Self.normalizeAliases(rawMainAccords)
 
         let canonicalMainAccords = ScentFamilyNormalizer.canonicalNames(for: mainAccords)
         self.mainAccords = canonicalMainAccords
@@ -93,6 +109,7 @@ struct Perfume {
         self.concentration = concentration
         self.gender = gender
         self.season = season
+        self.seasonRanking = seasonRanking
         self.situation = situation
         self.longevity = longevity
         self.sillage = sillage
@@ -137,5 +154,14 @@ struct Perfume {
         }
 
         return normalized.addingPercentEncoding(withAllowedCharacters: .urlFragmentAllowed) ?? normalized
+    }
+
+    private static func normalizeAliases(_ values: [String]) -> [String] {
+        var seen = Set<String>()
+
+        return values
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .filter { seen.insert($0.lowercased()).inserted }
     }
 }

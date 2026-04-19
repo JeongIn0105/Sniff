@@ -16,6 +16,7 @@ final class FilterViewModel {
 
         // MARK: - Input
     struct Input {
+        let scentFamilyToggle: Observable<ScentFamilyFilter>
         let moodTagToggle: Observable<MoodTag>
         let concentrationToggle: Observable<Concentration>
         let seasonToggle: Observable<Season>
@@ -45,6 +46,20 @@ final class FilterViewModel {
 
     func transform(input: Input) -> Output {
         updateResultCount(filter: filterRelay.value)
+
+        input.scentFamilyToggle
+            .subscribe(onNext: { [weak self] family in
+                guard let self else { return }
+                var filter = self.filterRelay.value
+                if filter.scentFamilies.contains(family) {
+                    filter.scentFamilies.remove(family)
+                } else {
+                    filter.scentFamilies.insert(family)
+                }
+                self.filterRelay.accept(filter)
+                self.updateResultCount(filter: filter)
+            })
+            .disposed(by: disposeBag)
 
             // 무드 태그 토글
         input.moodTagToggle
@@ -124,10 +139,22 @@ final class FilterViewModel {
     private func applyFilter(perfumes: [Perfume], filter: SearchFilter) -> [Perfume] {
         var result = perfumes
 
-        if !filter.moodTags.isEmpty {
-            let targetAccords = Set(filter.moodTags.flatMap { $0.relatedAccords })
+        if !filter.scentFamilies.isEmpty {
+            let targetFamilies = Set(filter.scentFamilies.flatMap(\.matchingRawAccords))
             result = result.filter { perfume in
-                let accords = Set(perfume.mainAccords.map { $0.lowercased() })
+                let accords = Set(perfume.rawMainAccords.map {
+                    $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                })
+                return !accords.isDisjoint(with: targetFamilies)
+            }
+        }
+
+        if !filter.moodTags.isEmpty {
+            let targetAccords = Set(
+                ScentFamilyNormalizer.canonicalNames(for: filter.moodTags.flatMap { $0.relatedAccords })
+            )
+            result = result.filter { perfume in
+                let accords = Set(ScentFamilyNormalizer.canonicalNames(for: perfume.mainAccords))
                 return !accords.isDisjoint(with: targetAccords)
             }
         }

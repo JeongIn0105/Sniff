@@ -29,7 +29,7 @@ struct MainTabView: View {
                     Text("시향 기록")
                 }
 
-            PlaceholderTabView(title: "MY")
+            MyTabContainerView()
                 .tabItem {
                     Image(systemName: "person.circle")
                     Text("MY")
@@ -54,6 +54,17 @@ private struct SearchTabContainerView: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UINavigationController {
         let searchViewController = SearchSceneFactory.makeSearchViewController()
         let navigationController = UINavigationController(rootViewController: searchViewController)
+        navigationController.navigationBar.isHidden = true
+        return navigationController
+    }
+
+    func updateUIViewController(_ uiViewController: UINavigationController, context: Context) {}
+}
+
+private struct MyTabContainerView: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> UINavigationController {
+        let viewController = MySceneFactory.makeViewController()
+        let navigationController = UINavigationController(rootViewController: viewController)
         navigationController.navigationBar.isHidden = true
         return navigationController
     }

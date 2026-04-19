@@ -16,6 +16,10 @@ final class FragellaService {
     private init() {}
 
     private let baseURL = "https://api.fragella.com/api/v1"
+    private let cacheTTL: TimeInterval = 300
+    private let cacheLock = NSLock()
+    private var searchCache: [String: CacheEntry<[Perfume]>] = [:]
+    private var detailCache: [String: CacheEntry<Perfume>] = [:]
 
         // MARK: - Public API
 
@@ -60,6 +64,13 @@ final class FragellaService {
         // MARK: - Private
 
     private func requestSearch(query: String, limit: Int) async throws -> [Perfume] {
+        let cacheKey = makeSearchCacheKey(query: query, limit: limit)
+        if let cached = cachedSearch(for: cacheKey) {
+            log("CACHE HIT search query=\"\(query)\" limit=\(limit) count=\(cached.count)")
+            return cached
+        }
+
+        log("REQUEST search query=\"\(query)\" limit=\(limit)")
         let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
         guard let url = URL(string: "\(baseURL)/fragrances?search=\(encoded)&limit=\(limit)") else {
             throw FragellaError.invalidURL
@@ -70,10 +81,19 @@ final class FragellaService {
         guard (response as? HTTPURLResponse)?.statusCode == 200 else {
             throw FragellaError.invalidResponse
         }
-        return try FragellaResponseParser.parsePerfumeList(from: data)
+        let perfumes = try FragellaResponseParser.parsePerfumeList(from: data)
+        storeSearch(perfumes, for: cacheKey)
+        log("RESPONSE search query=\"\(query)\" limit=\(limit) count=\(perfumes.count)")
+        return perfumes
     }
 
     private func requestDetail(perfumeId: String) async throws -> Perfume {
+        if let cached = cachedDetail(for: perfumeId) {
+            log("CACHE HIT detail perfumeId=\(perfumeId)")
+            return cached
+        }
+
+        log("REQUEST detail perfumeId=\(perfumeId)")
         guard let url = URL(string: "\(baseURL)/fragrances/\(perfumeId)") else {
             throw FragellaError.invalidURL
         }
@@ -83,11 +103,67 @@ final class FragellaService {
         guard (response as? HTTPURLResponse)?.statusCode == 200 else {
             throw FragellaError.invalidResponse
         }
-        return try FragellaResponseParser.parsePerfumeDetail(from: data)
+        let perfume = try FragellaResponseParser.parsePerfumeDetail(from: data)
+        storeDetail(perfume, for: perfumeId)
+        log("RESPONSE detail perfumeId=\(perfumeId) name=\"\(perfume.name)\"")
+        return perfume
     }
 
     private func apiKey() throws -> String {
         try AppSecrets.fragellaAPIKey()
+    }
+
+    private func makeSearchCacheKey(query: String, limit: Int) -> String {
+        "\(query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())::\(limit)"
+    }
+
+    private func cachedSearch(for key: String) -> [Perfume]? {
+        cacheLock.lock()
+        defer { cacheLock.unlock() }
+
+        guard let entry = searchCache[key] else { return nil }
+        guard !entry.isExpired(referenceDate: Date()) else {
+            searchCache[key] = nil
+            return nil
+        }
+        return entry.value
+    }
+
+    private func cachedDetail(for key: String) -> Perfume? {
+        cacheLock.lock()
+        defer { cacheLock.unlock() }
+
+        guard let entry = detailCache[key] else { return nil }
+        guard !entry.isExpired(referenceDate: Date()) else {
+            detailCache[key] = nil
+            return nil
+        }
+        return entry.value
+    }
+
+    private func storeSearch(_ perfumes: [Perfume], for key: String) {
+        cacheLock.lock()
+        defer { cacheLock.unlock() }
+        searchCache[key] = CacheEntry(value: perfumes, expiresAt: Date().addingTimeInterval(cacheTTL))
+    }
+
+    private func storeDetail(_ perfume: Perfume, for key: String) {
+        cacheLock.lock()
+        defer { cacheLock.unlock() }
+        detailCache[key] = CacheEntry(value: perfume, expiresAt: Date().addingTimeInterval(cacheTTL))
+    }
+
+    private func log(_ message: String) {
+        print("[FragellaService] \(message)")
+    }
+}
+
+private struct CacheEntry<Value> {
+    let value: Value
+    let expiresAt: Date
+
+    func isExpired(referenceDate: Date) -> Bool {
+        referenceDate >= expiresAt
     }
 }
 

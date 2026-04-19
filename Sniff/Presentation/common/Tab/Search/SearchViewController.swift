@@ -17,6 +17,7 @@ final class SearchViewController: UIViewController {
 
         // MARK: - Properties
     private let viewModel: SearchViewModel
+    private let collectionRepository: CollectionRepositoryType
     private let disposeBag = DisposeBag()
 
     private let searchTextRelay = BehaviorRelay<String>(value: "")
@@ -39,21 +40,22 @@ final class SearchViewController: UIViewController {
         // 테이블뷰 로컬 캐시 — ViewModel output을 받아 저장
     private var recentSearches: [RecentSearch] = []
     private var suggestions: [SuggestionItem] = []
+    private var keyboardInset: CGFloat = 0
+    private var likedPerfumeIDs = Set<String>()
 
         // MARK: - UI Components
+
+    private let backButton = UIButton(type: .system).then {
+        $0.setImage(UIImage(systemName: "chevron.left"), for: .normal)
+        $0.tintColor = .label
+        $0.isHidden = true
+    }
 
         // 상단 검색바
     private let searchBar = UISearchBar().then {
         $0.placeholder = "향수명 또는 브랜드를 검색하세요"
         $0.searchBarStyle = .minimal
         $0.returnKeyType = .search
-    }
-
-        // 결과 화면 상단 탭 (브랜드 / 향수)
-    private let tabSegment = UISegmentedControl(items: ["브랜드", "향수"]).then {
-        $0.selectedSegmentIndex = 0
-        $0.isHidden = true
-        $0.setTitleTextAttributes([.font: UIFont.systemFont(ofSize: 14)], for: .normal)
     }
 
         // 결과 카운트 + 필터 버튼 + 정렬 버튼
@@ -68,9 +70,15 @@ final class SearchViewController: UIViewController {
 
     private let filterButton = UIButton(type: .system).then {
         $0.setImage(UIImage(systemName: "slider.horizontal.3"), for: .normal)
+        $0.titleLabel?.font = .systemFont(ofSize: 13, weight: .medium)
+        $0.setTitleColor(.label, for: .normal)
         $0.tintColor = .label
         $0.backgroundColor = .systemGray5
         $0.layer.cornerRadius = 16
+        $0.semanticContentAttribute = .forceLeftToRight
+        var configuration = UIButton.Configuration.plain()
+        configuration.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 10, bottom: 6, trailing: 10)
+        $0.configuration = configuration
     }
 
     private let sortButton = UIButton(type: .system).then {
@@ -92,6 +100,7 @@ final class SearchViewController: UIViewController {
         $0.separatorStyle = .none
         $0.rowHeight = 52
         $0.backgroundColor = .systemBackground
+        $0.keyboardDismissMode = .onDrag
     }
 
         // 브랜드 가로 스크롤 (결과 화면)
@@ -101,6 +110,7 @@ final class SearchViewController: UIViewController {
         $0.rowHeight = 56
         $0.isHidden = true
         $0.isScrollEnabled = false
+        $0.keyboardDismissMode = .onDrag
     }
 
         // 향수 그리드
@@ -116,6 +126,7 @@ final class SearchViewController: UIViewController {
         cv.register(PerfumeGridCell.self, forCellWithReuseIdentifier: PerfumeGridCell.identifier)
         cv.backgroundColor = .systemBackground
         cv.isHidden = true
+        cv.keyboardDismissMode = .onDrag
         return cv
     }()
 
@@ -139,8 +150,12 @@ final class SearchViewController: UIViewController {
 
         // MARK: - Init
 
-    init(viewModel: SearchViewModel) {
+    init(
+        viewModel: SearchViewModel,
+        collectionRepository: CollectionRepositoryType = CollectionRepository()
+    ) {
         self.viewModel = viewModel
+        self.collectionRepository = collectionRepository
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -154,11 +169,18 @@ final class SearchViewController: UIViewController {
         setupTableView()
         setupCollectionView()
         bindViewModel()
+        bindKeyboard()
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         navigationController?.setNavigationBarHidden(true, animated: false)
+        backButton.isHidden = (navigationController?.viewControllers.count ?? 0) <= 1
+        loadLikedPerfumes()
     }
 
         // MARK: - Setup UI
@@ -179,29 +201,28 @@ final class SearchViewController: UIViewController {
         recentHeaderView.snp.makeConstraints { $0.height.equalTo(44) }
 
             // 전체 레이아웃
-        [searchBar, tabSegment, resultHeaderView,
+        [backButton, searchBar, resultHeaderView,
          brandSectionLabel, brandTableView,
          tableView, perfumeCollectionView, emptyView].forEach {
             view.addSubview($0)
         }
 
-        searchBar.snp.makeConstraints {
-            $0.top.equalTo(view.safeAreaLayoutGuide).offset(4)
-            $0.leading.equalToSuperview().offset(8)
-            $0.trailing.equalToSuperview().offset(-8)
+        backButton.snp.makeConstraints {
+            $0.centerY.equalTo(searchBar.snp.centerY)
+            $0.leading.equalToSuperview().offset(16)
+            $0.size.equalTo(28)
         }
 
-        tabSegment.snp.makeConstraints {
-            $0.top.equalTo(searchBar.snp.bottom).offset(8)
-            $0.leading.equalToSuperview().offset(20)
-            $0.width.equalTo(160)
-            $0.height.equalTo(32)
+        searchBar.snp.makeConstraints {
+            $0.top.equalTo(view.safeAreaLayoutGuide).offset(4)
+            $0.leading.equalTo(backButton.snp.trailing).offset(4)
+            $0.trailing.equalToSuperview().offset(-8)
         }
 
             // 결과 헤더 (카운트 + 필터 + 정렬)
         [resultCountLabel, filterButton, sortButton].forEach { resultHeaderView.addSubview($0) }
         resultHeaderView.snp.makeConstraints {
-            $0.top.equalTo(tabSegment.snp.bottom).offset(8)
+            $0.top.equalTo(brandTableView.snp.bottom).offset(4)
             $0.leading.trailing.equalToSuperview()
             $0.height.equalTo(40)
         }
@@ -212,7 +233,8 @@ final class SearchViewController: UIViewController {
         filterButton.snp.makeConstraints {
             $0.leading.equalTo(resultCountLabel.snp.trailing).offset(8)
             $0.centerY.equalToSuperview()
-            $0.size.equalTo(CGSize(width: 80, height: 32))
+            $0.height.equalTo(32)
+            $0.trailing.lessThanOrEqualTo(sortButton.snp.leading).offset(-8)
         }
         sortButton.snp.makeConstraints {
             $0.trailing.equalToSuperview().offset(-20)
@@ -220,12 +242,13 @@ final class SearchViewController: UIViewController {
         }
 
         brandSectionLabel.snp.makeConstraints {
-            $0.top.equalTo(resultHeaderView.snp.bottom).offset(8)
+            $0.top.equalTo(searchBar.snp.bottom).offset(4)
             $0.leading.equalToSuperview().offset(20)
+            $0.height.equalTo(0)
         }
 
         brandTableView.snp.makeConstraints {
-            $0.top.equalTo(brandSectionLabel.snp.bottom).offset(4)
+            $0.top.equalTo(brandSectionLabel.snp.bottom).offset(2)
             $0.leading.trailing.equalToSuperview()
             $0.height.equalTo(0)
         }
@@ -236,7 +259,7 @@ final class SearchViewController: UIViewController {
         }
 
         perfumeCollectionView.snp.makeConstraints {
-            $0.top.equalTo(brandTableView.snp.bottom).offset(8)
+            $0.top.equalTo(resultHeaderView.snp.bottom).offset(8)
             $0.leading.trailing.bottom.equalToSuperview()
         }
 
@@ -323,6 +346,9 @@ final class SearchViewController: UIViewController {
                 guard let self else { return }
                 self.brandResults = brands
                 self.brandSectionLabel.text = "브랜드 \(brands.count)개"
+                self.brandSectionLabel.snp.updateConstraints {
+                    $0.height.equalTo(brands.isEmpty ? 0 : 22)
+                }
                 self.brandTableView.snp.updateConstraints {
                     $0.height.equalTo(brands.isEmpty ? 0 : min(brands.count * 56, 168))
                 }
@@ -397,15 +423,6 @@ final class SearchViewController: UIViewController {
             .bind(to: clearTriggerRelay)
             .disposed(by: disposeBag)
 
-            // 탭 세그먼트 → 향수 탭 선택 시 컬렉션 표시
-        tabSegment.rx.selectedSegmentIndex
-            .subscribe(onNext: { [weak self] index in
-                guard let self, case .result = self.currentState else { return }
-                _ = index
-                self.updateResultVisibility()
-            })
-            .disposed(by: disposeBag)
-
             // 필터 버튼
         filterButton.rx.tap
             .subscribe(onNext: { [weak self] in
@@ -424,6 +441,12 @@ final class SearchViewController: UIViewController {
         clearAllButton.rx.tap
             .bind(to: clearAllRecentSearchesRelay)
             .disposed(by: disposeBag)
+
+        backButton.rx.tap
+            .subscribe(onNext: { [weak self] in
+                self?.navigationController?.popViewController(animated: true)
+            })
+            .disposed(by: disposeBag)
     }
 
         // MARK: - Layout 전환
@@ -432,7 +455,6 @@ final class SearchViewController: UIViewController {
         switch state {
             case .initial:
                 tableView.isHidden = false
-                tabSegment.isHidden = true
                 resultHeaderView.isHidden = true
                 brandSectionLabel.isHidden = true
                 brandTableView.isHidden = true
@@ -445,7 +467,6 @@ final class SearchViewController: UIViewController {
 
             case .suggesting:
                 tableView.isHidden = false
-                tabSegment.isHidden = true
                 resultHeaderView.isHidden = true
                 brandSectionLabel.isHidden = true
                 brandTableView.isHidden = true
@@ -457,8 +478,7 @@ final class SearchViewController: UIViewController {
 
             case .result:
                 tableView.isHidden = true
-                tabSegment.isHidden = false
-                tabSegment.selectedSegmentIndex = 0
+                resultHeaderView.isHidden = false
                 searchBar.showsCancelButton = false
                 searchBar.endEditing(true)
                 updateResultVisibility()
@@ -505,23 +525,118 @@ final class SearchViewController: UIViewController {
         let hasBrands = !brandResults.isEmpty
         let hasPerfumes = !filteredPerfumeResults.isEmpty
 
-        if !hasBrands {
-            tabSegment.selectedSegmentIndex = 1
-        }
+        resultHeaderView.isHidden = false
+        brandSectionLabel.isHidden = !hasBrands
+        brandTableView.isHidden = !hasBrands
+        perfumeCollectionView.isHidden = !hasPerfumes
 
-        let showPerfumeSection = tabSegment.selectedSegmentIndex == 1 || !hasBrands
-
-        resultHeaderView.isHidden = !showPerfumeSection
-        brandSectionLabel.isHidden = showPerfumeSection || !hasBrands
-        brandTableView.isHidden = showPerfumeSection || !hasBrands
-        perfumeCollectionView.isHidden = !showPerfumeSection || !hasPerfumes
-
-        if showPerfumeSection && !hasPerfumes {
+        if !hasPerfumes {
             emptyView.configure(query: query)
             emptyView.isHidden = false
         } else {
             emptyView.isHidden = true
         }
+
+        applyKeyboardInset()
+    }
+
+    private func bindKeyboard() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleKeyboardWillChangeFrame(_:)),
+            name: UIResponder.keyboardWillChangeFrameNotification,
+            object: nil
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleKeyboardWillHide(_:)),
+            name: UIResponder.keyboardWillHideNotification,
+            object: nil
+        )
+    }
+
+    @objc private func handleKeyboardWillChangeFrame(_ notification: Notification) {
+        guard
+            let userInfo = notification.userInfo,
+            let keyboardFrameValue = userInfo[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue
+        else { return }
+
+        let keyboardFrame = view.convert(keyboardFrameValue.cgRectValue, from: nil)
+        let overlap = max(0, view.bounds.maxY - keyboardFrame.minY - view.safeAreaInsets.bottom)
+        keyboardInset = overlap
+        animateKeyboardInset(with: userInfo)
+    }
+
+    @objc private func handleKeyboardWillHide(_ notification: Notification) {
+        keyboardInset = 0
+        animateKeyboardInset(with: notification.userInfo)
+    }
+
+    private func animateKeyboardInset(with userInfo: [AnyHashable: Any]?) {
+        let duration = (userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? NSNumber)?.doubleValue ?? 0.25
+        let curveRaw = (userInfo?[UIResponder.keyboardAnimationCurveUserInfoKey] as? NSNumber)?.uintValue
+            ?? UIView.AnimationOptions.curveEaseInOut.rawValue
+        let options = UIView.AnimationOptions(rawValue: curveRaw << 16)
+
+        UIView.animate(withDuration: duration, delay: 0, options: options) {
+            self.applyKeyboardInset()
+            self.view.layoutIfNeeded()
+        }
+    }
+
+    private func applyKeyboardInset() {
+        let bottomInset = keyboardInset + 16
+        [tableView, brandTableView].forEach {
+            $0.contentInset.bottom = bottomInset
+            $0.verticalScrollIndicatorInsets.bottom = bottomInset
+        }
+        perfumeCollectionView.contentInset.bottom = bottomInset
+        perfumeCollectionView.verticalScrollIndicatorInsets.bottom = bottomInset
+    }
+
+    private func loadLikedPerfumes() {
+        collectionRepository.fetchCollection()
+            .observe(on: MainScheduler.instance)
+            .subscribe(onSuccess: { [weak self] items in
+                self?.likedPerfumeIDs = Set(items.map(\.id))
+                self?.perfumeCollectionView.reloadData()
+            }, onFailure: { _ in })
+            .disposed(by: disposeBag)
+    }
+
+    private func saveLikedPerfume(_ perfume: Perfume) {
+        guard !likedPerfumeIDs.contains(perfume.id) else { return }
+
+        collectionRepository.saveCollectedPerfume(perfume, memo: nil)
+            .observe(on: MainScheduler.instance)
+            .subscribe(onCompleted: { [weak self] in
+                self?.likedPerfumeIDs.insert(perfume.id)
+                self?.perfumeCollectionView.reloadData()
+            }, onError: { [weak self] _ in
+                self?.presentSaveFailureAlert()
+            })
+            .disposed(by: disposeBag)
+    }
+
+    private func deleteLikedPerfume(id: String) {
+        guard likedPerfumeIDs.contains(id) else { return }
+
+        collectionRepository.deleteCollectedPerfume(id: id)
+            .observe(on: MainScheduler.instance)
+            .subscribe(onCompleted: { [weak self] in
+                self?.likedPerfumeIDs.remove(id)
+                self?.perfumeCollectionView.reloadData()
+            }, onError: { [weak self] _ in
+                self?.presentSaveFailureAlert()
+            })
+            .disposed(by: disposeBag)
+    }
+
+    private func presentSaveFailureAlert() {
+        let alert = UIAlertController(title: nil, message: "LIKE 향수 저장에 실패했어요.", preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "확인", style: .default))
+        present(alert, animated: true)
     }
 }
 
@@ -651,13 +766,18 @@ extension SearchViewController: UICollectionViewDataSource, UICollectionViewDele
             withReuseIdentifier: PerfumeGridCell.identifier,
             for: indexPath
         ) as! PerfumeGridCell
-        cell.configure(with: filteredPerfumeResults[indexPath.item])
+        let perfume = filteredPerfumeResults[indexPath.item]
+        cell.configure(with: perfume, isLiked: likedPerfumeIDs.contains(perfume.id))
 
             // 찜하기 버튼
         cell.wishlistButton.rx.tap
-            .subscribe(onNext: { [weak cell] in
-                cell?.wishlistButton.isSelected.toggle()
-                    // TODO: 컬렉션 추가 로직 연결
+            .subscribe(onNext: { [weak self] in
+                guard let self else { return }
+                if self.likedPerfumeIDs.contains(perfume.id) {
+                    self.deleteLikedPerfume(id: perfume.id)
+                } else {
+                    self.saveLikedPerfume(perfume)
+                }
             })
             .disposed(by: cell.disposeBag)
 

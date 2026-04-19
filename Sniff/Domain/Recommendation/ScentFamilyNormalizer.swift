@@ -58,7 +58,7 @@ enum ScentFamilyNormalizer {
         var seen = Set<String>()
 
         return values
-            .compactMap(canonicalName(for:))
+            .compactMap { canonicalName(for: $0) }
             .filter { seen.insert($0).inserted }
     }
 }

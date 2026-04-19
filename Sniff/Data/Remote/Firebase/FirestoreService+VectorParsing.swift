@@ -37,6 +37,7 @@ extension FirestoreService {
             id: document.documentID,
             name: name,
             brand: brand,
+            imageUrl: data["imageUrl"] as? String,
             mainAccords: mainAccords,
             accordStrengths: accordStrengths,
             memo: data["memo"] as? String,       // 신규

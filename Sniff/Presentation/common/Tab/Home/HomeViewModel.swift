@@ -145,7 +145,7 @@ final class HomeViewModel {
             .withLatestFrom(recommendationItemsRelay.asObservable()) { ($0, $1) }
             .compactMap { indexPath, items -> HomeRoute? in
                 guard items.indices.contains(indexPath.item) else { return nil }
-                return .perfumeDetail(id: items[indexPath.item].id)
+                return .perfumeDetail(perfume: items[indexPath.item].perfume)
             }
             .bind(to: routeRelay)
             .disposed(by: disposeBag)
@@ -165,6 +165,7 @@ private extension HomeViewModel {
     func mapToHomePerfumeItem(_ recommendation: RecommendedPerfume) -> HomePerfumeItem {
         let perfume = recommendation.perfume
         return HomePerfumeItem(
+            perfume: perfume,
             id: perfume.id,
             brandName: perfume.brand,
             perfumeName: perfume.name,

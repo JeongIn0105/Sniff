@@ -1,9 +1,9 @@
-//
-//  View.swift
-//  Sniff
-//
-//  Created by t2025-m0239 on 2026.04.13.
-//
+    //
+    //  View.swift
+    //  Sniff
+    //
+    //  Created by t2025-m0239 on 2026.04.13.
+    //
 
 import UIKit
 import SnapKit
@@ -14,277 +14,309 @@ import Kingfisher
 
 final class PerfumeDetailViewController: UIViewController {
 
-        // MARK: - Properties
-    private let viewModel: PerfumeDetailViewModel
-    private let disposeBag = DisposeBag()
+    enum Palette {
+        static let background = UIColor(hex: "#2E2C29")
+        static let surface = UIColor(hex: "#33312E")
+        static let border = UIColor(hex: "#4B4740")
+        static let card = UIColor(hex: "#252421")
+        static let textPrimary = UIColor(hex: "#F4F1EA")
+        static let textSecondary = UIColor(hex: "#D2CCC1")
+        static let textMuted = UIColor(hex: "#A9A295")
+    }
 
-    private let addToCollectionRelay = PublishRelay<Void>()
+    private let viewModel: PerfumeDetailViewModel
+    private let collectionRepository: CollectionRepositoryType
+    private let disposeBag = DisposeBag()
+    private var currentPerfume: Perfume?
+    private var likedPerfumeIDs = Set<String>()
+
     private let addTastingRecordRelay = PublishRelay<Void>()
 
-        // MARK: - Init
-        // 검색 결과에서 넘어올 때 — 이미 데이터 있음
-    init(viewModel: PerfumeDetailViewModel) {
+    init(
+        viewModel: PerfumeDetailViewModel,
+        collectionRepository: CollectionRepositoryType = CollectionRepository()
+    ) {
         self.viewModel = viewModel
+        self.collectionRepository = collectionRepository
         super.init(nibName: nil, bundle: nil)
     }
 
     required init?(coder: NSCoder) { fatalError() }
 
-        // MARK: - UI Components
-
     private let scrollView = UIScrollView().then {
         $0.showsVerticalScrollIndicator = false
+        $0.alwaysBounceVertical = true
         $0.contentInsetAdjustmentBehavior = .never
     }
 
     private let contentView = UIView()
+    private let topBarView = UIView()
+    private let heroSectionView = UIView()
+    private let infoSectionView = UIView()
+    private let usageSectionView = SectionContainerView(title: "사용감")
+    private let accordsSectionView = SectionContainerView(title: "Main 어코드")
+    private let notesSectionView = SectionContainerView(title: "노트")
+    private let seasonSectionView = SectionContainerView(title: "계절")
+    private let bottomBarView = UIView()
 
-        // 헤더 — 병 이미지 + 기본 정보
-    private let headerView = UIView().then {
-        $0.backgroundColor = UIColor.systemGray6
+    private let backButton = UIButton(type: .system).then {
+        $0.setImage(UIImage(systemName: "arrow.left"), for: .normal)
+        $0.tintColor = Palette.textPrimary
+    }
+
+    private let gridButton = UIButton(type: .system).then {
+        $0.setImage(UIImage(systemName: "square.grid.2x2"), for: .normal)
+        $0.tintColor = Palette.textPrimary
+    }
+
+    private let imageStageView = UIView().then {
+        $0.backgroundColor = .clear
     }
 
     private let bottleImageView = UIImageView().then {
         $0.contentMode = .scaleAspectFit
         $0.clipsToBounds = true
+        $0.tintColor = Palette.textMuted
+    }
+
+    private let likeButton = UIButton(type: .custom).then {
+        $0.setImage(UIImage(systemName: "heart")?.withRenderingMode(.alwaysTemplate), for: .normal)
+        $0.setImage(UIImage(systemName: "heart.fill")?.withRenderingMode(.alwaysTemplate), for: .selected)
+        $0.tintColor = .white
+        $0.backgroundColor = UIColor(hex: "#3B3934")
+        $0.layer.cornerRadius = 18
+        $0.layer.borderWidth = 1
+        $0.layer.borderColor = Palette.border.cgColor
     }
 
     private let brandLabel = UILabel().then {
-        $0.font = .systemFont(ofSize: 13, weight: .regular)
-        $0.textColor = .secondaryLabel
+        $0.font = UIFont(name: "Georgia", size: 15) ?? .systemFont(ofSize: 15, weight: .medium)
+        $0.textColor = Palette.textSecondary
     }
 
     private let nameLabel = UILabel().then {
-        $0.font = .systemFont(ofSize: 22, weight: .bold)
-        $0.numberOfLines = 2
+        $0.font = UIFont(name: "Georgia-Bold", size: 22) ?? .systemFont(ofSize: 22, weight: .bold)
+        $0.textColor = Palette.textPrimary
+        $0.numberOfLines = 0
     }
 
-    private let metaStackView = UIStackView().then {
-        $0.axis = .horizontal
-        $0.spacing = 8
-        $0.alignment = .center
+    private let concentrationLabel = UILabel().then {
+        $0.font = UIFont(name: "Georgia", size: 14) ?? .systemFont(ofSize: 14, weight: .medium)
+        $0.textColor = Palette.textSecondary
+        $0.numberOfLines = 1
     }
 
-        // Accord 섹션
-    private let accordSectionView = DetailSectionView(title: "향 계열")
-    private let accordBarsView = AccordBarsView()
-
-        // 노트 섹션
-    private let notesSectionView = DetailSectionView(title: "향수 노트")
-    private let notesView = NotesLayerView()
-
-        // 향수 정보 섹션
-    private let infoSectionView = DetailSectionView(title: "향수 정보")
-    private let infoGridView = InfoGridView()
-
-        // 하단 CTA
-    private let bottomBarView = UIView().then {
-        $0.backgroundColor = .systemBackground
-    }
+    private let topMoodChipsView = ChipWrapView(style: .outline)
+    private let usageInfoView = UsageInfoView()
+    private let accordChipsView = ChipWrapView(style: .mixed)
+    private let notesView = DetailNotesView()
+    private let seasonChipsView = SeasonSelectionView()
 
     private let addCollectionButton = UIButton(type: .system).then {
-        $0.setTitle("컬렉션에 추가", for: .normal)
+        $0.setTitle("보유 향수 등록", for: .normal)
         $0.titleLabel?.font = .systemFont(ofSize: 15, weight: .medium)
-        $0.setTitleColor(.label, for: .normal)
-        $0.backgroundColor = .systemGray5
+        $0.setTitleColor(Palette.textPrimary, for: .normal)
+        $0.backgroundColor = .clear
         $0.layer.cornerRadius = 12
+        $0.layer.borderWidth = 1
+        $0.layer.borderColor = Palette.border.cgColor
     }
 
     private let addTastingButton = UIButton(type: .system).then {
-        $0.setTitle("시향 기록 작성", for: .normal)
+        $0.setTitle("시향기록 남기기", for: .normal)
         $0.titleLabel?.font = .systemFont(ofSize: 15, weight: .semibold)
-        $0.setTitleColor(.white, for: .normal)
-        $0.backgroundColor = .label
+        $0.setTitleColor(Palette.background, for: .normal)
+        $0.backgroundColor = UIColor(hex: "#F3F0EA")
         $0.layer.cornerRadius = 12
     }
 
-        // 로딩
-    private let loadingIndicator = UIActivityIndicatorView(style: .medium)
-
-        // MARK: - Lifecycle
+    private let loadingIndicator = UIActivityIndicatorView(style: .medium).then {
+        $0.color = .white
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
-        setupNavigationBar()
         bind()
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        navigationController?.setNavigationBarHidden(false, animated: animated)
-    }
-
-        // MARK: - Setup
-
-    private func setupNavigationBar() {
-        navigationItem.largeTitleDisplayMode = .never
-            // 뒤로가기 버튼 커스텀
-        let backButton = UIBarButtonItem(
-            image: UIImage(systemName: "chevron.left"),
-            style: .plain,
-            target: self,
-            action: #selector(backTapped)
-        )
-        backButton.tintColor = .label
-        navigationItem.leftBarButtonItem = backButton
-    }
-
-    @objc private func backTapped() {
-        navigationController?.popViewController(animated: true)
+        navigationController?.setNavigationBarHidden(true, animated: animated)
+        loadLikedPerfumes()
     }
 
     private func setupUI() {
-        view.backgroundColor = .systemBackground
+        view.backgroundColor = Palette.background
 
-        view.addSubview(scrollView)
-        view.addSubview(bottomBarView)
-        view.addSubview(loadingIndicator)
-
+        [topBarView, scrollView, bottomBarView, loadingIndicator].forEach { view.addSubview($0) }
         scrollView.addSubview(contentView)
 
-            // 컨텐츠 영역 뷰들
-        [headerView, accordSectionView, accordBarsView,
-         notesSectionView, notesView,
-         infoSectionView, infoGridView].forEach {
-            contentView.addSubview($0)
-        }
+        [
+            heroSectionView,
+            infoSectionView,
+            usageSectionView,
+            accordsSectionView,
+            notesSectionView,
+            seasonSectionView
+        ].forEach { contentView.addSubview($0) }
 
-            // 헤더 내부
-        [bottleImageView, brandLabel, nameLabel, metaStackView].forEach {
-            headerView.addSubview($0)
-        }
+        [backButton, gridButton].forEach { topBarView.addSubview($0) }
+        heroSectionView.addSubview(imageStageView)
+        imageStageView.addSubview(bottleImageView)
+        imageStageView.addSubview(likeButton)
+        [brandLabel, nameLabel, concentrationLabel, topMoodChipsView].forEach { infoSectionView.addSubview($0) }
+        usageSectionView.embed(usageInfoView)
+        accordsSectionView.embed(accordChipsView)
+        notesSectionView.embed(notesView)
+        seasonSectionView.embed(seasonChipsView)
+        [addCollectionButton, addTastingButton].forEach { bottomBarView.addSubview($0) }
 
-            // 하단 바
-        [addCollectionButton, addTastingButton].forEach {
-            bottomBarView.addSubview($0)
-        }
-
-            // MARK: Constraints
-
-        bottomBarView.snp.makeConstraints {
-            $0.leading.trailing.bottom.equalToSuperview()
-            $0.height.equalTo(view.safeAreaInsets.bottom + 88)
+        topBarView.snp.makeConstraints {
+            $0.top.equalTo(view.safeAreaLayoutGuide)
+            $0.leading.trailing.equalToSuperview()
+            $0.height.equalTo(52)
         }
 
         scrollView.snp.makeConstraints {
-            $0.top.leading.trailing.equalToSuperview()
+            $0.top.equalTo(topBarView.snp.bottom)
+            $0.leading.trailing.equalToSuperview()
             $0.bottom.equalTo(bottomBarView.snp.top)
         }
 
+        bottomBarView.snp.makeConstraints {
+            $0.leading.trailing.bottom.equalToSuperview()
+            $0.height.equalTo(116)
+        }
+
         contentView.snp.makeConstraints {
-            $0.edges.equalToSuperview()
-            $0.width.equalTo(scrollView)
+            $0.edges.equalTo(scrollView.contentLayoutGuide)
+            $0.width.equalTo(scrollView.frameLayoutGuide)
         }
 
         loadingIndicator.snp.makeConstraints {
             $0.center.equalToSuperview()
         }
 
-            // 헤더
-        headerView.snp.makeConstraints {
-            $0.top.leading.trailing.equalToSuperview()
-            $0.height.equalTo(300)
+        backButton.snp.makeConstraints {
+            $0.leading.equalToSuperview().offset(20)
+            $0.centerY.equalToSuperview()
+            $0.size.equalTo(28)
+        }
+
+        gridButton.snp.makeConstraints {
+            $0.trailing.equalToSuperview().offset(-20)
+            $0.centerY.equalToSuperview()
+            $0.size.equalTo(28)
+        }
+
+        heroSectionView.snp.makeConstraints {
+            $0.top.equalToSuperview()
+            $0.leading.trailing.equalToSuperview()
+            $0.height.equalTo(320)
+        }
+
+        imageStageView.snp.makeConstraints {
+            $0.top.equalToSuperview()
+            $0.leading.trailing.equalToSuperview().inset(20)
+            $0.bottom.equalToSuperview().offset(-12)
         }
 
         bottleImageView.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(20)
-            $0.centerX.equalToSuperview()
-            $0.width.equalTo(160)
-            $0.height.equalTo(180)
+            $0.edges.equalToSuperview()
+        }
+
+        likeButton.snp.makeConstraints {
+            $0.trailing.equalToSuperview().offset(-18)
+            $0.bottom.equalToSuperview().offset(-18)
+            $0.size.equalTo(42)
+        }
+
+        infoSectionView.snp.makeConstraints {
+            $0.top.equalTo(heroSectionView.snp.bottom)
+            $0.leading.trailing.equalToSuperview()
         }
 
         brandLabel.snp.makeConstraints {
-            $0.top.equalTo(bottleImageView.snp.bottom).offset(16)
-            $0.leading.equalToSuperview().offset(20)
+            $0.top.equalToSuperview().offset(6)
+            $0.leading.trailing.equalToSuperview().inset(20)
         }
 
         nameLabel.snp.makeConstraints {
-            $0.top.equalTo(brandLabel.snp.bottom).offset(4)
-            $0.leading.equalToSuperview().offset(20)
-            $0.trailing.equalToSuperview().offset(-20)
+            $0.top.equalTo(brandLabel.snp.bottom).offset(6)
+            $0.leading.trailing.equalToSuperview().inset(20)
         }
 
-        metaStackView.snp.makeConstraints {
-            $0.top.equalTo(nameLabel.snp.bottom).offset(8)
-            $0.leading.equalToSuperview().offset(20)
-            $0.bottom.lessThanOrEqualToSuperview().offset(-16)
+        concentrationLabel.snp.makeConstraints {
+            $0.top.equalTo(nameLabel.snp.bottom).offset(12)
+            $0.leading.trailing.equalToSuperview().inset(20)
         }
 
-            // Accord 섹션
-        accordSectionView.snp.makeConstraints {
-            $0.top.equalTo(headerView.snp.bottom).offset(24)
+        topMoodChipsView.snp.makeConstraints {
+            $0.top.equalTo(concentrationLabel.snp.bottom).offset(10)
+            $0.leading.trailing.equalToSuperview().inset(20)
+            $0.bottom.equalToSuperview().offset(-18)
+        }
+
+        usageSectionView.snp.makeConstraints {
+            $0.top.equalTo(infoSectionView.snp.bottom)
             $0.leading.trailing.equalToSuperview()
         }
 
-        accordBarsView.snp.makeConstraints {
-            $0.top.equalTo(accordSectionView.snp.bottom).offset(12)
-            $0.leading.equalToSuperview().offset(20)
-            $0.trailing.equalToSuperview().offset(-20)
+        accordsSectionView.snp.makeConstraints {
+            $0.top.equalTo(usageSectionView.snp.bottom)
+            $0.leading.trailing.equalToSuperview()
         }
 
-            // 노트 섹션
         notesSectionView.snp.makeConstraints {
-            $0.top.equalTo(accordBarsView.snp.bottom).offset(28)
+            $0.top.equalTo(accordsSectionView.snp.bottom)
             $0.leading.trailing.equalToSuperview()
         }
 
-        notesView.snp.makeConstraints {
-            $0.top.equalTo(notesSectionView.snp.bottom).offset(12)
-            $0.leading.equalToSuperview().offset(20)
-            $0.trailing.equalToSuperview().offset(-20)
-        }
-
-            // 정보 섹션
-        infoSectionView.snp.makeConstraints {
-            $0.top.equalTo(notesView.snp.bottom).offset(28)
+        seasonSectionView.snp.makeConstraints {
+            $0.top.equalTo(notesSectionView.snp.bottom)
             $0.leading.trailing.equalToSuperview()
+            $0.bottom.equalToSuperview().offset(-24)
         }
 
-        infoGridView.snp.makeConstraints {
-            $0.top.equalTo(infoSectionView.snp.bottom).offset(12)
-            $0.leading.equalToSuperview().offset(20)
-            $0.trailing.equalToSuperview().offset(-20)
-            $0.bottom.equalToSuperview().offset(-32)
-        }
+        bottomBarView.backgroundColor = Palette.background
+        bottomBarView.layer.borderWidth = 1
+        bottomBarView.layer.borderColor = Palette.border.cgColor
 
-            // 하단 버튼
         addCollectionButton.snp.makeConstraints {
             $0.leading.equalToSuperview().offset(20)
-            $0.top.equalToSuperview().offset(16)
-            $0.width.equalTo(130)
-            $0.height.equalTo(52)
+            $0.top.equalToSuperview().offset(14)
+            $0.height.equalTo(46)
+            $0.width.equalTo(110)
         }
 
         addTastingButton.snp.makeConstraints {
             $0.leading.equalTo(addCollectionButton.snp.trailing).offset(12)
             $0.trailing.equalToSuperview().offset(-20)
             $0.top.equalTo(addCollectionButton)
-            $0.height.equalTo(52)
+            $0.height.equalTo(46)
         }
-    }
 
-        // MARK: - Bind
+        backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
+        likeButton.addTarget(self, action: #selector(likeButtonTapped), for: .touchUpInside)
+    }
 
     private func bind() {
         let input = PerfumeDetailViewModel.Input(
             viewDidLoad: Observable.just(()),
-            addToCollectionTap: addToCollectionRelay.asObservable(),
+            addToCollectionTap: .empty(),
             addTastingRecordTap: addTastingRecordRelay.asObservable()
         )
 
         let output = viewModel.transform(input: input)
 
-            // 로딩
         output.isLoading
             .drive(onNext: { [weak self] loading in
-                loading ? self?.loadingIndicator.startAnimating()
-                : self?.loadingIndicator.stopAnimating()
+                loading ? self?.loadingIndicator.startAnimating() : self?.loadingIndicator.stopAnimating()
                 self?.scrollView.isHidden = loading
             })
             .disposed(by: disposeBag)
 
-            // 향수 데이터
         output.perfume
             .compactMap { $0 }
             .drive(onNext: { [weak self] perfume in
@@ -292,7 +324,6 @@ final class PerfumeDetailViewController: UIViewController {
             })
             .disposed(by: disposeBag)
 
-            // 에러
         output.errorMessage
             .compactMap { $0 }
             .drive(onNext: { [weak self] message in
@@ -300,15 +331,6 @@ final class PerfumeDetailViewController: UIViewController {
             })
             .disposed(by: disposeBag)
 
-            // 컬렉션 추가
-        output.onAddToCollection
-            .observe(on: MainScheduler.instance)
-            .subscribe(onNext: { [weak self] perfume in
-                self?.navigateToAddCollection(perfume: perfume)
-            })
-            .disposed(by: disposeBag)
-
-            // 시향 기록
         output.onAddTastingRecord
             .observe(on: MainScheduler.instance)
             .subscribe(onNext: { [weak self] perfume in
@@ -316,9 +338,10 @@ final class PerfumeDetailViewController: UIViewController {
             })
             .disposed(by: disposeBag)
 
-            // 버튼
         addCollectionButton.rx.tap
-            .bind(to: addToCollectionRelay)
+            .subscribe(onNext: { [weak self] in
+                self?.toggleLike()
+            })
             .disposed(by: disposeBag)
 
         addTastingButton.rx.tap
@@ -326,61 +349,116 @@ final class PerfumeDetailViewController: UIViewController {
             .disposed(by: disposeBag)
     }
 
-        // MARK: - Configure
-
     private func configure(with perfume: Perfume) {
-        bottleImageView.image = UIImage(systemName: "photo")
+        currentPerfume = perfume
+        title = perfume.name
 
-            // 이미지
+        bottleImageView.image = UIImage(systemName: "cube.transparent")
         if let urlStr = perfume.imageUrl, let url = URL(string: urlStr) {
             bottleImageView.kf.setImage(
                 with: url,
-                placeholder: UIImage(systemName: "photo"),
+                placeholder: UIImage(systemName: "cube.transparent"),
                 options: [.transition(.fade(0.2))]
             )
         }
 
-            // 기본 정보
         brandLabel.text = perfume.brand
         nameLabel.text = perfume.name
-        title = perfume.name
+        concentrationLabel.text = formattedConcentration(perfume.concentration)
 
-            // 메타 태그 (농도 + 성별)
-        metaStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        if let conc = perfume.concentration {
-            metaStackView.addArrangedSubview(MetaChipView(title: LocalizationMapper.concentration(conc)))
-        }
-        if let gender = perfume.gender {
-            metaStackView.addArrangedSubview(MetaChipView(title: LocalizationMapper.gender(gender)))
-        }
-
-            // Accord 바
-        let strengths = perfume.mainAccordStrengths.isEmpty
-        ? Self.fallbackAccordStrengths(for: perfume.mainAccords)
-        : perfume.mainAccordStrengths
-        accordBarsView.configure(with: strengths)
-
-            // 노트
-        notesView.configure(
-            top: perfume.topNotes ?? [],
-            middle: perfume.middleNotes ?? [],
-            base: perfume.baseNotes ?? []
+        let moodTags = perfume.mainAccords.prefix(3).map { $0.lowercased() }
+        topMoodChipsView.configure(
+            texts: moodTags,
+            highlightedIndices: Set<Int>(),
+            colorPalette: Palette.self
         )
 
-            // 향수 정보
-        infoGridView.configure(with: perfume)
+        usageInfoView.configure(
+            longevity: localizedLongevity(perfume.longevity ?? "-"),
+            sillage: localizedSillage(perfume.sillage ?? "-")
+        )
+
+        accordChipsView.configure(
+            texts: perfume.mainAccords.map { $0.lowercased() },
+            highlightedIndices: Set<Int>(),
+            colorPalette: Palette.self
+        )
+
+        notesView.configure(
+            topNotes: perfume.topNotes ?? [],
+            middleNotes: perfume.middleNotes ?? [],
+            baseNotes: perfume.baseNotes ?? []
+        )
+
+        let topSeasons = perfume.seasonRanking
+            .sorted { lhs, rhs in
+                if lhs.score != rhs.score { return lhs.score > rhs.score }
+                return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+            }
+            .prefix(2)
+            .map(\.name)
+
+        seasonChipsView.configure(
+            selectedSeasons: topSeasons.isEmpty ? (perfume.season ?? []) : Array(topSeasons)
+        )
+        updateLikeUI(isLiked: likedPerfumeIDs.contains(perfume.id))
     }
 
-        // MARK: - Navigation
+    private func formattedConcentration(_ value: String?) -> String {
+        guard let value, !value.isEmpty else { return "-" }
+        let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
 
-    private func navigateToAddCollection(perfume: Perfume) {
-        let alert = UIAlertController(
-            title: "컬렉션 추가",
-            message: "\(perfume.name)을(를) 컬렉션에 추가하는 화면은 곧 연결할게요.",
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: "확인", style: .default))
-        present(alert, animated: true)
+        switch normalized {
+            case "parfum", "perfume":
+                return "퍼퓸"
+            case "edp", "eau de parfum":
+                return "오 드 퍼퓸"
+            case "edt", "eau de toilette":
+                return "오 드 뚜왈렛"
+            case "edc", "eau de cologne", "cologne":
+                return "오 드 코롱"
+            case "fraiche", "eau fraiche":
+                return "오 프레쉬"
+            default:
+                break
+        }
+
+        return value.replacingOccurrences(of: "eau de ", with: "오 드 ")
+            .replacingOccurrences(of: "parfum", with: "퍼퓸")
+            .replacingOccurrences(of: "toilette", with: "뚜왈렛")
+            .replacingOccurrences(of: "cologne", with: "코롱")
+            .capitalized
+    }
+
+    private func localizedLongevity(_ value: String) -> String {
+        switch value.lowercased() {
+            case "very weak":         return "매우 약함"
+            case "weak":              return "약함"
+            case "moderate":          return "보통"
+            case "long lasting":      return "오래 지속됨"
+            case "very long lasting": return "매우 오래 지속됨"
+            default:                  return value
+        }
+    }
+
+    private func localizedSillage(_ value: String) -> String {
+        switch value.lowercased() {
+            case "intimate":     return "은은함"
+            case "soft":         return "약함"
+            case "moderate":     return "보통"
+            case "strong":       return "강함"
+            case "enormous":     return "매우 강함"
+            case "overwhelming": return "압도적"
+            default:             return value
+        }
+    }
+
+    @objc private func backTapped() {
+        navigationController?.popViewController(animated: true)
+    }
+
+    @objc private func likeButtonTapped() {
+        toggleLike()
     }
 
     private func navigateToTastingRecord(perfume: Perfume) {
@@ -399,318 +477,90 @@ final class PerfumeDetailViewController: UIViewController {
         present(alert, animated: true)
     }
 
-    private static func fallbackAccordStrengths(for accords: [String]) -> [String: AccordStrength] {
-        let fallbackStrengths: [AccordStrength] = [.dominant, .prominent, .moderate, .subtle]
-        return Dictionary(
-            uniqueKeysWithValues: accords.enumerated().map { index, accord in
-                let strength = index < fallbackStrengths.count ? fallbackStrengths[index] : .subtle
-                return (accord, strength)
-            }
-        )
+    private func loadLikedPerfumes() {
+        collectionRepository.fetchCollection()
+            .observe(on: MainScheduler.instance)
+            .subscribe(onSuccess: { [weak self] items in
+                guard let self else { return }
+                self.likedPerfumeIDs = Set(items.map(\.id))
+                if let perfume = self.currentPerfume {
+                    self.updateLikeUI(isLiked: self.likedPerfumeIDs.contains(perfume.id))
+                }
+            })
+            .disposed(by: disposeBag)
+    }
+
+    private func toggleLike() {
+        guard let perfume = currentPerfume else { return }
+
+        if likedPerfumeIDs.contains(perfume.id) {
+            collectionRepository.deleteCollectedPerfume(id: perfume.id)
+                .observe(on: MainScheduler.instance)
+                .subscribe(onCompleted: { [weak self] in
+                    self?.likedPerfumeIDs.remove(perfume.id)
+                    self?.updateLikeUI(isLiked: false)
+                })
+                .disposed(by: disposeBag)
+        } else {
+            collectionRepository.saveCollectedPerfume(perfume, memo: nil)
+                .observe(on: MainScheduler.instance)
+                .subscribe(onCompleted: { [weak self] in
+                    self?.likedPerfumeIDs.insert(perfume.id)
+                    self?.updateLikeUI(isLiked: true)
+                })
+                .disposed(by: disposeBag)
+        }
+    }
+
+    private func updateLikeUI(isLiked: Bool) {
+        likeButton.isSelected = isLiked
+        let title = isLiked ? "보유 향수 해제" : "보유 향수 등록"
+        addCollectionButton.setTitle(title, for: .normal)
     }
 }
 
-    // MARK: - DetailSectionView
-
-final class DetailSectionView: UIView {
-
+private final class SectionContainerView: UIView {
     private let titleLabel = UILabel().then {
-        $0.font = .systemFont(ofSize: 16, weight: .semibold)
+        $0.font = UIFont(name: "Georgia-Bold", size: 16) ?? .systemFont(ofSize: 16, weight: .bold)
+        $0.textColor = PerfumeDetailViewController.Palette.textPrimary
     }
-
     private let divider = UIView().then {
-        $0.backgroundColor = .systemGray5
+        $0.backgroundColor = PerfumeDetailViewController.Palette.border
     }
+    private let contentContainer = UIView()
 
     init(title: String) {
         super.init(frame: .zero)
+        backgroundColor = PerfumeDetailViewController.Palette.surface
         titleLabel.text = title
-        setupUI()
-    }
-
-    required init?(coder: NSCoder) { fatalError() }
-
-    private func setupUI() {
-        [divider, titleLabel].forEach { addSubview($0) }
+        [divider, titleLabel, contentContainer].forEach { addSubview($0) }
 
         divider.snp.makeConstraints {
             $0.top.leading.trailing.equalToSuperview()
             $0.height.equalTo(1)
         }
+
         titleLabel.snp.makeConstraints {
-            $0.top.equalTo(divider.snp.bottom).offset(16)
-            $0.leading.equalToSuperview().offset(20)
-            $0.bottom.equalToSuperview()
+            $0.top.equalToSuperview().offset(14)
+            $0.leading.trailing.equalToSuperview().inset(20)
         }
-    }
-}
 
-    // MARK: - AccordBarsView
-    // 향 계열 강도를 바 차트로 시각화
-
-final class AccordBarsView: UIView {
-
-    private let stackView = UIStackView().then {
-        $0.axis = .vertical
-        $0.spacing = 10
-    }
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        addSubview(stackView)
-        stackView.snp.makeConstraints { $0.edges.equalToSuperview() }
+        contentContainer.snp.makeConstraints {
+            $0.top.equalTo(titleLabel.snp.bottom).offset(12)
+            $0.leading.trailing.equalToSuperview().inset(20)
+            $0.bottom.equalToSuperview().offset(-14)
+        }
     }
 
     required init?(coder: NSCoder) { fatalError() }
 
-    func configure(with strengths: [String: AccordStrength]) {
-        stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
-
-            // 강도 내림차순 정렬
-        let sorted = strengths.sorted { $0.value.weight > $1.value.weight }
-
-        sorted.forEach { (accord, strength) in
-            let row = AccordBarRow(
-                accord: accord,
-                strength: strength
-            )
-            stackView.addArrangedSubview(row)
-        }
+    func embed(_ view: UIView) {
+        contentContainer.addSubview(view)
+        view.snp.makeConstraints { $0.edges.equalToSuperview() }
     }
 }
 
-final class AccordBarRow: UIView {
-
-    private let nameLabel = UILabel().then {
-        $0.font = .systemFont(ofSize: 13)
-        $0.textColor = .label
-    }
-
-    private let barTrack = UIView().then {
-        $0.backgroundColor = .systemGray5
-        $0.layer.cornerRadius = 4
-    }
-
-    private let barFill = UIView().then {
-        $0.layer.cornerRadius = 4
-    }
-
-    private let strengthLabel = UILabel().then {
-        $0.font = .systemFont(ofSize: 11)
-        $0.textColor = .secondaryLabel
-    }
-
-    init(accord: String, strength: AccordStrength) {
-        super.init(frame: .zero)
-        setupUI()
-        configure(accord: accord, strength: strength)
-    }
-
-    required init?(coder: NSCoder) { fatalError() }
-
-    private func setupUI() {
-        [nameLabel, barTrack, strengthLabel].forEach { addSubview($0) }
-        barTrack.addSubview(barFill)
-
-        nameLabel.snp.makeConstraints {
-            $0.leading.centerY.equalToSuperview()
-            $0.width.equalTo(90)
-        }
-
-        barTrack.snp.makeConstraints {
-            $0.leading.equalTo(nameLabel.snp.trailing).offset(8)
-            $0.centerY.equalToSuperview()
-            $0.height.equalTo(8)
-            $0.trailing.equalTo(strengthLabel.snp.leading).offset(-8)
-        }
-
-        strengthLabel.snp.makeConstraints {
-            $0.trailing.centerY.equalToSuperview()
-            $0.width.equalTo(60)
-        }
-
-        snp.makeConstraints { $0.height.equalTo(28) }
-    }
-
-    private func configure(accord: String, strength: AccordStrength) {
-        nameLabel.text = LocalizationMapper.accord(accord)
-        barFill.backgroundColor = ScentFamilyColor.color(for: accord)
-
-        let strengthText: String
-        switch strength {
-            case .dominant:  strengthText = "지배적"
-            case .prominent: strengthText = "강함"
-            case .moderate:  strengthText = "보통"
-            case .subtle:    strengthText = "은은함"
-        }
-        strengthLabel.text = strengthText
-
-            // 바 너비는 layoutSubviews에서 설정
-        barFill.snp.makeConstraints {
-            $0.leading.top.bottom.equalToSuperview()
-            $0.width.equalToSuperview().multipliedBy(strength.weight)
-        }
-    }
-}
-
-    // MARK: - NotesLayerView
-    // 탑/미들/베이스 노트 3레이어
-
-final class NotesLayerView: UIView {
-
-    private let stackView = UIStackView().then {
-        $0.axis = .vertical
-        $0.spacing = 16
-    }
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        addSubview(stackView)
-        stackView.snp.makeConstraints { $0.edges.equalToSuperview() }
-    }
-
-    required init?(coder: NSCoder) { fatalError() }
-
-    func configure(top: [String], middle: [String], base: [String]) {
-        stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
-
-        if !top.isEmpty {
-            stackView.addArrangedSubview(NoteRowView(layer: "탑 노트", notes: top, opacity: 0.6))
-        }
-        if !middle.isEmpty {
-            stackView.addArrangedSubview(NoteRowView(layer: "미들 노트", notes: middle, opacity: 0.8))
-        }
-        if !base.isEmpty {
-            stackView.addArrangedSubview(NoteRowView(layer: "베이스 노트", notes: base, opacity: 1.0))
-        }
-
-        if top.isEmpty && middle.isEmpty && base.isEmpty {
-            let emptyLabel = UILabel()
-            emptyLabel.text = "노트 정보가 없어요"
-            emptyLabel.textColor = .secondaryLabel
-            emptyLabel.font = .systemFont(ofSize: 14)
-            stackView.addArrangedSubview(emptyLabel)
-        }
-    }
-}
-
-final class NoteRowView: UIView {
-
-    init(layer: String, notes: [String], opacity: CGFloat) {
-        super.init(frame: .zero)
-        setupUI(layer: layer, notes: notes, opacity: opacity)
-    }
-
-    required init?(coder: NSCoder) { fatalError() }
-
-    private func setupUI(layer: String, notes: [String], opacity: CGFloat) {
-        let layerLabel = UILabel().then {
-            $0.text = layer
-            $0.font = .systemFont(ofSize: 12, weight: .medium)
-            $0.textColor = .secondaryLabel
-            $0.alpha = opacity
-        }
-
-        let notesWrap = NoteChipsView(notes: notes)
-
-        addSubview(layerLabel)
-        addSubview(notesWrap)
-
-        layerLabel.snp.makeConstraints {
-            $0.top.leading.equalToSuperview()
-            $0.width.equalTo(72)
-        }
-
-        notesWrap.snp.makeConstraints {
-            $0.leading.equalTo(layerLabel.snp.trailing).offset(8)
-            $0.top.trailing.equalToSuperview()
-            $0.bottom.equalToSuperview()
-        }
-    }
-}
-
-final class NoteChipsView: UIView {
-
-    private let notes: [String]
-
-    init(notes: [String]) {
-        self.notes = notes
-        super.init(frame: .zero)
-    }
-
-    required init?(coder: NSCoder) { fatalError() }
-
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        subviews.forEach { $0.removeFromSuperview() }
-
-        var x: CGFloat = 0
-        var y: CGFloat = 0
-        let spacing: CGFloat = 6
-        let lineSpacing: CGFloat = 6
-        let height: CGFloat = 26
-
-        notes.forEach { note in
-            let chip = makeChip(text: note)
-            chip.sizeToFit()
-            let w = chip.frame.width + 20
-
-            if x + w > bounds.width && x > 0 {
-                x = 0
-                y += height + lineSpacing
-            }
-
-            chip.frame = CGRect(x: x, y: y, width: w, height: height)
-            addSubview(chip)
-            x += w + spacing
-        }
-    }
-
-    override var intrinsicContentSize: CGSize {
-        var x: CGFloat = 0
-        var y: CGFloat = 0
-        let spacing: CGFloat = 6
-        let lineSpacing: CGFloat = 6
-        let height: CGFloat = 26
-
-        notes.forEach { note in
-            let approxWidth = (note as NSString)
-                .size(withAttributes: [.font: UIFont.systemFont(ofSize: 12)])
-                .width + 20
-
-            if x + approxWidth > (UIScreen.main.bounds.width - 120) && x > 0 {
-                x = 0
-                y += height + lineSpacing
-            }
-            x += approxWidth + spacing
-        }
-
-        return CGSize(width: UIView.noIntrinsicMetric, height: y + height)
-    }
-
-    private func makeChip(text: String) -> UIView {
-        let label = UILabel()
-        label.text = text
-        label.font = .systemFont(ofSize: 12)
-        label.textColor = .label
-
-        let container = UIView()
-        container.backgroundColor = .systemGray6
-        container.layer.cornerRadius = 13
-        container.addSubview(label)
-        label.snp.makeConstraints {
-            $0.leading.trailing.equalToSuperview().inset(10)
-            $0.centerY.equalToSuperview()
-        }
-        return container
-    }
-}
-
-    // MARK: - InfoGridView
-    // 지속력 / 확산력 / 계절 / 상황 정보 그리드
-
-final class InfoGridView: UIView {
-
+private final class UsageInfoView: UIView {
     private let stackView = UIStackView().then {
         $0.axis = .vertical
         $0.spacing = 12
@@ -724,120 +574,265 @@ final class InfoGridView: UIView {
 
     required init?(coder: NSCoder) { fatalError() }
 
-    func configure(with perfume: Perfume) {
+    func configure(longevity: String, sillage: String) {
         stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
-
-        if let longevity = perfume.longevity {
-            stackView.addArrangedSubview(
-                InfoRowView(icon: "clock", label: "지속력", value: LocalizationMapper.longevity(longevity))
-            )
-        }
-
-        if let sillage = perfume.sillage {
-            stackView.addArrangedSubview(
-                InfoRowView(icon: "wind", label: "확산력", value: LocalizationMapper.sillage(sillage))
-            )
-        }
-
-        if let seasons = perfume.season, !seasons.isEmpty {
-            let seasonText = seasons.map { LocalizationMapper.season($0) }.joined(separator: " · ")
-            stackView.addArrangedSubview(
-                InfoRowView(icon: "leaf", label: "계절", value: seasonText)
-            )
-        }
-
-        if let situations = perfume.situation, !situations.isEmpty {
-            stackView.addArrangedSubview(
-                InfoRowView(icon: "person.2", label: "상황", value: situations.joined(separator: " · "))
-            )
-        }
-    }
-}
-
-final class InfoRowView: UIView {
-
-    init(icon: String, label: String, value: String) {
-        super.init(frame: .zero)
-        setupUI(icon: icon, label: label, value: value)
+        stackView.addArrangedSubview(makeRow(title: "지속력", value: longevity))
+        stackView.addArrangedSubview(makeRow(title: "확산력", value: sillage))
     }
 
-    required init?(coder: NSCoder) { fatalError() }
-
-    private func setupUI(icon: String, label: String, value: String) {
-        let iconView = UIImageView().then {
-            $0.image = UIImage(systemName: icon)
-            $0.tintColor = .secondaryLabel
-            $0.contentMode = .scaleAspectFit
-        }
-
-        let labelView = UILabel().then {
-            $0.text = label
-            $0.font = .systemFont(ofSize: 13)
-            $0.textColor = .secondaryLabel
-            $0.width(60)
-        }
-
-        let valueView = UILabel().then {
-            $0.text = value
-            $0.font = .systemFont(ofSize: 14, weight: .medium)
-            $0.textColor = .label
+    private func makeRow(title: String, value: String) -> UIView {
+        let row = UIView()
+        let titleLabel = UILabel().then {
+            $0.text = title
+            $0.font = UIFont(name: "Georgia", size: 14) ?? .systemFont(ofSize: 14, weight: .medium)
+            $0.textColor = PerfumeDetailViewController.Palette.textSecondary
             $0.numberOfLines = 2
         }
-
-        [iconView, labelView, valueView].forEach { addSubview($0) }
-
-        iconView.snp.makeConstraints {
-            $0.leading.centerY.equalToSuperview()
-            $0.size.equalTo(18)
+        let valueLabel = UILabel().then {
+            $0.text = value
+            $0.font = UIFont(name: "Georgia-Bold", size: 14) ?? .systemFont(ofSize: 14, weight: .bold)
+            $0.textColor = PerfumeDetailViewController.Palette.textPrimary
+            $0.textAlignment = .right
         }
 
-        labelView.snp.makeConstraints {
-            $0.leading.equalTo(iconView.snp.trailing).offset(8)
-            $0.centerY.equalToSuperview()
+        [titleLabel, valueLabel].forEach { row.addSubview($0) }
+        titleLabel.snp.makeConstraints {
+            $0.leading.top.bottom.equalToSuperview()
+            $0.width.equalTo(54)
         }
-
-        valueView.snp.makeConstraints {
-            $0.leading.equalTo(labelView.snp.trailing).offset(8)
+        valueLabel.snp.makeConstraints {
+            $0.leading.greaterThanOrEqualTo(titleLabel.snp.trailing).offset(12)
             $0.trailing.centerY.equalToSuperview()
         }
-
-        snp.makeConstraints { $0.height.greaterThanOrEqualTo(32) }
+        return row
     }
 }
 
-    // MARK: - MetaChipView
+private final class DetailNotesView: UIView {
+    private let stackView = UIStackView().then {
+        $0.axis = .vertical
+        $0.spacing = 14
+    }
 
-final class MetaChipView: UIView {
-
-    init(title: String) {
-        super.init(frame: .zero)
-        setupUI(title: title)
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        addSubview(stackView)
+        stackView.snp.makeConstraints { $0.edges.equalToSuperview() }
     }
 
     required init?(coder: NSCoder) { fatalError() }
 
-    private func setupUI(title: String) {
-        backgroundColor = .systemGray5
-        layer.cornerRadius = 12
-
-        let label = UILabel().then {
-            $0.text = title
-            $0.font = .systemFont(ofSize: 12)
-            $0.textColor = .secondaryLabel
-        }
-
-        addSubview(label)
-        label.snp.makeConstraints {
-            $0.leading.trailing.equalToSuperview().inset(10)
-            $0.top.bottom.equalToSuperview().inset(4)
-        }
+    func configure(topNotes: [String], middleNotes: [String], baseNotes: [String]) {
+        stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        stackView.addArrangedSubview(NoteLineView(title: "탑", notes: topNotes))
+        stackView.addArrangedSubview(NoteLineView(title: "미들", notes: middleNotes))
+        stackView.addArrangedSubview(NoteLineView(title: "베이스", notes: baseNotes))
     }
 }
 
-    // MARK: - UILabel width helper
+private final class NoteLineView: UIView {
+    init(title: String, notes: [String]) {
+        super.init(frame: .zero)
 
-private extension UILabel {
-    func width(_ value: CGFloat) {
-        snp.makeConstraints { $0.width.equalTo(value) }
+        let titleLabel = UILabel().then {
+            $0.text = title
+            $0.font = UIFont(name: "Georgia", size: 14) ?? .systemFont(ofSize: 14, weight: .medium)
+            $0.textColor = PerfumeDetailViewController.Palette.textSecondary
+        }
+
+        let labelWidth: CGFloat = 44
+        let sectionInsets: CGFloat = 40   // leading 20 + trailing 20
+        let gap: CGFloat = 12
+        let availableWidth = UIScreen.main.bounds.width - sectionInsets - labelWidth - gap
+
+        let chipsView = ChipWrapView(style: .outline, maxWidth: availableWidth)
+        chipsView.configure(
+            texts: notes.isEmpty ? ["-"] : notes,
+            highlightedIndices: Set<Int>(),
+            colorPalette: PerfumeDetailViewController.Palette.self
+        )
+
+        [titleLabel, chipsView].forEach { addSubview($0) }
+        titleLabel.snp.makeConstraints {
+            $0.leading.top.equalToSuperview()
+            $0.width.equalTo(labelWidth)
+        }
+        chipsView.snp.makeConstraints {
+            $0.leading.equalTo(titleLabel.snp.trailing).offset(gap)
+            $0.top.trailing.bottom.equalToSuperview()
+        }
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+}
+
+private final class SeasonSelectionView: UIView {
+    private let displayMap: [String: String] = [
+        "spring": "봄",
+        "summer": "여름",
+        "fall": "가을",
+        "winter": "겨울"
+    ]
+    private var visibleTexts: [String] = []
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    func configure(selectedSeasons: [String]) {
+        visibleTexts = Array(selectedSeasons.prefix(2)).map { displayMap[$0.lowercased()] ?? $0 }
+        subviews.forEach { $0.removeFromSuperview() }
+        setNeedsLayout()
+        invalidateIntrinsicContentSize()
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        subviews.forEach { $0.removeFromSuperview() }
+
+        let spacing: CGFloat = 10
+        var x: CGFloat = 0
+
+        for text in visibleTexts {
+            let width = chipWidth(for: text)
+            let chip = makeChip(text: text)
+            chip.frame = CGRect(x: x, y: 0, width: width, height: 36)
+            addSubview(chip)
+            x += width + spacing
+        }
+    }
+
+    override var intrinsicContentSize: CGSize {
+        let spacing: CGFloat = 10
+        let totalWidth = visibleTexts.enumerated().reduce(CGFloat(0)) { partial, item in
+            let spacingValue = item.offset == 0 ? CGFloat(0) : spacing
+            return partial + spacingValue + chipWidth(for: item.element)
+        }
+        return CGSize(width: totalWidth, height: visibleTexts.isEmpty ? 0 : 36)
+    }
+
+    private func chipWidth(for text: String) -> CGFloat {
+        let font = UIFont(name: "Georgia-Bold", size: 14) ?? UIFont.systemFont(ofSize: 14, weight: .bold)
+        let textWidth = (text as NSString).size(withAttributes: [.font: font]).width
+        return ceil(textWidth) + 32
+    }
+
+    private func makeChip(text: String) -> UILabel {
+        let chip = UILabel()
+        chip.text = text
+        chip.textAlignment = .center
+        chip.font = UIFont(name: "Georgia-Bold", size: 14) ?? .systemFont(ofSize: 14, weight: .bold)
+        chip.textColor = PerfumeDetailViewController.Palette.textPrimary
+        chip.backgroundColor = PerfumeDetailViewController.Palette.card
+        chip.layer.cornerRadius = 18
+        chip.layer.borderWidth = 1
+        chip.layer.borderColor = PerfumeDetailViewController.Palette.border.cgColor
+        chip.clipsToBounds = true
+        return chip
+    }
+}
+
+private final class ChipWrapView: UIView {
+    enum Style {
+        case outline
+        case mixed
+    }
+
+    private let style: Style
+    private let maxWidth: CGFloat
+    private var texts: [String] = []
+    private var highlightedIndices = Set<Int>()
+
+    init(style: Style, maxWidth: CGFloat = UIScreen.main.bounds.width - 40) {
+        self.style = style
+        self.maxWidth = maxWidth
+        super.init(frame: .zero)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    func configure(
+        texts: [String],
+        highlightedIndices: Set<Int>,
+        colorPalette: PerfumeDetailViewController.Palette.Type
+    ) {
+        self.texts = texts
+        self.highlightedIndices = highlightedIndices
+        self.subviews.forEach { $0.removeFromSuperview() }
+        setNeedsLayout()
+        invalidateIntrinsicContentSize()
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        subviews.forEach { $0.removeFromSuperview() }
+
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        let horizontalSpacing: CGFloat = 10
+        let verticalSpacing: CGFloat = 8
+        let height: CGFloat = 30
+
+        for (index, text) in texts.enumerated() {
+            let chip = makeChip(text: text, highlighted: highlightedIndices.contains(index))
+            let width = chipWidth(for: text)
+
+            if x + width > bounds.width && x > 0 {
+                x = 0
+                y += height + verticalSpacing
+            }
+
+            chip.frame = CGRect(x: x, y: y, width: width, height: height)
+            addSubview(chip)
+            x += width + horizontalSpacing
+        }
+    }
+
+    override var intrinsicContentSize: CGSize {
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        let horizontalSpacing: CGFloat = 10
+        let verticalSpacing: CGFloat = 8
+        let height: CGFloat = 30
+
+        for text in texts {
+            let width = chipWidth(for: text)
+            if x + width > maxWidth && x > 0 {
+                x = 0
+                y += height + verticalSpacing
+            }
+            x += width + horizontalSpacing
+        }
+
+        return CGSize(width: UIView.noIntrinsicMetric, height: y + height)
+    }
+
+    private func makeChip(text: String, highlighted: Bool) -> UIView {
+        let label = UILabel().then {
+            $0.text = text
+            $0.font = UIFont(name: "Georgia-Bold", size: 13) ?? .systemFont(ofSize: 13, weight: .bold)
+            $0.textColor = PerfumeDetailViewController.Palette.textSecondary
+        }
+
+        let container = UIView()
+        let shouldFill = style == .mixed && highlighted
+        container.backgroundColor = shouldFill ? PerfumeDetailViewController.Palette.card : .clear
+        container.layer.cornerRadius = 19
+        container.layer.borderWidth = 1
+        container.layer.borderColor = PerfumeDetailViewController.Palette.border.cgColor
+        container.addSubview(label)
+        label.snp.makeConstraints {
+            $0.leading.trailing.equalToSuperview().inset(12)
+            $0.centerY.equalToSuperview()
+        }
+        return container
+    }
+
+    private func chipWidth(for text: String) -> CGFloat {
+        let font = UIFont(name: "Georgia-Bold", size: 13) ?? UIFont.systemFont(ofSize: 13, weight: .bold)
+        let textWidth = (text as NSString).size(withAttributes: [.font: font]).width
+        return ceil(textWidth) + 24
     }
 }

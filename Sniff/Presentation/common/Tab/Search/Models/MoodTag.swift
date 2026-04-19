@@ -14,6 +14,49 @@ import Foundation
 
 typealias MoodTag = PreferenceTag
 
+enum ScentFamilyFilter: String, CaseIterable, Codable {
+    case floral = "플로럴"
+    case woody = "우디"
+    case fresh = "프레시"
+    case amber = "앰버"
+    case spicy = "스파이시"
+    case musky = "머스키"
+    case whiteFloral = "화이트 플로럴"
+    case rose = "로즈"
+    case powdery = "파우더리"
+    case vanilla = "바닐라"
+    case caramel = "카라멜"
+
+    var displayName: String { rawValue }
+
+    var matchingRawAccords: [String] {
+        switch self {
+        case .floral:
+            return ["floral", "yellow floral"]
+        case .woody:
+            return ["woody", "cedar", "sandalwood", "oud", "dry woods", "mossy woods", "woody amber"]
+        case .fresh:
+            return ["fresh", "citrus", "water", "aquatic", "marine", "green"]
+        case .amber:
+            return ["amber", "woody amber", "balsamic"]
+        case .spicy:
+            return ["spicy", "warm spicy", "fresh spicy", "aromatic"]
+        case .musky:
+            return ["musk", "musky", "white musk"]
+        case .whiteFloral:
+            return ["white floral"]
+        case .rose:
+            return ["rose"]
+        case .powdery:
+            return ["powdery", "soft floral", "soapy", "clean"]
+        case .vanilla:
+            return ["vanilla", "gourmand"]
+        case .caramel:
+            return ["caramel"]
+        }
+    }
+}
+
     // MARK: - Concentration
 
 enum Concentration: String, CaseIterable, Codable {
@@ -62,22 +105,24 @@ enum Season: String, CaseIterable, Codable {
     // MARK: - SearchFilter (전체 필터 상태)
 
 struct SearchFilter: Equatable {
+    var scentFamilies: Set<ScentFamilyFilter> = []
     var moodTags: Set<MoodTag> = []
     var concentrations: Set<Concentration> = []
     var seasons: Set<Season> = []
 
     var isEmpty: Bool {
-        moodTags.isEmpty && concentrations.isEmpty && seasons.isEmpty
+        scentFamilies.isEmpty && moodTags.isEmpty && concentrations.isEmpty && seasons.isEmpty
     }
 
     var totalCount: Int {
-        moodTags.count + concentrations.count + seasons.count
+        scentFamilies.count + moodTags.count + concentrations.count + seasons.count
     }
 
         // 필터 버튼 레이블 ("플로럴 외 4개" 형식)
     var summaryLabel: String? {
         guard totalCount > 0 else { return nil }
-        let first = moodTags.first?.displayName
+        let first = scentFamilies.first?.displayName
+        ?? moodTags.first?.displayName
         ?? concentrations.first?.displayName
         ?? seasons.first?.displayName
         ?? ""
@@ -86,6 +131,7 @@ struct SearchFilter: Equatable {
     }
 
     mutating func reset() {
+        scentFamilies = []
         moodTags = []
         concentrations = []
         seasons = []
@@ -96,7 +142,6 @@ struct SearchFilter: Equatable {
 
 enum SortOption: String, CaseIterable {
     case recommended = "추천순"
-    case newest      = "최신순"
     case nameAsc     = "이름 순 (ㄱ~ㅎ)"
     case nameDesc    = "이름 역순 (ㅎ~ㄱ)"
 
