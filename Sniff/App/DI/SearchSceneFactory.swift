@@ -11,9 +11,8 @@ enum SearchSceneFactory {
 
     static func makeSearchViewController() -> SearchViewController {
         let repository = PerfumeCatalogRepository()
-        let searchPerfumesUseCase = SearchPerfumesUseCase(repository: repository)
         let viewModel = SearchViewModel(
-            searchPerfumesUseCase: searchPerfumesUseCase,
+            perfumeCatalogRepository: repository,
             recentSearchStore: RecentSearchStore()
         )
         return SearchViewController(

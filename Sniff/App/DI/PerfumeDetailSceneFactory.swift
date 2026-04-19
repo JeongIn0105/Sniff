@@ -12,10 +12,9 @@ enum PerfumeDetailSceneFactory {
     static func makeViewController(perfume: Perfume) -> PerfumeDetailViewController {
         let repository = PerfumeCatalogRepository()
         let collectionRepository = CollectionRepository()
-        let useCase = FetchPerfumeDetailUseCase(repository: repository)
         let viewModel = PerfumeDetailViewModel(
             perfume: perfume,
-            fetchPerfumeDetailUseCase: useCase
+            perfumeCatalogRepository: repository
         )
         return PerfumeDetailViewController(
             viewModel: viewModel,
@@ -26,10 +25,9 @@ enum PerfumeDetailSceneFactory {
     static func makeViewController(perfumeId: String) -> PerfumeDetailViewController {
         let repository = PerfumeCatalogRepository()
         let collectionRepository = CollectionRepository()
-        let useCase = FetchPerfumeDetailUseCase(repository: repository)
         let viewModel = PerfumeDetailViewModel(
             perfumeId: perfumeId,
-            fetchPerfumeDetailUseCase: useCase
+            perfumeCatalogRepository: repository
         )
         return PerfumeDetailViewController(
             viewModel: viewModel,

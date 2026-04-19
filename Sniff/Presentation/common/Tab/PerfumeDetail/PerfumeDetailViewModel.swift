@@ -32,7 +32,7 @@ final class PerfumeDetailViewModel {
 
         // MARK: - Properties
     private let perfumeId: String
-    private let fetchPerfumeDetailUseCase: FetchPerfumeDetailUseCaseType
+    private let perfumeCatalogRepository: PerfumeCatalogRepositoryType
     private let disposeBag = DisposeBag()
 
     private let perfumeRelay = BehaviorRelay<Perfume?>(value: nil)
@@ -41,15 +41,15 @@ final class PerfumeDetailViewModel {
 
         // MARK: - Init
         // perfumeId로 API 조회하는 경우
-    init(perfumeId: String, fetchPerfumeDetailUseCase: FetchPerfumeDetailUseCaseType) {
+    init(perfumeId: String, perfumeCatalogRepository: PerfumeCatalogRepositoryType) {
         self.perfumeId = perfumeId
-        self.fetchPerfumeDetailUseCase = fetchPerfumeDetailUseCase
+        self.perfumeCatalogRepository = perfumeCatalogRepository
     }
 
         // 이미 데이터가 있는 경우 (검색 결과에서 넘어올 때) — API 재호출 불필요
-    init(perfume: Perfume, fetchPerfumeDetailUseCase: FetchPerfumeDetailUseCaseType) {
+    init(perfume: Perfume, perfumeCatalogRepository: PerfumeCatalogRepositoryType) {
         self.perfumeId = perfume.id
-        self.fetchPerfumeDetailUseCase = fetchPerfumeDetailUseCase
+        self.perfumeCatalogRepository = perfumeCatalogRepository
         self.perfumeRelay.accept(perfume)
     }
 
@@ -82,7 +82,7 @@ final class PerfumeDetailViewModel {
         // MARK: - Private
     private func fetchDetail() {
         isLoadingRelay.accept(true)
-        fetchPerfumeDetailUseCase.execute(perfumeId: perfumeId)
+        perfumeCatalogRepository.fetchDetail(perfumeId: perfumeId)
             .subscribe(
                 onSuccess: { [weak self] perfume in
                     self?.isLoadingRelay.accept(false)

@@ -15,11 +15,6 @@ enum HomeSceneFactory {
         let tastingRecordRepository = TastingRecordRepository()
         let perfumeCatalogRepository = PerfumeCatalogRepository()
 
-        let fetchHomeFeedUseCase = FetchHomeFeedUseCase(
-            userTasteRepository: userTasteRepository,
-            collectionRepository: collectionRepository,
-            tastingRecordRepository: tastingRecordRepository
-        )
         let recommendationEngine = RecommendationEngine(
             perfumeCatalogRepository: perfumeCatalogRepository
         )
@@ -27,7 +22,9 @@ enum HomeSceneFactory {
             recommendationEngine: recommendationEngine
         )
         let viewModel = HomeViewModel(
-            fetchHomeFeedUseCase: fetchHomeFeedUseCase,
+            userTasteRepository: userTasteRepository,
+            collectionRepository: collectionRepository,
+            tastingRecordRepository: tastingRecordRepository,
             recommendPerfumesUseCase: recommendPerfumesUseCase
         )
         return HomeViewController(viewModel: viewModel)

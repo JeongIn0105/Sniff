@@ -42,7 +42,7 @@ final class SearchViewModel {
     }
 
         // MARK: - Dependencies
-    private let searchPerfumesUseCase: SearchPerfumesUseCaseType
+    private let perfumeCatalogRepository: PerfumeCatalogRepositoryType
     private let recentSearchStore: RecentSearchStoreType
     private let disposeBag = DisposeBag()
 
@@ -57,10 +57,10 @@ final class SearchViewModel {
 
         // MARK: - Init
     init(
-        searchPerfumesUseCase: SearchPerfumesUseCaseType,
+        perfumeCatalogRepository: PerfumeCatalogRepositoryType,
         recentSearchStore: RecentSearchStoreType = RecentSearchStore()
     ) {
-        self.searchPerfumesUseCase = searchPerfumesUseCase
+        self.perfumeCatalogRepository = perfumeCatalogRepository
         self.recentSearchStore = recentSearchStore
     }
 
@@ -162,7 +162,7 @@ final class SearchViewModel {
         // MARK: - Private
 
     private func fetchSuggestions(query: String) {
-        searchPerfumesUseCase.execute(query: query, limit: 5)
+        perfumeCatalogRepository.search(query: query, limit: 5)
             .subscribe(onSuccess: { [weak self] perfumes in
                 guard let self else { return }
                 let rankedPerfumes = self.rankMatchingPerfumes(perfumes, for: query)
@@ -182,7 +182,7 @@ final class SearchViewModel {
 
     private func fetchResults(query: String) {
         isLoadingRelay.accept(true)
-        searchPerfumesUseCase.execute(query: query, limit: 50)
+        perfumeCatalogRepository.search(query: query, limit: 50)
             .subscribe(
                 onSuccess: { [weak self] perfumes in
                     guard let self else { return }

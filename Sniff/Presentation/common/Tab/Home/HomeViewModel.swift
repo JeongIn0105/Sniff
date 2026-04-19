@@ -10,6 +10,12 @@ import RxSwift
 import RxCocoa
 import UIKit
 
+typealias HomeFeedData = (
+    tasteAnalysis: TasteAnalysisResult,
+    collection: [CollectedPerfume],
+    tastingRecords: [TastingRecord]
+)
+
 final class HomeViewModel {
 
     struct Input {
@@ -39,14 +45,20 @@ final class HomeViewModel {
     private let routeRelay = PublishRelay<HomeRoute>()
     private let recommendationItemsRelay = BehaviorRelay<[HomePerfumeItem]>(value: [])
 
-    private let fetchHomeFeedUseCase: FetchHomeFeedUseCaseType
+    private let userTasteRepository: UserTasteRepositoryType
+    private let collectionRepository: CollectionRepositoryType
+    private let tastingRecordRepository: TastingRecordRepositoryType
     private let recommendPerfumesUseCase: RecommendPerfumesUseCaseType
 
     init(
-        fetchHomeFeedUseCase: FetchHomeFeedUseCaseType,
+        userTasteRepository: UserTasteRepositoryType,
+        collectionRepository: CollectionRepositoryType,
+        tastingRecordRepository: TastingRecordRepositoryType,
         recommendPerfumesUseCase: RecommendPerfumesUseCaseType
     ) {
-        self.fetchHomeFeedUseCase = fetchHomeFeedUseCase
+        self.userTasteRepository = userTasteRepository
+        self.collectionRepository = collectionRepository
+        self.tastingRecordRepository = tastingRecordRepository
         self.recommendPerfumesUseCase = recommendPerfumesUseCase
     }
 
@@ -67,7 +79,7 @@ final class HomeViewModel {
             .flatMapLatest { [weak self] _ -> Observable<HomeFeedData?> in
                 guard let self else { return .just(nil) }
 
-                return self.fetchHomeFeedUseCase.execute()
+                return self.fetchHomeFeed()
                     .map(Optional.some)
                     .catchAndReturn(nil)
                     .asObservable()
@@ -211,5 +223,20 @@ private extension HomeViewModel {
             summary: "나에게 맞는 향수를 찾아가요",
             familyText: ""
         )
+    }
+
+    func fetchHomeFeed() -> Single<HomeFeedData> {
+        Single.zip(
+            userTasteRepository.fetchTasteAnalysis(),
+            collectionRepository.fetchCollection().catchAndReturn([]),
+            tastingRecordRepository.fetchTastingRecords().catchAndReturn([])
+        )
+        .map { tasteAnalysis, collection, tastingRecords in
+            (
+                tasteAnalysis: tasteAnalysis,
+                collection: collection,
+                tastingRecords: tastingRecords
+            )
+        }
     }
 }
