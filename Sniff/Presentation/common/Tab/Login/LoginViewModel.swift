@@ -8,12 +8,11 @@
 import Foundation
 import Combine
 import AuthenticationServices
-import CryptoKit
-import Security
-import Combine
 @preconcurrency import FirebaseAuth
 @preconcurrency import FirebaseFirestore
+
 // MARK: - 로그인 ViewModel
+
 final class LoginViewModel: ObservableObject {
 
     // DEBUG 임시 우회:
@@ -24,31 +23,31 @@ final class LoginViewModel: ObservableObject {
 
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var showError = false
+
+    // MARK: - Private
 
     private let authService: AuthService
-    private var currentNonce: String?
+    private let appleSignInHelper = AppleSignInHelper()
+    private let db = Firestore.firestore()
 
-    init(authService: AuthService? = nil) {
+    private let onNewUser: () -> Void
+    private let onExistingUser: () -> Void
+
+    // MARK: - Init
+
+    init(
+        onNewUser: @escaping () -> Void,
+        onExistingUser: @escaping () -> Void,
+        authService: AuthService? = nil
+    ) {
+        self.onNewUser = onNewUser
+        self.onExistingUser = onExistingUser
         self.authService = authService ?? .shared
     }
 
-    func prepareAppleLoginRequest(_ request: ASAuthorizationAppleIDRequest) {
-        let nonce = randomNonceString()
-        currentNonce = nonce
-        request.requestedScopes = [.fullName, .email]
-        request.nonce = sha256(nonce)
-    }
-
-    func handleAppleLoginResult(
-        _ result: Result<ASAuthorization, Error>,
-        onSuccess: @escaping () -> Void
-    ) {
-        Task {
-            await processAppleLoginResult(result, onSuccess: onSuccess)
-        }
-    }
-    
     // MARK: - Apple 로그인
+
     @MainActor
     func signInWithApple(presentationAnchor: ASPresentationAnchor) {
         isLoading = true
@@ -60,45 +59,43 @@ final class LoginViewModel: ObservableObject {
                 case .success(let authResult):
                     await self.handleSignInSuccess(authResult: authResult)
                 case .failure(let error):
+#if DEBUG
+                    if self.shouldBypassAppleLoginFailureInDebug {
+                        try? await self.authService.signInAnonymouslyForDebug()
+                        self.errorMessage = "DEBUG 임시 우회: Apple 로그인 실패를 건너뛰고 다음 화면으로 이동합니다."
+                        self.showError = true
+                        await self.handleSignInSuccessAnonymous()
+                        return
+                    }
+#endif
                     self.errorMessage = error.localizedDescription
                     self.showError = true
                 }
             }
-do {
-    try await authService.signInWithApple(
-        identityToken: appleIDCredential.identityToken,
-        rawNonce: nonce
-    )
-
-    errorMessage = nil
-    onSuccess()
-} catch {
-#if DEBUG
-    if shouldBypassAppleLoginFailureInDebug {
-        try? await authService.signInAnonymouslyForDebug()
-        errorMessage = "DEBUG 임시 우회: Apple 로그인 실패를 건너뛰고 다음 화면으로 이동합니다."
-        onSuccess()
-        return
-    }
-#endif
-    errorMessage = error.localizedDescription
-}
         }
     }
-    
-    // MARK: - 신규/기존 사용자 분기
+
+    // MARK: - 신규 / 기존 사용자 분기
+
     @MainActor
     private func handleSignInSuccess(authResult: AuthDataResult) async {
         let uid = authResult.user.uid
         do {
             let document = try await db.collection("users").document(uid).getDocument()
             if document.exists {
-                onExistingUser()  // 기존 사용자 → 홈
+                onExistingUser()    // 기존 사용자 → 홈
             } else {
-                onNewUser()       // 신규 사용자 → 닉네임
+                onNewUser()         // 신규 사용자 → 닉네임
             }
         } catch {
+            // Firestore 조회 실패 시 안전하게 신규 사용자 플로우로
             onNewUser()
         }
+    }
+
+    @MainActor
+    private func handleSignInSuccessAnonymous() async {
+        // DEBUG 우회: 익명 로그인 성공 시 신규 사용자로 처리
+        onNewUser()
     }
 }

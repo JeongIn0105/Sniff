@@ -56,4 +56,8 @@ final class AuthService {
 
         _ = try await Auth.auth().signInAnonymously()
     }
+
+    func signOut() throws {
+        try Auth.auth().signOut()
+    }
 }

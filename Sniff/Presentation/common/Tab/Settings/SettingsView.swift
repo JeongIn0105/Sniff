@@ -10,50 +10,74 @@ import SwiftUI
 struct SettingsView: View {
 
     @EnvironmentObject private var appStateManager: AppStateManager
-    @Environment(\.openURL) private var openURL
     @StateObject private var viewModel = SettingsViewModel()
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        List {
-            NavigationLink {
-                AccountInfoView()
-            } label: {
-                settingsRow(
-                    primaryValue: viewModel.nickname,
-                    secondaryValue: viewModel.email,
-                    showsChevron: false
-                )
-            }
+        VStack(spacing: 0) {
+            // MARK: - 커스텀 헤더
+            customHeader
+            Divider()
 
-            Button {
-                openPrivacyPolicy()
-            } label: {
-                rowContainer(title: "개인정보처리방침", showsChevron: true)
-            }
-            .buttonStyle(.plain)
+            // MARK: - 설정 목록
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 0) {
+                    // ─ 계정 정보 셀 (닉네임 + 이메일)
+                    accountCell
 
-            rowContainer(
-                title: "앱 버전",
-                primaryValue: viewModel.appVersion,
-                showsChevron: false
-            )
+                    Divider().padding(.leading, 20)
 
-            Button {
-                viewModel.showLogoutAlert = true
-            } label: {
-                Text("로그아웃")
-                    .font(.system(size: 16))
-                    .foregroundColor(.red)
-                    .padding(.vertical, 10)
+                    // ── 여기 간격 ──
+                    Spacer().frame(height: 24)
+
+                    // ─ 개인정보처리방침
+                    NavigationLink {
+                        PrivacyPolicyView()
+                    } label: {
+                        infoRow(title: "개인정보처리방침")
+                    }
+                    .buttonStyle(.plain)
+
+                    Divider().padding(.leading, 20)
+
+                    // ─ 앱 버전 (탭 불가)
+                    versionRow
+
+                    Divider().padding(.leading, 20)
+
+                    // ─ 로그아웃
+                    Button {
+                        viewModel.showLogoutAlert = true
+                    } label: {
+                        HStack {
+                            Text("로그아웃")
+                                .font(.system(size: 16))
+                                .foregroundColor(.red)
+                            Spacer()
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 16)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+
+                    Divider()
+
+                    NavigationLink {
+                        WithdrawView(nickname: viewModel.nickname)
+                    } label: {
+                        withdrawRow
+                    }
+                    .buttonStyle(.plain)
+
+                    Divider()
+                }
             }
-            .buttonStyle(.plain)
         }
-        .listStyle(.plain)
-        .navigationTitle("환경설정")
-        .navigationBarTitleDisplayMode(.inline)
-        .task {
-            await viewModel.load()
-        }
+        .background(Color(.systemBackground).ignoresSafeArea())
+        .toolbar(.hidden, for: .navigationBar)
+        .toolbar(.hidden, for: .tabBar)
+        .task { await viewModel.load() }
         .onChange(of: viewModel.didLogout) { didLogout in
             guard didLogout else { return }
             appStateManager.state = .login
@@ -74,19 +98,41 @@ struct SettingsView: View {
         }
     }
 
-    private func settingsRow(
-        primaryValue: String,
-        secondaryValue: String?,
-        showsChevron: Bool = true
-    ) -> some View {
-        HStack(spacing: 12) {
+    // MARK: - 커스텀 헤더 (< 환경설정)
+
+    private var customHeader: some View {
+        HStack(spacing: 4) {
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(.primary)
+                    .frame(width: 44, height: 44)
+            }
+
+            Text("환경설정")
+                .font(.system(size: 24, weight: .bold))
+                .foregroundColor(.primary)
+
+            Spacer()
+        }
+        .padding(.horizontal, 12)
+        .padding(.top, 8)
+        .padding(.bottom, 4)
+    }
+
+    // MARK: - 계정 셀 (닉네임 + 이메일)
+
+    private var accountCell: some View {
+        HStack(alignment: .center, spacing: 0) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(primaryValue)
+                Text(viewModel.nickname)
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundColor(.primary)
 
-                if let secondaryValue, !secondaryValue.isEmpty {
-                    Text(secondaryValue)
+                if let email = viewModel.email, !email.isEmpty {
+                    Text(email)
                         .font(.system(size: 13))
                         .foregroundColor(.secondary)
                         .lineLimit(1)
@@ -94,49 +140,60 @@ struct SettingsView: View {
             }
 
             Spacer()
-
-            if showsChevron {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(Color(.systemGray3))
-            }
         }
-        .padding(.vertical, 6)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+        .contentShape(Rectangle())
     }
 
-    private func rowContainer(
-        title: String,
-        primaryValue: String? = nil,
-        showsChevron: Bool
-    ) -> some View {
-        HStack(spacing: 12) {
+    // MARK: - 일반 항목 행
+
+    private func infoRow(title: String) -> some View {
+        HStack {
             Text(title)
                 .font(.system(size: 16))
                 .foregroundColor(.primary)
 
             Spacer()
 
-            if let primaryValue, !primaryValue.isEmpty {
-                Text(primaryValue)
-                    .font(.system(size: 14))
-                    .foregroundColor(.secondary)
-            }
-
-            if showsChevron {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(Color(.systemGray3))
-            }
+            Image(systemName: "chevron.right")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(Color(.systemGray3))
         }
-        .padding(.vertical, 8)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+        .contentShape(Rectangle())
     }
 
-    private func openPrivacyPolicy() {
-        guard let url = viewModel.privacyPolicyURL else {
-            viewModel.errorMessage = "개인정보처리방침 주소가 아직 등록되지 않았어요"
-            return
+    // MARK: - 앱 버전 행 (탭 불가)
+
+    private var versionRow: some View {
+        HStack {
+            Text("앱 버전")
+                .font(.system(size: 16))
+                .foregroundColor(.primary)
+
+            Spacer()
+
+            Text("현재 버전 \(viewModel.appVersion)")
+                .font(.system(size: 14))
+                .foregroundColor(Color(.systemGray2))
         }
-        openURL(url)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+    }
+
+    private var withdrawRow: some View {
+        HStack {
+            Text("회원 탈퇴")
+                .font(.system(size: 13))
+                .foregroundColor(Color(.systemGray))
+
+            Spacer()
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 14)
+        .contentShape(Rectangle())
     }
 }
 

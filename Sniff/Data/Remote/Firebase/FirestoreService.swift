@@ -72,13 +72,34 @@ final class FirestoreService {
             throw FirestoreServiceError.invalidUserProfile
         }
 
+        // contactEmail 필드 우선 사용, 없으면 Firebase Auth 이메일로 폴백
+        let contactEmail = (data["contactEmail"] as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedEmail = (contactEmail?.isEmpty == false) ? contactEmail : Auth.auth().currentUser?.email
+
         return SniffUser(
             uid: try authenticatedUserID(),
             nickname: nickname,
-            email: Auth.auth().currentUser?.email,
+            email: resolvedEmail,
             onboardingCompleted: data["onboardingCompleted"] as? Bool,
             experienceLevel: data["experienceLevel"] as? String
         )
+    }
+
+    /// Firestore에 연락 이메일을 저장한다.
+    func updateContactEmail(_ email: String) async throws {
+        let ref = try userDocumentRef()
+        try await ref.setData(["contactEmail": email], merge: true)
+    }
+
+    /// Firestore에서 연락 이메일을 읽어온다. 없으면 Firebase Auth 이메일로 폴백한다.
+    func fetchContactEmail() async throws -> String? {
+        let snapshot = try await userDocumentRef().getDocument()
+        let data = snapshot.data() ?? [:]
+        let stored = (data["contactEmail"] as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if let stored, !stored.isEmpty { return stored }
+        return Auth.auth().currentUser?.email
     }
 
     func fetchTasteAnalysis() async throws -> TasteAnalysisResult {

@@ -34,8 +34,17 @@ final class PerfumeDetailViewModel {
         let perfumeRelay = PublishRelay<FragellaPerfume>()
 
         input.viewDidLoad
-            .flatMapLatest { _ in
-                FragellaService.shared.fetchDetail(perfumeId: self.perfumeId)
+            .flatMapLatest { [weak self] _ -> Single<FragellaPerfume> in
+                guard let self else { return .error(FragellaError.invalidURL) }
+                return FragellaService.shared.fetchDetail(perfumeId: self.perfumeId)
+            }
+            .asObservable()
+            .catch { error in
+                print("[PerfumeDetail Debug] perfumeId: \(self.perfumeId)")
+                print("[PerfumeDetail Debug] localizedDescription: \(error.localizedDescription)")
+                let nsError = error as NSError
+                print("[PerfumeDetail Debug] NSError domain: \(nsError.domain), code: \(nsError.code)")
+                return .empty()
             }
             .bind(to: perfumeRelay)
             .disposed(by: disposeBag)

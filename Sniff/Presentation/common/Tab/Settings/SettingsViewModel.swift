@@ -57,12 +57,6 @@ final class SettingsViewModel: ObservableObject {
         errorMessage = nil
     }
 
-    var privacyPolicyURL: URL? {
-        let rawValue = Bundle.main.object(forInfoDictionaryKey: "PrivacyPolicyURL") as? String
-        guard let rawValue else { return nil }
-        return URL(string: rawValue)
-    }
-
     private static func currentAppVersion() -> String {
         let shortVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "-"
         return "v\(shortVersion)"

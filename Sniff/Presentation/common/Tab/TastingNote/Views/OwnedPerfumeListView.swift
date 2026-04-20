@@ -58,33 +58,52 @@ struct OwnedPerfumeListView: View {
     // MARK: - 헤더
 
     private var headerView: some View {
-        ZStack {
-            Text(viewModel.isEditMode ? "보유 향수 편집" : "보유 향수 \(viewModel.perfumeCount)개")
-                .font(.system(size: 20, weight: .semibold))
-
-            HStack {
-                Button {
+        HStack(spacing: 0) {
+            // 뒤로가기 버튼
+            Button {
+                if viewModel.isEditMode {
+                    viewModel.toggleEditMode()
+                } else {
                     dismiss()
-                } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(.primary)
-                        .frame(width: 44, height: 44)
                 }
-                Spacer()
-
-                Button(viewModel.isEditMode ? "삭제" : "편집") {
-                    if viewModel.isEditMode {
-                        Task { await viewModel.deleteSelectedPerfumes() }
-                    } else {
-                        viewModel.toggleEditMode()
-                    }
-                }
-                .font(.system(size: 16, weight: .medium))
-                .foregroundColor(viewModel.isEditMode ? .red : .primary)
-                .disabled(viewModel.isEditMode && !viewModel.hasSelection)
-                .opacity(viewModel.isEditMode && !viewModel.hasSelection ? 0.35 : 1)
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(.primary)
+                    .frame(width: 44, height: 44)
             }
+
+            // 타이틀 (왼쪽 정렬)
+            if viewModel.isEditMode {
+                Text("보유 향수 편집")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(.primary)
+            } else {
+                HStack(spacing: 6) {
+                    Text("보유 향수")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(.primary)
+
+                    Text("\(viewModel.perfumeCount)개")
+                        .font(.system(size: 22, weight: .medium))
+                        .foregroundColor(Color(.systemGray2))
+                }
+            }
+
+            Spacer()
+
+            // 편집 / 삭제 버튼
+            Button(viewModel.isEditMode ? "삭제" : "편집") {
+                if viewModel.isEditMode {
+                    Task { await viewModel.deleteSelectedPerfumes() }
+                } else {
+                    viewModel.toggleEditMode()
+                }
+            }
+            .font(.system(size: 16, weight: .medium))
+            .foregroundColor(viewModel.isEditMode ? .red : .primary)
+            .disabled(viewModel.isEditMode && !viewModel.hasSelection)
+            .opacity(viewModel.isEditMode && !viewModel.hasSelection ? 0.35 : 1)
         }
         .padding(.horizontal, 20)
         .padding(.top, 14)
@@ -135,50 +154,59 @@ struct OwnedPerfumeListView: View {
     }
 
     private func ownedPerfumeCard(_ perfume: OwnedPerfumeListViewModel.PerfumeCardItem) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 6) {
             ZStack(alignment: .topLeading) {
                 ZStack(alignment: .bottomTrailing) {
                     perfumeImage(url: perfume.imageURL)
 
                     if perfume.isLiked {
                         Image(systemName: "heart.fill")
-                            .font(.system(size: 16))
-                            .foregroundColor(Color(.systemGray))
-                            .padding(10)
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundColor(Color(.systemGray2))
+                            .padding(.trailing, 10)
+                            .padding(.bottom, 10)
                     }
                 }
 
-                if perfume.hasTastingRecord {
-                    Text("시향 기록")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 5)
-                        .background(Color(.systemGray))
-                        .clipShape(Capsule())
-                        .padding(10)
+                if perfume.hasTastingRecord && !viewModel.isEditMode {
+                    tastingRecordBadge
+                        .padding(.top, 0)
+                        .padding(.leading, 0)
                 }
 
                 if viewModel.isEditMode {
                     Image(systemName: viewModel.selectedPerfumeIDs.contains(perfume.id) ? "checkmark.square.fill" : "square")
-                        .font(.system(size: 22, weight: .medium))
-                        .foregroundColor(viewModel.selectedPerfumeIDs.contains(perfume.id) ? .primary : Color(.systemGray3))
-                        .padding(10)
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundColor(viewModel.selectedPerfumeIDs.contains(perfume.id) ? Color(.systemGray) : Color(.systemGray3))
+                        .padding(.top, 8)
+                        .padding(.leading, 8)
                 }
             }
 
             Text(perfume.brand)
-                .font(.system(size: 12))
+                .font(.system(size: 11, weight: .medium))
                 .foregroundColor(.secondary)
                 .lineLimit(1)
 
             Text(perfume.name)
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundColor(.primary)
+                .lineSpacing(2)
                 .lineLimit(2)
 
-            accordChips(perfume.accordTags)
+            accordTextLine(perfume.accordTags)
         }
+    }
+
+    private var tastingRecordBadge: some View {
+        Text("시향 기록")
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundColor(.white)
+            .padding(.leading, 12)
+            .padding(.trailing, 18)
+            .padding(.vertical, 7)
+            .background(Color(.systemGray))
+            .clipShape(AttachedOwnedTastingRecordBadgeShape())
     }
 
     private func perfumeImage(url: String?) -> some View {
@@ -205,20 +233,24 @@ struct OwnedPerfumeListView: View {
         .frame(height: 176)
     }
 
-    private func accordChips(_ accords: [String]) -> some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
-                ForEach(accords, id: \.self) { accord in
+    private func accordTextLine(_ accords: [String]) -> some View {
+        let displayAccords = Array(accords.prefix(2))
+
+        return HStack(spacing: 8) {
+            ForEach(Array(displayAccords.enumerated()), id: \.offset) { index, accord in
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(index == 0 ? Color(red: 0.97, green: 0.67, blue: 0.67) : Color(.systemGray3))
+                        .frame(width: 8, height: 8)
+
                     Text(accord)
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.secondary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 5)
-                        .background(Color(.secondarySystemBackground))
-                        .clipShape(Capsule())
+                        .font(.system(size: 11, weight: .regular))
+                        .foregroundColor(Color(.systemGray2))
+                        .lineLimit(1)
                 }
             }
         }
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     private func toastView(_ message: String) -> some View {
@@ -230,6 +262,27 @@ struct OwnedPerfumeListView: View {
             .frame(height: 52)
             .background(Color.black.opacity(0.85))
             .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+}
+
+private struct AttachedOwnedTastingRecordBadgeShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let radius = rect.height / 2
+
+        path.move(to: CGPoint(x: rect.minX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX - radius, y: rect.minY))
+        path.addArc(
+            center: CGPoint(x: rect.maxX - radius, y: rect.midY),
+            radius: radius,
+            startAngle: .degrees(-90),
+            endAngle: .degrees(90),
+            clockwise: false
+        )
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+        path.closeSubpath()
+
+        return path
     }
 }
 

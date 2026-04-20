@@ -154,7 +154,7 @@ final class TastingNoteFormViewModel: ObservableObject {
                     self.searchResults = []
                     self.isSearchResultVisible = false
                     self.isSearching = false
-                    self.searchGuideMessage = "2자 이상 입력해주세요"
+                    self.searchGuideMessage = "3자 이상 입력해주세요"
                     self.latestSearchQuery = ""
                     return
                 }
@@ -176,7 +176,7 @@ final class TastingNoteFormViewModel: ObservableObject {
         guard trimmed.count >= 2 else {
             searchResults = []
             isSearchResultVisible = false
-            searchGuideMessage = "2자 이상 입력해주세요"
+            searchGuideMessage = "3자 이상 입력해주세요"
             return
         }
         searchGuideMessage = nil
@@ -189,7 +189,7 @@ final class TastingNoteFormViewModel: ObservableObject {
             searchResults = []
             isSearchResultVisible = false
             isSearching = false
-            searchGuideMessage = "2자 이상 입력해주세요"
+            searchGuideMessage = "3자 이상 입력해주세요"
             return
         }
 
@@ -395,7 +395,12 @@ private enum TastingNoteFragellaAPI {
     static func search(query: String) async throws -> [FragellaFragrance] {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.count >= 2 else { throw FragellaAPIError.minimumSearchLength }
-        guard FragellaConfig.hasValidAPIKey else { throw FragellaAPIError.missingAPIKey }
+        let apiKey: String
+        do {
+            apiKey = try AppSecrets.fragellaAPIKey()
+        } catch {
+            throw FragellaAPIError.missingAPIKey
+        }
 
         var components = URLComponents(string: "https://api.fragella.com/api/v1/fragrances")
         components?.queryItems = [
@@ -408,7 +413,7 @@ private enum TastingNoteFragellaAPI {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.timeoutInterval = 15
-        request.setValue(FragellaConfig.apiKey, forHTTPHeaderField: "x-api-key")
+        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
 
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -568,16 +573,6 @@ private enum FragellaAPIError: LocalizedError {
         case .noResults:             return nil
         case let .serverError(code, msg): return "검색 실패 (\(code))\n\(msg)"
         }
-    }
-}
-
-// MARK: - Config
-
-private enum FragellaConfig {
-    static let apiKey = "0e4d3ff3231b3243fa544f797311c0df9175c3ce946c3df588365a70f76961e3"
-    static var hasValidAPIKey: Bool {
-        let t = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        return !t.isEmpty && t != "YOUR_FRAGELLA_API_KEY"
     }
 }
 

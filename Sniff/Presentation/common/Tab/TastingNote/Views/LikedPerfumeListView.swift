@@ -44,21 +44,25 @@ struct LikedPerfumeListView: View {
     // MARK: - 헤더
 
     private var headerView: some View {
-        ZStack {
-            Text("LIKE 향수 \(viewModel.perfumeCount)개")
-                .font(.system(size: 20, weight: .semibold))
-
-            HStack {
-                Button {
-                    dismiss()
-                } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(.primary)
-                        .frame(width: 44, height: 44)
-                }
-                Spacer()
+        HStack(spacing: 6) {
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundColor(.primary)
+                    .frame(width: 44, height: 44)
             }
+
+            Text("LIKE 향수")
+                .font(.system(size: 24, weight: .bold))
+                .foregroundColor(.primary)
+
+            Text("\(viewModel.perfumeCount)개")
+                .font(.system(size: 22, weight: .medium))
+                .foregroundColor(Color(.systemGray2))
+
+            Spacer()
         }
         .padding(.horizontal, 20)
         .padding(.top, 14)
@@ -86,11 +90,11 @@ struct LikedPerfumeListView: View {
 
     private var perfumeListView: some View {
         ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 8) {
                 ForEach(viewModel.perfumes) { perfume in
                     perfumeRow(perfume)
                     Divider()
-                        .padding(.leading, 104)
+                        .padding(.leading, 96)
                 }
                 Spacer().frame(height: 40)
             }
@@ -102,29 +106,20 @@ struct LikedPerfumeListView: View {
         HStack(alignment: .top, spacing: 14) {
             perfumeImage(url: perfume.imageURL)
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(perfume.name)
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.system(size: 17, weight: .semibold))
                     .foregroundColor(.primary)
                     .lineLimit(2)
 
-                Text(perfume.brand)
-                    .font(.system(size: 14))
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
-
-                accordChips(perfume.accordTags)
+                accordTextLine(brand: perfume.brand, accords: perfume.accordTags)
 
                 if perfume.hasTastingRecord {
-                    Text("시향 기록")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.secondary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 5)
-                        .background(Color(.secondarySystemBackground))
-                        .clipShape(Capsule())
+                    tastingRecordBadge
+                        .padding(.top, 4)
                 }
             }
+            .padding(.top, 4)
 
             Spacer(minLength: 8)
 
@@ -132,13 +127,14 @@ struct LikedPerfumeListView: View {
                 Task { await viewModel.removeLike(id: perfume.id) }
             } label: {
                 Image(systemName: "heart.fill")
-                    .font(.system(size: 24))
+                    .font(.system(size: 21, weight: .semibold))
                     .foregroundColor(Color(.systemGray))
                     .frame(width: 32, height: 32)
             }
             .buttonStyle(.plain)
+            .padding(.top, 10)
         }
-        .padding(.vertical, 12)
+        .padding(.vertical, 14)
     }
 
     private func perfumeImage(url: String?) -> some View {
@@ -162,23 +158,46 @@ struct LikedPerfumeListView: View {
                     .foregroundColor(Color(.systemGray3))
             }
         }
-        .frame(width: 72, height: 72)
+        .frame(width: 88, height: 88)
     }
 
-    private func accordChips(_ accords: [String]) -> some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
-                ForEach(accords, id: \.self) { accord in
+    private func accordTextLine(brand: String, accords: [String]) -> some View {
+        let displayAccords = Array(accords.prefix(2))
+
+        return HStack(spacing: 4) {
+            Text(brand)
+                .font(.system(size: 12, weight: .regular))
+                .foregroundColor(Color(.systemGray2))
+                .lineLimit(1)
+
+            if !displayAccords.isEmpty {
+                Text("|")
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundColor(Color(.systemGray3))
+
+                ForEach(Array(displayAccords.enumerated()), id: \.offset) { index, accord in
+                    Circle()
+                        .fill(index == 0 ? Color(red: 0.97, green: 0.67, blue: 0.67) : Color(.systemGray3))
+                        .frame(width: 8, height: 8)
+
                     Text(accord)
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.secondary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 5)
-                        .background(Color(.secondarySystemBackground))
-                        .clipShape(Capsule())
+                        .font(.system(size: 12, weight: .regular))
+                        .foregroundColor(Color(.systemGray2))
+                        .lineLimit(1)
                 }
             }
         }
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var tastingRecordBadge: some View {
+        Text("시향 기록")
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundColor(Color(.systemGray))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(Color(.secondarySystemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 }
 
