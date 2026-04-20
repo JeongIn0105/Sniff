@@ -30,9 +30,7 @@ struct OnboardingTasteView: View {
                         HStack {
                             Text(AppStrings.Onboarding.vibeSection)
                                 .font(.headline)
-
                             Spacer()
-
                             Text("\(viewModel.selectedVibes.count)/3")
                                 .font(.caption)
                                 .foregroundColor(.gray)
@@ -68,9 +66,7 @@ struct OnboardingTasteView: View {
                         HStack {
                             Text(AppStrings.Onboarding.imageSection)
                                 .font(.headline)
-
                             Spacer()
-
                             Text("\(viewModel.selectedImages.count)/3")
                                 .font(.caption)
                                 .foregroundColor(.gray)

@@ -23,7 +23,7 @@ struct MainTabView: View {
                     Text("검색")
                 }
 
-            PlaceholderTabView(title: "시향 기록")
+            TastingNoteView()
                 .tabItem {
                     Image(systemName: "book.closed")
                     Text("시향 기록")

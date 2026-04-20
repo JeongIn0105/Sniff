@@ -110,14 +110,9 @@ final class HomeViewModel {
             }
             .asDriver(onErrorJustReturn: Self.defaultBanner())
 
-            // 취향 프로필 카드용 — profile + count 정보 함께 전달
         let profile = Observable.combineLatest(sourceData, recommendationResult)
             .map { source, result -> HomeProfileItem? in
-                guard
-                    let source,
-                    let result = result
-                else { return nil }
-
+                guard let source, let result = result else { return nil }
                 return HomeProfileItem(
                     profile: result.profile,
                     collectionCount: source.collection.count,
@@ -125,18 +120,6 @@ final class HomeViewModel {
                 )
             }
             .asDriver(onErrorJustReturn: nil)
-
-        let recommendations = recommendationResult
-            .map { [weak self] result -> [HomePerfumeItem] in
-                guard let self, let result else {
-                    self?.recommendationItemsRelay.accept([])
-                    return []
-                }
-                let items = result.perfumes.map { self.mapToHomePerfumeItem($0) }
-                self.recommendationItemsRelay.accept(items)
-                return items
-            }
-            .asDriver(onErrorJustReturn: [])
 
         input.perfumeRegisterTap
             .map { HomeRoute.perfumeRegister }
@@ -196,10 +179,11 @@ private extension HomeViewModel {
         : accords.map { "• \($0)" }.joined(separator: "  ")
     }
 
+
+
     func makeBanner(from profile: UserTasteProfile) -> HomeTasteBannerItem {
         let familyText = profile.preferredFamilies.prefix(2).joined(separator: " · ")
         let summary: String
-
         if !profile.safeStartingPoint.isEmpty {
             summary = profile.safeStartingPoint
         } else if !profile.analysisSummary.isEmpty {
@@ -209,7 +193,6 @@ private extension HomeViewModel {
         } else {
             summary = "나에게 맞는 향수를 찾아가요"
         }
-
         return HomeTasteBannerItem(
             title: profile.primaryProfileName,
             summary: summary,
@@ -224,19 +207,18 @@ private extension HomeViewModel {
             familyText: ""
         )
     }
-
-    func fetchHomeFeed() -> Single<HomeFeedData> {
-        Single.zip(
-            userTasteRepository.fetchTasteAnalysis(),
-            collectionRepository.fetchCollection().catchAndReturn([]),
-            tastingRecordRepository.fetchTastingRecords().catchAndReturn([])
+func fetchHomeFeed() -> Single<HomeFeedData> {
+    Single.zip(
+        userTasteRepository.fetchTasteAnalysis(),
+        collectionRepository.fetchCollection().catchAndReturn([]),
+        tastingRecordRepository.fetchTastingRecords().catchAndReturn([])
+    )
+    .map { tasteAnalysis, collection, tastingRecords in
+        (
+            tasteAnalysis: tasteAnalysis,
+            collection: collection,
+            tastingRecords: tastingRecords
         )
-        .map { tasteAnalysis, collection, tastingRecords in
-            (
-                tasteAnalysis: tasteAnalysis,
-                collection: collection,
-                tastingRecords: tastingRecords
-            )
-        }
     }
+}
 }

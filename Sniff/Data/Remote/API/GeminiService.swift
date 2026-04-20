@@ -1,4 +1,5 @@
 
+
 //
 //  GeminiService.swift
 //  Sniff
@@ -10,7 +11,9 @@ import Foundation
 import RxSwift
 
 
+
     // MARK: - Input Model
+
 
 struct TasteAnalysisInput {
     let experience: String
@@ -18,7 +21,9 @@ struct TasteAnalysisInput {
     let images: [String]
 }
 
+
 // MARK: - Service
+
 
 final class GeminiTasteAnalysisService {
 
@@ -62,7 +67,9 @@ final class GeminiTasteAnalysisService {
         }
     }
 
+
     // MARK: - 실제 네트워크 요청
+
 
     private func request(input: TasteAnalysisInput) async throws -> TasteAnalysisResult {
         guard let url = URL(string: baseURL) else {
@@ -92,7 +99,9 @@ final class GeminiTasteAnalysisService {
     }
 
 
+
         // MARK: - 요청 바디 조립
+
 
     private func buildRequestBody(input: TasteAnalysisInput) -> [String: Any] {
         let vibesString = input.vibes.map { "\"\($0)\"" }.joined(separator: ", ")
@@ -126,7 +135,9 @@ final class GeminiTasteAnalysisService {
         ]
     }
 
+
 // MARK: - 응답 파싱
+
 
     private func parseResponse(data: Data) throws -> TasteAnalysisResult {
         guard
@@ -149,6 +160,7 @@ final class GeminiTasteAnalysisService {
         }
     }
 }
+
 
 
     // MARK: - Error
