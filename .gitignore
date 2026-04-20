@@ -29,4 +29,6 @@ Secrets.xcconfig
 AGENTS.md
 Sniff/Config/
 
+Sniff/GoogleService-Info.plist
+
 
