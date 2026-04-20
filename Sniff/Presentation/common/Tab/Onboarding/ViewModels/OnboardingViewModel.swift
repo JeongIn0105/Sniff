@@ -61,7 +61,9 @@ final class OnboardingViewModel: ObservableObject {
     func checkNicknameDuplication() async {
         let trimmedNickname = trimmedNickname
 
-        guard nicknameValidator.isValidFormat(trimmed) else {
+        guard
+            nicknameValidator
+            .isValidFormat(trimmedNickname) else {
             nicknameValidationState = .invalid
             return
         }

@@ -29,7 +29,11 @@ struct MainTabView: View {
                     Text("시향 기록")
                 }
 
-            MyTabContainerView()
+MyTabContainerView()
+    .tabItem {
+        Image(systemName: "person.circle")
+        Text("MY")
+    }
                 .tabItem {
                     Image(systemName: "person.circle")
                     Text("MY")

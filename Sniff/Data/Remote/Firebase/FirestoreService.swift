@@ -12,6 +12,7 @@ import FirebaseFirestore
 enum FirestoreServiceError: LocalizedError {
     case missingAuthenticatedUser
     case invalidTasteAnalysisData
+    case invalidUserProfile
     case nicknameCheckUnavailable
     case profileSaveUnavailable
 
@@ -21,6 +22,8 @@ enum FirestoreServiceError: LocalizedError {
             return "로그인된 사용자 정보를 찾을 수 없어요"
         case .invalidTasteAnalysisData:
             return "저장된 취향 분석 데이터를 읽을 수 없어요"
+        case .invalidUserProfile:
+            return "저장된 사용자 정보를 읽을 수 없어요"
         case .nicknameCheckUnavailable:
             return "지금은 닉네임 중복 확인을 할 수 없어요. 잠시 후 다시 시도해주세요"
         case .profileSaveUnavailable:
@@ -37,7 +40,7 @@ final class FirestoreService {
 
     private init() {}
 
-func isNicknameAvailable(_ nickname: String) async throws -> Bool {
+    func isNicknameAvailable(_ nickname: String) async throws -> Bool {
         let normalizedNickname = normalizedNickname(nickname)
         guard !normalizedNickname.isEmpty else { return false }
         let currentUserID = try authenticatedUserID()
@@ -86,6 +89,46 @@ func isNicknameAvailable(_ nickname: String) async throws -> Bool {
         }
     }
 
+    func fetchUserProfile() async throws -> SniffUser {
+        let snapshot = try await userDocumentRef().getDocument()
+        let data = snapshot.data() ?? [:]
+        let nickname = (data["nickname"] as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
+        guard !nickname.isEmpty else {
+            throw FirestoreServiceError.invalidUserProfile
+        }
+
+        // contactEmail 필드 우선 사용, 없으면 Firebase Auth 이메일로 폴백
+        let contactEmail = (data["contactEmail"] as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedEmail = (contactEmail?.isEmpty == false) ? contactEmail : Auth.auth().currentUser?.email
+
+        return SniffUser(
+            uid: try authenticatedUserID(),
+            nickname: nickname,
+            email: resolvedEmail,
+            onboardingCompleted: data["onboardingCompleted"] as? Bool,
+            experienceLevel: data["experienceLevel"] as? String
+        )
+    }
+
+    /// Firestore에 연락 이메일을 저장한다.
+    func updateContactEmail(_ email: String) async throws {
+        let ref = try userDocumentRef()
+        try await ref.setData(["contactEmail": email], merge: true)
+    }
+
+    /// Firestore에서 연락 이메일을 읽어온다. 없으면 Firebase Auth 이메일로 폴백한다.
+    func fetchContactEmail() async throws -> String? {
+        let snapshot = try await userDocumentRef().getDocument()
+        let data = snapshot.data() ?? [:]
+        let stored = (data["contactEmail"] as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if let stored, !stored.isEmpty { return stored }
+        return Auth.auth().currentUser?.email
+    }
+
     func fetchTasteAnalysis() async throws -> TasteAnalysisResult {
         let snapshot = try await userDocumentRef().getDocument()
         let data = snapshot.data() ?? [:]
@@ -117,6 +160,19 @@ func isNicknameAvailable(_ nickname: String) async throws -> Bool {
             }
     }
 
+    func deleteCollectionItems(ids: [String]) async throws {
+        guard !ids.isEmpty else { return }
+
+        let collectionRef = try userDocumentRef().collection("collection")
+        let batch = database.batch()
+
+        ids.forEach { id in
+            batch.deleteDocument(collectionRef.document(id))
+        }
+
+        try await batch.commit()
+    }
+
     func fetchLikedPerfumes() async throws -> [LikedPerfume] {
         let snapshot = try await userDocumentRef()
             .collection("likes")
@@ -124,6 +180,13 @@ func isNicknameAvailable(_ nickname: String) async throws -> Bool {
             .getDocuments()
 
         return snapshot.documents.compactMap(Self.makeLikedPerfume)
+    }
+
+    func removeLikedPerfume(id: String) async throws {
+        try await userDocumentRef()
+            .collection("likes")
+            .document(id)
+            .delete()
     }
 
     func fetchTastingRecords() async throws -> [TastingRecord] {
@@ -304,18 +367,28 @@ private static func makeCollectedPerfume(from document: QueryDocumentSnapshot) -
 
     private static func makeLikedPerfume(from document: QueryDocumentSnapshot) -> LikedPerfume? {
         let data = document.data()
+        let name = (data["name"] as? String) ?? (data["perfumeName"] as? String)
+        let brand = (data["brand"] as? String) ?? (data["brandName"] as? String)
+
         guard
-            let name  = data["name"]  as? String,
-            let brand = data["brand"] as? String
+            let name,
+            let brand
         else { return nil }
         let timestamp = data["likedAt"] as? Timestamp
+        let rawMainAccords = data["mainAccords"] as? [String] ?? []
+        let legacyAccords = [data["scentFamily"] as? String, data["scentFamily2"] as? String]
+            .compactMap { $0 }
+        let mainAccords = ScentFamilyNormalizer.canonicalNames(
+            for: rawMainAccords.isEmpty ? legacyAccords : rawMainAccords
+        )
         return LikedPerfume(
             id: document.documentID,
             name: name,
             brand: brand,
             scentFamily: data["scentFamily"] as? String,
             scentFamily2: data["scentFamily2"] as? String,
-            imageURL: data["imageURL"] as? String,
+            imageURL: data["imageUrl"] as? String ?? data["imageURL"] as? String,
+            mainAccords: mainAccords,
             likedAt: timestamp?.dateValue()
         )
     }
@@ -346,6 +419,5 @@ private static func makeCollectedPerfume(from document: QueryDocumentSnapshot) -
         dictionary["primary_profile_code"] != nil
         || dictionary["recommendation_direction"] != nil
         || dictionary["analysis_summary"] != nil
-    }
     }
 }

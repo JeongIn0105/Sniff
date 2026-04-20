@@ -4,12 +4,17 @@
 //
 //  Created by t2025-m0239 on 2026.04.15.
 //
-
 import Foundation
 import RxSwift
 
-final class CollectionRepository: CollectionRepositoryType {
+protocol CollectionRepositoryType {
+    func fetchCollection() -> Single<[CollectedPerfume]>
+    func saveCollectedPerfume(_ perfume: Perfume, memo: String?) -> Completable
+    func deleteCollectedPerfume(id: String) -> Completable
+    func deleteCollectionItems(ids: [String]) async throws
+}
 
+final class CollectionRepository: CollectionRepositoryType {
     private let firestoreService: FirestoreService
 
     init(firestoreService: FirestoreService? = nil) {
@@ -22,7 +27,6 @@ final class CollectionRepository: CollectionRepositoryType {
                 single(.failure(AppSecretsError.missingValue("FIRESTORE_SERVICE")))
                 return Disposables.create()
             }
-
             let task = Task {
                 do {
                     let collection = try await self.firestoreService.fetchCollection()
@@ -31,10 +35,7 @@ final class CollectionRepository: CollectionRepositoryType {
                     single(.failure(error))
                 }
             }
-
-            return Disposables.create {
-                task.cancel()
-            }
+            return Disposables.create { task.cancel() }
         }
     }
 
@@ -44,7 +45,6 @@ final class CollectionRepository: CollectionRepositoryType {
                 completable(.error(AppSecretsError.missingValue("FIRESTORE_SERVICE")))
                 return Disposables.create()
             }
-
             let task = Task {
                 do {
                     try await self.firestoreService.saveCollectedPerfume(perfume, memo: memo)
@@ -53,10 +53,7 @@ final class CollectionRepository: CollectionRepositoryType {
                     completable(.error(error))
                 }
             }
-
-            return Disposables.create {
-                task.cancel()
-            }
+            return Disposables.create { task.cancel() }
         }
     }
 
@@ -66,7 +63,6 @@ final class CollectionRepository: CollectionRepositoryType {
                 completable(.error(AppSecretsError.missingValue("FIRESTORE_SERVICE")))
                 return Disposables.create()
             }
-
             let task = Task {
                 do {
                     try await self.firestoreService.deleteCollectedPerfume(id: id)
@@ -75,10 +71,11 @@ final class CollectionRepository: CollectionRepositoryType {
                     completable(.error(error))
                 }
             }
-
-            return Disposables.create {
-                task.cancel()
-            }
+            return Disposables.create { task.cancel() }
         }
+    }
+
+    func deleteCollectionItems(ids: [String]) async throws {
+        try await firestoreService.deleteCollectionItems(ids: ids)
     }
 }

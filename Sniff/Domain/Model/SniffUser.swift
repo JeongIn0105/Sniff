@@ -6,3 +6,11 @@
 //
 
 import Foundation
+
+struct SniffUser {
+    let uid: String
+    let nickname: String
+    let email: String?
+    let onboardingCompleted: Bool?
+    let experienceLevel: String?
+}

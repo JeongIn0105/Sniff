@@ -31,7 +31,10 @@
 		991561532F7E90AE0030F8BC /* Exceptions for "Sniff" folder in "Sniff" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Config/Debug.xcconfig,
+				Config/Release.xcconfig,
 				Config/Secrets.xcconfig,
+				Config/Secrets.xcconfig.example,
 				Info.plist,
 			);
 			target = 9915613D2F7E90AD0030F8BC /* Sniff */;
@@ -43,7 +46,10 @@
 			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
 			buildPhase = 9915613A2F7E90AD0030F8BC /* Sources */;
 			membershipExceptions = (
+				Config/Debug.xcconfig,
+				Config/Release.xcconfig,
 				Config/Secrets.xcconfig,
+				Config/Secrets.xcconfig.example,
 			);
 		};
 /* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */

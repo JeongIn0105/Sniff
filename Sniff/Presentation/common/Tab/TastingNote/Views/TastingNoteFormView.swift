@@ -48,7 +48,6 @@ struct TastingNoteFormView: View {
 
                         ratingSection(title: "향 선호도", value: $vm.rating, label: vm.rating.ratingLabel)
                         moodTagSection
-                        revisitDesireSection
                         memoSection
                         Spacer().frame(height: 8)
                     }
@@ -307,42 +306,6 @@ struct TastingNoteFormView: View {
                 }
             }
             Spacer()
-        }
-    }
-
-    // MARK: - 다시 쓰고 싶은지 섹션 (단일 선택)
-
-    private var revisitDesireSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("다시 쓰고 싶은지")
-                .font(.system(size: 17, weight: .semibold))
-
-            // 2열 고정 레이아웃
-            let tags = kRevisitDesireList
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 8) {
-                    ForEach(Array(tags[0..<2]), id: \.self) { tag in
-                        MoodChip(
-                            title: tag,
-                            isSelected: vm.revisitDesire == tag
-                        ) {
-                            vm.toggleRevisitDesire(tag)
-                        }
-                    }
-                    Spacer()
-                }
-                HStack(spacing: 8) {
-                    ForEach(Array(tags[2..<4]), id: \.self) { tag in
-                        MoodChip(
-                            title: tag,
-                            isSelected: vm.revisitDesire == tag
-                        ) {
-                            vm.toggleRevisitDesire(tag)
-                        }
-                    }
-                    Spacer()
-                }
-            }
         }
     }
 

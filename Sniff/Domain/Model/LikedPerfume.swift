@@ -15,6 +15,7 @@ struct LikedPerfume: Identifiable {
     let scentFamily: String?
     let scentFamily2: String?
     let imageURL: String?
+    let mainAccords: [String]
     let likedAt: Date?
 
     /// 화면 표시용 향 계열 배열 (nil 제거)

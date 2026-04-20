@@ -26,7 +26,7 @@ struct TastingNoteView: View {
                         Spacer()
                         ProgressView()
                         Spacer()
-                    } else if viewModel.isEmpty {
+                    } else if viewModel.isFilteredEmpty {
                         emptyStateView
                     } else {
                         noteListView
@@ -45,7 +45,10 @@ struct TastingNoteView: View {
                     .padding(.bottom, 24)
             }
             .toolbar(.hidden, for: .navigationBar)
-            .fullScreenCover(isPresented: $viewModel.showFormSheet) {
+            .fullScreenCover(isPresented: $viewModel.showFormSheet, onDismiss: {
+                // 폼 닫힌 직후 강제 새로고침 (리스너 지연 대비)
+                Task { await viewModel.reload() }
+            }) {
                 TastingNoteFormView { perfumeName in
                     viewModel.showToast(perfumeName: perfumeName)
                 }
@@ -89,34 +92,10 @@ struct TastingNoteView: View {
                 .opacity(viewModel.isEmpty ? 0.35 : 1)
             }
 
-            // 보유 향수 / LIKE 향수 태그 버튼
+            // 보유 향수 / LIKE 향수 필터 칩
             HStack(spacing: 10) {
-                NavigationLink {
-                    OwnedPerfumeListView()
-                } label: {
-                    Text("보유 향수")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.primary)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(Color(.systemBackground))
-                        .clipShape(Capsule())
-                        .overlay(Capsule().stroke(Color(.systemGray3), lineWidth: 1))
-                }
-
-                NavigationLink {
-                    LikedPerfumeListView()
-                } label: {
-                    Text("LIKE 향수")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.primary)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(Color(.systemBackground))
-                        .clipShape(Capsule())
-                        .overlay(Capsule().stroke(Color(.systemGray3), lineWidth: 1))
-                }
-
+                filterChip(title: "보유 향수", filter: .owned)
+                filterChip(title: "LIKE 향수", filter: .liked)
                 Spacer()
             }
         }
@@ -129,11 +108,11 @@ struct TastingNoteView: View {
         VStack(spacing: 12) {
             Spacer()
 
-            Text("등록된 시향 기록이 없어요")
+            Text(emptyTitle)
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundColor(Color(.systemGray2))
 
-            Text("+ 버튼을 눌러 시향 기록을 추가해 주세요")
+            Text(emptyMessage)
                 .font(.system(size: 16))
                 .foregroundColor(Color(.systemGray2))
 
@@ -144,10 +123,26 @@ struct TastingNoteView: View {
         .padding(.bottom, 90)
     }
 
+    private var emptyTitle: String {
+        switch viewModel.selectedFilter {
+        case .all:    return "등록된 시향 기록이 없어요"
+        case .owned:  return "보유 향수에 기록된 시향 기록이 없어요"
+        case .liked:  return "LIKE 향수에 기록된 시향 기록이 없어요"
+        }
+    }
+
+    private var emptyMessage: String {
+        switch viewModel.selectedFilter {
+        case .all:    return "+ 버튼을 눌러 시향 기록을 추가해 주세요"
+        case .owned:  return "보유 향수에 먼저 향수를 등록해 주세요"
+        case .liked:  return "LIKE 향수에 먼저 향수를 추가해 주세요"
+        }
+    }
+
     private var noteListView: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 0) {
-                ForEach(viewModel.notes) { note in
+                ForEach(viewModel.filteredNotes) { note in
                     NavigationLink {
                         TastingNoteDetailView(note: note, viewModel: viewModel)
                     } label: {
@@ -186,6 +181,23 @@ struct TastingNoteView: View {
             .background(Color.black)
             .clipShape(Capsule())
             .shadow(color: .black.opacity(0.12), radius: 10, x: 0, y: 4)
+        }
+    }
+
+    /// 보유 / LIKE 향수 필터 칩 버튼
+    private func filterChip(title: String, filter: TastingNoteFilter) -> some View {
+        let isSelected = viewModel.selectedFilter == filter
+        return Button {
+            viewModel.selectFilter(filter)
+        } label: {
+            Text(title)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(isSelected ? .white : .primary)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(isSelected ? Color.black : Color(.systemBackground))
+                .clipShape(Capsule())
+                .overlay(Capsule().stroke(isSelected ? Color.clear : Color(.systemGray3), lineWidth: 1))
         }
     }
 

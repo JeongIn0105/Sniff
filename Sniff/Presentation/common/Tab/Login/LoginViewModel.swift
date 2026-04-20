@@ -46,7 +46,6 @@ final class LoginViewModel: ObservableObject {
                 switch result {
                 case .success(let payload):
                     await self.handleSignInSuccess(payload: payload)
-
                 case .failure(let error):
                     self.isLoading = false
                     self.errorMessage = error.localizedDescription

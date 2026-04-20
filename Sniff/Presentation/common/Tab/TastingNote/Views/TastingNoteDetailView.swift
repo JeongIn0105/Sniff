@@ -78,6 +78,7 @@ struct TastingNoteDetailView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
+        .toolbar(.hidden, for: .tabBar)
         .fullScreenCover(isPresented: $showEditSheet) {
             TastingNoteFormView(editingNote: currentNote)
         }
