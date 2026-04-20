@@ -22,9 +22,12 @@ fastlane/screenshots/
 # macOS
 .DS_Store
 
-# Local config / secrets
+# Sniff / config / secrets
 Secrets.xcconfig
 
 # Local instruction file
 AGENTS.md
 Sniff/Config/
+Sniff/GoogleService-Info.plist
+
+

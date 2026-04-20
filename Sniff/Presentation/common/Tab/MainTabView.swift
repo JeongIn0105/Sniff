@@ -17,7 +17,7 @@ struct MainTabView: View {
                     Text("홈")
                 }
 
-            PlaceholderTabView(title: "검색")
+            SearchTabContainerView()
                 .tabItem {
                     Image(systemName: "magnifyingglass")
                     Text("검색")
@@ -29,7 +29,11 @@ struct MainTabView: View {
                     Text("시향 기록")
                 }
 
-            MyPageView()
+MyTabContainerView()
+    .tabItem {
+        Image(systemName: "person.circle")
+        Text("MY")
+    }
                 .tabItem {
                     Image(systemName: "person.circle")
                     Text("MY")
@@ -41,10 +45,31 @@ struct MainTabView: View {
 
 private struct HomeTabContainerView: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UINavigationController {
-        let homeViewController = HomeViewController()
+        let homeViewController = HomeSceneFactory.makeViewController()
         let navigationController = UINavigationController(rootViewController: homeViewController)
         navigationController.navigationBar.isHidden = true
-        navigationController.tabBarItem.title = "홈"
+        return navigationController
+    }
+
+    func updateUIViewController(_ uiViewController: UINavigationController, context: Context) {}
+}
+
+private struct SearchTabContainerView: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> UINavigationController {
+        let searchViewController = SearchSceneFactory.makeSearchViewController()
+        let navigationController = UINavigationController(rootViewController: searchViewController)
+        navigationController.navigationBar.isHidden = true
+        return navigationController
+    }
+
+    func updateUIViewController(_ uiViewController: UINavigationController, context: Context) {}
+}
+
+private struct MyTabContainerView: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> UINavigationController {
+        let viewController = MySceneFactory.makeViewController()
+        let navigationController = UINavigationController(rootViewController: viewController)
+        navigationController.navigationBar.isHidden = true
         return navigationController
     }
 

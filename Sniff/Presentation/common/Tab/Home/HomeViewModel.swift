@@ -10,6 +10,12 @@ import RxSwift
 import RxCocoa
 import UIKit
 
+typealias HomeFeedData = (
+    tasteAnalysis: TasteAnalysisResult,
+    collection: [CollectedPerfume],
+    tastingRecords: [TastingRecord]
+)
+
 final class HomeViewModel {
 
     struct Input {
@@ -28,7 +34,6 @@ final class HomeViewModel {
         let route: Signal<HomeRoute>
     }
 
-    // MARK: - 취향 프로필 카드에 필요한 데이터 묶음
     struct HomeProfileItem {
         let profile: UserTasteProfile
         let collectionCount: Int
@@ -41,43 +46,50 @@ final class HomeViewModel {
 
     private let userTasteRepository: UserTasteRepositoryType
     private let collectionRepository: CollectionRepositoryType
-    private let tastingRepository: TastingRecordRepositoryType
-    private let recommendationEngine: RecommendationEngine
+    private let tastingRecordRepository: TastingRecordRepositoryType
+    private let recommendPerfumesUseCase: RecommendPerfumesUseCaseType
 
     init(
-        userTasteRepository: UserTasteRepositoryType? = nil,
-        collectionRepository: CollectionRepositoryType? = nil,
-        tastingRepository: TastingRecordRepositoryType? = nil,
-        recommendationEngine: RecommendationEngine? = nil
+        userTasteRepository: UserTasteRepositoryType,
+        collectionRepository: CollectionRepositoryType,
+        tastingRecordRepository: TastingRecordRepositoryType,
+        recommendPerfumesUseCase: RecommendPerfumesUseCaseType
     ) {
-        self.userTasteRepository = userTasteRepository ?? UserTasteRepository()
-        self.collectionRepository = collectionRepository ?? CollectionRepository()
-        self.tastingRepository = tastingRepository ?? TastingRecordRepository()
-        self.recommendationEngine = recommendationEngine ?? RecommendationEngine()
+        self.userTasteRepository = userTasteRepository
+        self.collectionRepository = collectionRepository
+        self.tastingRecordRepository = tastingRecordRepository
+        self.recommendPerfumesUseCase = recommendPerfumesUseCase
     }
 
     func transform(input: Input) -> Output {
 
-        // MARK: - 퀵 액션 목록
         let quickActions = input.viewDidLoad
             .map {
                 [
-                    HomeQuickAction(type: .perfumeRegister, title: "향수 등록",     systemImageName: "square.stack.3d.down.right.fill"),
-                    HomeQuickAction(type: .tastingNote,     title: "시향기 등록",   systemImageName: "square.stack.3d.down.right.fill"),
-                    HomeQuickAction(type: .report,          title: "취향 리포트",   systemImageName: "square.stack.3d.down.right.fill")
+                    HomeQuickAction(type: .perfumeRegister, title: "향수 등록",   systemImageName: "square.stack.3d.down.right.fill"),
+                    HomeQuickAction(type: .tastingNote,     title: "시향기 등록", systemImageName: "square.stack.3d.down.right.fill"),
+                    HomeQuickAction(type: .report,          title: "취향 리포트", systemImageName: "square.stack.3d.down.right.fill")
                 ]
             }
             .asDriver(onErrorJustReturn: [])
 
-        // MARK: - 소스 데이터 (취향 분석 + 컬렉션 + 시향 기록)
-        // 세 소스를 한 번에 묶어 share — banner / profile / recommendations 모두 여기서 파생
         let sourceData = input.viewDidLoad
-            .flatMapLatest { [weak self] _ -> Observable<(TasteAnalysisResult, [CollectedPerfume], [TastingRecord])?> in
+            .flatMapLatest { [weak self] _ -> Observable<HomeFeedData?> in
                 guard let self else { return .just(nil) }
-                return Single.zip(
-                    self.userTasteRepository.fetchTasteAnalysis(),
-                    self.collectionRepository.fetchCollection().catchAndReturn([]),
-                    self.tastingRepository.fetchTastingRecords().catchAndReturn([])
+                return self.fetchHomeFeed()
+                    .map(Optional.some)
+                    .catchAndReturn(nil)
+                    .asObservable()
+            }
+            .share(replay: 1, scope: .whileConnected)
+
+        let recommendationResult = sourceData
+            .flatMapLatest { [weak self] data -> Observable<RecommendationResult?> in
+                guard let self, let data else { return .just(nil) }
+                return self.recommendPerfumesUseCase.execute(
+                    onboarding: data.tasteAnalysis,
+                    collection: data.collection,
+                    tastingRecords: data.tastingRecords
                 )
                 .map(Optional.some)
                 .catchAndReturn(nil)
@@ -85,19 +97,6 @@ final class HomeViewModel {
             }
             .share(replay: 1, scope: .whileConnected)
 
-        // MARK: - 추천 결과 (sourceData → RecommendationEngine)
-        let recommendationResult = sourceData
-            .flatMapLatest { [weak self] data -> Observable<RecommendationResult?> in
-                guard let self, let (taste, collection, tasting) = data else { return .just(nil) }
-                return self.recommendationEngine
-                    .recommend(onboarding: taste, collection: collection, tastingRecords: tasting)
-                    .map(Optional.some)
-                    .catchAndReturn(nil)
-                    .asObservable()
-            }
-            .share(replay: 1, scope: .whileConnected)
-
-        // MARK: - 배너
         let banner = recommendationResult
             .map { [weak self] result -> HomeTasteBannerItem in
                 guard let self, let result else { return Self.defaultBanner() }
@@ -105,19 +104,17 @@ final class HomeViewModel {
             }
             .asDriver(onErrorJustReturn: Self.defaultBanner())
 
-        // MARK: - 취향 프로필 카드
-        let profile = Observable.combineLatest(recommendationResult, sourceData)
-            .map { result, data -> HomeProfileItem? in
-                guard let result, let (_, collection, tasting) = data else { return nil }
+        let profile = Observable.combineLatest(sourceData, recommendationResult)
+            .map { source, result -> HomeProfileItem? in
+                guard let source, let result else { return nil }
                 return HomeProfileItem(
                     profile: result.profile,
-                    collectionCount: collection.count,
-                    tastingCount: tasting.count
+                    collectionCount: source.collection.count,
+                    tastingCount: source.tastingRecords.count
                 )
             }
             .asDriver(onErrorJustReturn: nil)
 
-        // MARK: - 추천 향수 목록
         let recommendations = recommendationResult
             .map { [weak self] result -> [HomePerfumeItem] in
                 guard let self, let result else {
@@ -130,7 +127,6 @@ final class HomeViewModel {
             }
             .asDriver(onErrorJustReturn: [])
 
-        // MARK: - 라우팅
         input.perfumeRegisterTap
             .map { HomeRoute.perfumeRegister }
             .bind(to: routeRelay)
@@ -150,7 +146,7 @@ final class HomeViewModel {
             .withLatestFrom(recommendationItemsRelay.asObservable()) { ($0, $1) }
             .compactMap { indexPath, items -> HomeRoute? in
                 guard items.indices.contains(indexPath.item) else { return nil }
-                return .perfumeDetail(id: items[indexPath.item].id)
+                return .perfumeDetail(perfume: items[indexPath.item].perfume)
             }
             .bind(to: routeRelay)
             .disposed(by: disposeBag)
@@ -167,9 +163,25 @@ final class HomeViewModel {
 
 private extension HomeViewModel {
 
+    func fetchHomeFeed() -> Single<HomeFeedData> {
+        Single.zip(
+            userTasteRepository.fetchTasteAnalysis(),
+            collectionRepository.fetchCollection().catchAndReturn([]),
+            tastingRecordRepository.fetchTastingRecords().catchAndReturn([])
+        )
+        .map { tasteAnalysis, collection, tastingRecords in
+            (
+                tasteAnalysis: tasteAnalysis,
+                collection: collection,
+                tastingRecords: tastingRecords
+            )
+        }
+    }
+
     func mapToHomePerfumeItem(_ recommendation: RecommendedPerfume) -> HomePerfumeItem {
         let perfume = recommendation.perfume
         return HomePerfumeItem(
+            perfume: perfume,
             id: perfume.id,
             brandName: perfume.brand,
             perfumeName: perfume.name,
@@ -179,7 +191,7 @@ private extension HomeViewModel {
         )
     }
 
-    func makeAccordText(_ perfume: FragellaPerfume) -> String {
+    func makeAccordText(_ perfume: Perfume) -> String {
         let accords = ScentFamilyNormalizer.canonicalNames(
             for: Array(perfume.mainAccords.prefix(2))
         ).prefix(2)

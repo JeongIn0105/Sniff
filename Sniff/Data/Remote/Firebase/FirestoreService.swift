@@ -13,6 +13,8 @@ enum FirestoreServiceError: LocalizedError {
     case missingAuthenticatedUser
     case invalidTasteAnalysisData
     case invalidUserProfile
+    case nicknameCheckUnavailable
+    case profileSaveUnavailable
 
     var errorDescription: String? {
         switch self {
@@ -22,6 +24,10 @@ enum FirestoreServiceError: LocalizedError {
             return "저장된 취향 분석 데이터를 읽을 수 없어요"
         case .invalidUserProfile:
             return "저장된 사용자 정보를 읽을 수 없어요"
+        case .nicknameCheckUnavailable:
+            return "지금은 닉네임 중복 확인을 할 수 없어요. 잠시 후 다시 시도해주세요"
+        case .profileSaveUnavailable:
+            return "지금은 프로필을 저장할 수 없어요. 잠시 후 다시 시도해주세요"
         }
     }
 }
@@ -38,10 +44,21 @@ final class FirestoreService {
         let normalizedNickname = normalizedNickname(nickname)
         guard !normalizedNickname.isEmpty else { return false }
         let currentUserID = try authenticatedUserID()
+    do {
         let snapshot = try await database.collection("users")
             .whereField("nicknameLowercased", isEqualTo: normalizedNickname)
             .getDocuments()
+
         return snapshot.documents.allSatisfy { $0.documentID == currentUserID }
+    } catch let error as NSError {
+        guard error.domain == FirestoreErrorDomain else { throw error }
+
+        if error.code == FirestoreErrorCode.permissionDenied.rawValue {
+            throw FirestoreServiceError.nicknameCheckUnavailable
+        }
+
+        throw error
+    }
     }
 
     func saveUserProfile(
@@ -59,7 +76,17 @@ final class FirestoreService {
             "createdAt": now
         ]
 
-        try await ref.setData(data, merge: true)
+        do {
+            try await ref.setData(data, merge: true)
+        } catch let error as NSError {
+            guard error.domain == FirestoreErrorDomain else { throw error }
+
+            if error.code == FirestoreErrorCode.permissionDenied.rawValue {
+                throw FirestoreServiceError.profileSaveUnavailable
+            }
+
+            throw error
+        }
     }
 
     func fetchUserProfile() async throws -> SniffUser {
@@ -173,7 +200,7 @@ final class FirestoreService {
     }
 
     func saveCollectedPerfume(
-        _ perfume: FragellaPerfume,
+        _ perfume: Perfume,
         memo: String? = nil
     ) async throws {
         let now = FieldValue.serverTimestamp()
@@ -200,9 +227,16 @@ final class FirestoreService {
         try await ref.setData(data, merge: true)
     }
 
+    func deleteCollectedPerfume(id: String) async throws {
+        try await userDocumentRef()
+            .collection("collection")
+            .document(id)
+            .delete()
+    }
+
     func saveTastingRecord(
         id: String? = nil,
-        fragellaPerfume: FragellaPerfume,
+        fragellaPerfume: Perfume,
         rating: Int,
         moodTags: [String],
         memo: String?,
@@ -257,7 +291,7 @@ private extension FirestoreService {
         nickname.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
 
-    static func accordStrengthsForStorage(from perfume: FragellaPerfume) -> [String: String] {
+    static func accordStrengthsForStorage(from perfume: Perfume) -> [String: String] {
         if !perfume.mainAccordStrengths.isEmpty {
             return perfume.mainAccordStrengths.reduce(into: [String: String]()) { result, pair in
                 guard let canonical = ScentFamilyNormalizer.canonicalName(for: pair.key) else { return }

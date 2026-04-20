@@ -13,10 +13,12 @@ import RxCocoa
 
 final class HomeViewController: UIViewController {
 
-    private let viewModel = HomeViewModel()
+    private let viewModel: HomeViewModel
+    private let collectionRepository: CollectionRepositoryType
     private let disposeBag = DisposeBag()
     private var recommendations: [HomePerfumeItem] = []
     private var currentProfileItem: HomeViewModel.HomeProfileItem?
+    private var likedPerfumeIDs = Set<String>()
 
         // MARK: - UI
 
@@ -121,12 +123,28 @@ final class HomeViewController: UIViewController {
         return l
     }()
 
+    init(
+        viewModel: HomeViewModel,
+        collectionRepository: CollectionRepositoryType = CollectionRepository()
+    ) {
+        self.viewModel = viewModel
+        self.collectionRepository = collectionRepository
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
         // MARK: - Lifecycle
 
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
         bind()
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        loadLikedPerfumes()
     }
 }
 
@@ -285,9 +303,8 @@ private extension HomeViewController {
 
         searchButton.rx.tap
             .subscribe(onNext: { [weak self] in
-                let alert = UIAlertController(title: "검색", message: "검색 화면 연결 예정이에요.", preferredStyle: .alert)
-                alert.addAction(UIAlertAction(title: "확인", style: .default))
-                self?.present(alert, animated: true)
+                let searchViewController = SearchSceneFactory.makeSearchViewController()
+                self?.navigationController?.pushViewController(searchViewController, animated: true)
             })
             .disposed(by: disposeBag)
     }
@@ -297,9 +314,10 @@ private extension HomeViewController {
             case .perfumeRegister:   presentAlert("향수 등록 화면으로 연결할 수 있어요.")
             case .tastingNoteWrite:  presentAlert("시향기 작성 화면으로 연결할 수 있어요.")
             case .tasteReport:       presentAlert("취향 리포트 화면으로 연결할 수 있어요.")
-            case .perfumeDetail(let id):
-                if id.hasPrefix("local-") { presentAlert("현재 카드는 샘플 데이터예요."); return }
-                navigationController?.pushViewController(PerfumeDetailViewController(perfumeId: id), animated: true)
+            case .perfumeDetail(let perfume):
+                if perfume.id.hasPrefix("local-") { presentAlert("현재 카드는 샘플 데이터예요."); return }
+                let detailViewController = PerfumeDetailSceneFactory.makeViewController(perfume: perfume)
+                navigationController?.pushViewController(detailViewController, animated: true)
         }
     }
 
@@ -307,6 +325,54 @@ private extension HomeViewController {
         let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "확인", style: .default))
         present(alert, animated: true)
+    }
+
+    func loadLikedPerfumes() {
+        collectionRepository.fetchCollection()
+            .observe(on: MainScheduler.instance)
+            .subscribe(onSuccess: { [weak self] items in
+                self?.likedPerfumeIDs = Set(items.map(\.id))
+                self?.recommendationCollectionView.reloadData()
+            })
+            .disposed(by: disposeBag)
+    }
+
+    func saveLike(for item: HomePerfumeItem) {
+        let perfume = Perfume(
+            id: item.id,
+            name: item.perfumeName,
+            brand: item.brandName,
+            imageUrl: item.imageURL,
+            rawMainAccords: item.parsedAccords,
+            mainAccords: item.parsedAccords,
+            topNotes: nil,
+            middleNotes: nil,
+            baseNotes: nil,
+            concentration: nil,
+            gender: nil,
+            season: nil,
+            situation: nil,
+            longevity: nil,
+            sillage: nil
+        )
+
+        collectionRepository.saveCollectedPerfume(perfume, memo: nil)
+            .observe(on: MainScheduler.instance)
+            .subscribe(onCompleted: { [weak self] in
+                self?.likedPerfumeIDs.insert(item.id)
+                self?.recommendationCollectionView.reloadData()
+            })
+            .disposed(by: disposeBag)
+    }
+
+    func deleteLike(id: String) {
+        collectionRepository.deleteCollectedPerfume(id: id)
+            .observe(on: MainScheduler.instance)
+            .subscribe(onCompleted: { [weak self] in
+                self?.likedPerfumeIDs.remove(id)
+                self?.recommendationCollectionView.reloadData()
+            })
+            .disposed(by: disposeBag)
     }
 
     static func profileEmoji(for code: String) -> String {
@@ -340,7 +406,18 @@ extension HomeViewController: UICollectionViewDataSource {
         guard let cell = collectionView.dequeueReusableCell(
             withReuseIdentifier: HomePerfumeCardCell.reuseIdentifier, for: indexPath
         ) as? HomePerfumeCardCell else { return UICollectionViewCell() }
-        cell.configure(with: recommendations[indexPath.item])
+        let item = recommendations[indexPath.item]
+        cell.configure(with: item, isLiked: likedPerfumeIDs.contains(item.id))
+        cell.wishlistButton.rx.tap
+            .subscribe(onNext: { [weak self] in
+                guard let self else { return }
+                if self.likedPerfumeIDs.contains(item.id) {
+                    self.deleteLike(id: item.id)
+                } else {
+                    self.saveLike(for: item)
+                }
+            })
+            .disposed(by: cell.disposeBag)
         return cell
     }
 }

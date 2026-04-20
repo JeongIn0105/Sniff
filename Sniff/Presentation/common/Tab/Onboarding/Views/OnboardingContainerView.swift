@@ -9,9 +9,19 @@ import SwiftUI
 
 struct OnboardingContainerView: View {
 
-    @StateObject private var viewModel = OnboardingViewModel()
+    @StateObject private var viewModel: OnboardingViewModel
     let onBack: () -> Void
     let onComplete: () -> Void
+
+    init(
+        viewModel: OnboardingViewModel,
+        onBack: @escaping () -> Void,
+        onComplete: @escaping () -> Void
+    ) {
+        self._viewModel = StateObject(wrappedValue: viewModel)
+        self.onBack = onBack
+        self.onComplete = onComplete
+    }
 
     var body: some View {
         Group {

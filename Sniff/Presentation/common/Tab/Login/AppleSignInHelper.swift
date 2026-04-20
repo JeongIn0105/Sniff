@@ -7,13 +7,18 @@
 
 import AuthenticationServices
 import CryptoKit
-import FirebaseAuth
+import Security
+
+struct AppleSignInPayload {
+    let identityToken: Data
+    let rawNonce: String
+}
 
 // MARK: - Apple 로그인 헬퍼
 final class AppleSignInHelper: NSObject {
     
     private(set) var currentNonce: String?
-    var onCompletion: ((Result<AuthDataResult, Error>) -> Void)?
+    var onCompletion: ((Result<AppleSignInPayload, Error>) -> Void)?
     
     // MARK: - Nonce 생성
     func generateNonce() -> String {
@@ -22,7 +27,10 @@ final class AppleSignInHelper: NSObject {
         var remainingLength = 32
         while remainingLength > 0 {
             var randoms = [UInt8](repeating: 0, count: 16)
-            SecRandomCopyBytes(kSecRandomDefault, randoms.count, &randoms)
+            let status = SecRandomCopyBytes(kSecRandomDefault, randoms.count, &randoms)
+            guard status == errSecSuccess else {
+                return UUID().uuidString.replacingOccurrences(of: "-", with: "")
+            }
             randoms.forEach { random in
                 if remainingLength == 0 { return }
                 if random < charset.count {
@@ -42,7 +50,7 @@ final class AppleSignInHelper: NSObject {
     
     // MARK: - 로그인 요청
     func startSignIn(presentationAnchor: ASPresentationAnchor,
-                     completion: @escaping (Result<AuthDataResult, Error>) -> Void) {
+                     completion: @escaping (Result<AppleSignInPayload, Error>) -> Void) {
         let nonce = generateNonce()
         currentNonce = nonce
         onCompletion = completion
@@ -66,27 +74,13 @@ extension AppleSignInHelper: ASAuthorizationControllerDelegate {
         guard
             let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential,
             let nonce = currentNonce,
-            let appleIDToken = appleIDCredential.identityToken,
-            let idTokenString = String(data: appleIDToken, encoding: .utf8)
+            let appleIDToken = appleIDCredential.identityToken
         else {
             onCompletion?(.failure(AuthError.invalidCredential))
             return
         }
-        
-        let credential = OAuthProvider.appleCredential(
-            withIDToken: idTokenString,
-            rawNonce: nonce,
-            fullName: appleIDCredential.fullName
-        )
-        
-        Task {
-            do {
-                let result = try await Auth.auth().signIn(with: credential)
-                await MainActor.run { self.onCompletion?(.success(result)) }
-            } catch {
-                await MainActor.run { self.onCompletion?(.failure(error)) }
-            }
-        }
+
+        onCompletion?(.success(AppleSignInPayload(identityToken: appleIDToken, rawNonce: nonce)))
     }
     
     func authorizationController(controller: ASAuthorizationController,
@@ -100,9 +94,18 @@ extension AppleSignInHelper: ASAuthorizationControllerDelegate {
 // MARK: - ASAuthorizationControllerPresentationContextProviding
 extension AppleSignInHelper: ASAuthorizationControllerPresentationContextProviding {
     func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
-        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let window = scene.windows.first else { return ASPresentationAnchor() }
-        return window
+        let scenes = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+
+        if let keyWindow = scenes
+            .flatMap(\.windows)
+            .first(where: \.isKeyWindow) {
+            return keyWindow
+        }
+
+        return scenes
+            .flatMap(\.windows)
+            .first ?? ASPresentationAnchor()
     }
 }
 

@@ -7,6 +7,9 @@
 
 import SwiftUI
 import FirebaseCore
+import UIKit
+
+final class AppDelegate: NSObject, UIApplicationDelegate {}
 
 // MARK: - 앱 상태
 enum AppState {
@@ -20,6 +23,7 @@ enum AppState {
 @main
 struct SniffApp: App {
 
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var appStateManager = AppStateManager()
 
     // MARK: - Firebase 초기화
@@ -47,18 +51,18 @@ struct SniffApp: App {
                     }
                 }
         case .login:
-            LoginView(
-                onNewUser: { appStateManager.state = .onboardingIntro },      // 신규 사용자 → 온보딩
-                onExistingUser: { appStateManager.state = .main }             // 기존 사용자 → 홈
+                LoginView(
+                    onNewUser: { appStateManager.state = .onboardingIntro },
+                    onExistingUser: { appStateManager.state = .main }
             )
         case .onboardingIntro:
             OnboardingIntroView {
                 appStateManager.state = .onboarding
             }
         case .onboarding:
-            OnboardingContainerView(
-                onBack: { appStateManager.state = .onboardingIntro },   // 뒤로 → 온보딩 인트로
-                onComplete: { appStateManager.state = .main }           // 완료 → 홈
+                OnboardingContainerView(
+                    onBack: { appStateManager.state = .onboardingIntro },
+                    onComplete: { appStateManager.state = .main }
             )
         case .main:
             MainTabView()
