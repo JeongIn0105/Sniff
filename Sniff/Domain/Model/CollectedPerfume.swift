@@ -12,9 +12,7 @@ struct CollectedPerfume {
     let id: String
     let name: String
     let brand: String
-let scentFamily: String?
-    let scentFamily2: String?
-    let imageURL: String?
+    let imageUrl: String?
     let mainAccords: [String]
     let accordStrengths: [String: AccordStrength]
     /// 보유 향수 메모 — 취득 맥락, 보관 정보 등 자유 텍스트
@@ -33,6 +31,7 @@ extension CollectedPerfume {
         id: String,
         name: String,
         brand: String,
+        imageUrl: String? = nil,
         mainAccords: [String],
         createdAt: Date?
     ) {
@@ -40,6 +39,7 @@ extension CollectedPerfume {
             id: id,
             name: name,
             brand: brand,
+            imageUrl: imageUrl,
             mainAccords: mainAccords,
             accordStrengths: [:],
             memo: nil,
@@ -52,6 +52,7 @@ extension CollectedPerfume {
         id: String,
         name: String,
         brand: String,
+        imageUrl: String? = nil,
         mainAccords: [String],
         accordStrengths: [String: AccordStrength],
         createdAt: Date?
@@ -60,6 +61,7 @@ extension CollectedPerfume {
             id: id,
             name: name,
             brand: brand,
+            imageUrl: imageUrl,
             mainAccords: mainAccords,
             accordStrengths: accordStrengths,
             memo: nil,
@@ -68,15 +70,16 @@ extension CollectedPerfume {
     }
 }
 
-    // 보유 향수 → FragellaPerfume 변환 헬퍼
+    // 보유 향수 → Perfume 변환 헬퍼
     // 보유 향수에서 시향 기록 남길 때 Fragella API 재호출 없이 사용
 extension CollectedPerfume {
-    func toFragellaPerfume() -> FragellaPerfume {
-        FragellaPerfume(
+    func toPerfume() -> Perfume {
+        Perfume(
             id: id,
             name: name,
             brand: brand,
-            imageUrl: nil,
+            imageUrl: imageUrl,
+            rawMainAccords: mainAccords,
             mainAccords: mainAccords,
             mainAccordStrengths: accordStrengths,
             topNotes: nil,

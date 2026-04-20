@@ -10,21 +10,10 @@ import AuthenticationServices
 
 // MARK: - 로그인 화면
 struct LoginView: View {
-    
-    // MARK: - 콜백
-    let onNewUser: () -> Void
-    let onExistingUser: () -> Void
-    
     @StateObject private var viewModel: LoginViewModel
-    
-    init(onNewUser: @escaping () -> Void,
-         onExistingUser: @escaping () -> Void) {
-        self.onNewUser = onNewUser
-        self.onExistingUser = onExistingUser
-        self._viewModel = StateObject(wrappedValue: LoginViewModel(
-            onNewUser: onNewUser,
-            onExistingUser: onExistingUser
-        ))
+
+    init(viewModel: LoginViewModel) {
+        self._viewModel = StateObject(wrappedValue: viewModel)
     }
     
     var body: some View {
@@ -120,5 +109,5 @@ extension View {
 
 // MARK: - Preview
 #Preview {
-    LoginView(onNewUser: {}, onExistingUser: {})
+    LoginSceneFactory.makeView(onNewUser: {}, onExistingUser: {})
 }

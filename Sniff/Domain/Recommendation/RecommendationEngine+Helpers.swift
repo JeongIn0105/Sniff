@@ -9,7 +9,7 @@ import Foundation
 
 extension RecommendationEngine {
 
-    func uniquePerfumes(from perfumes: [FragellaPerfume]) -> [FragellaPerfume] {
+    func uniquePerfumes(from perfumes: [Perfume]) -> [Perfume] {
         var seen = Set<String>()
 
         return perfumes.filter { perfume in
@@ -17,9 +17,9 @@ extension RecommendationEngine {
         }
     }
 
-    func fallbackPerfumes(for profile: UserTasteProfile) -> [FragellaPerfume] {
+    func fallbackPerfumes(for profile: UserTasteProfile) -> [Perfume] {
         let catalog = [
-            FragellaPerfume(
+            Perfume(
                 id: "local-001",
                 name: "Lazy Sunday Morning",
                 brand: "Maison Margiela",
@@ -35,7 +35,7 @@ extension RecommendationEngine {
                 longevity: "Medium",
                 sillage: "Soft"
             ),
-            FragellaPerfume(
+            Perfume(
                 id: "local-002",
                 name: "Wood Sage & Sea Salt",
                 brand: "Jo Malone",
@@ -51,7 +51,7 @@ extension RecommendationEngine {
                 longevity: "Light",
                 sillage: "Soft"
             ),
-            FragellaPerfume(
+            Perfume(
                 id: "local-003",
                 name: "Chance Eau Tendre",
                 brand: "CHANEL",
@@ -67,7 +67,7 @@ extension RecommendationEngine {
                 longevity: "Medium",
                 sillage: "Soft"
             ),
-            FragellaPerfume(
+            Perfume(
                 id: "local-004",
                 name: "Philosykos",
                 brand: "Diptyque",
@@ -83,7 +83,7 @@ extension RecommendationEngine {
                 longevity: "Medium",
                 sillage: "Moderate"
             ),
-            FragellaPerfume(
+            Perfume(
                 id: "local-005",
                 name: "Santal 33",
                 brand: "Le Labo",
@@ -99,7 +99,7 @@ extension RecommendationEngine {
                 longevity: "Long",
                 sillage: "Moderate"
             ),
-            FragellaPerfume(
+            Perfume(
                 id: "local-006",
                 name: "Light Blue",
                 brand: "Dolce&Gabbana",

@@ -13,7 +13,7 @@ struct RecommendationResult {
 }
 
 struct RecommendedPerfume {
-    let perfume: FragellaPerfume
+    let perfume: Perfume
     let score: Double
     let reason: String
 }

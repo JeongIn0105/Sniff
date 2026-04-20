@@ -10,10 +10,13 @@ import UIKit
 import Combine
 import SnapKit
 import Kingfisher
+import Then
+import RxSwift
 
 final class HomePerfumeCardCell: UICollectionViewCell {
 
     static let reuseIdentifier = "HomePerfumeCardCell"
+    var disposeBag = DisposeBag()
 
         // MARK: - UI
 
@@ -41,6 +44,13 @@ final class HomePerfumeCardCell: UICollectionViewCell {
         iv.clipsToBounds = true
         return iv
     }()
+
+    let wishlistButton = UIButton(type: .custom).then {
+        $0.setImage(UIImage(systemName: "heart")?.withRenderingMode(.alwaysTemplate), for: .normal)
+        $0.setImage(UIImage(systemName: "heart.fill")?.withRenderingMode(.alwaysTemplate), for: .selected)
+        $0.tintColor = .white
+        $0.backgroundColor = .clear
+    }
 
         // 플레이스홀더 — 이미지 없을 때만
     private let placeholderCapView: UIView = {
@@ -98,6 +108,16 @@ final class HomePerfumeCardCell: UICollectionViewCell {
 
     required init?(coder: NSCoder) { fatalError() }
 
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        disposeBag = DisposeBag()
+        wishlistButton.isSelected = false
+        bottleImageView.kf.cancelDownloadTask()
+        bottleImageView.image = nil
+        accordsStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        showPlaceholder()
+    }
+
         // MARK: - Setup
 
     private func setup() {
@@ -110,6 +130,7 @@ final class HomePerfumeCardCell: UICollectionViewCell {
         placeholderBottleView.addSubview(placeholderMonogramLabel)
             // 이미지는 플레이스홀더 위에 올라옴
         imageContainerView.addSubview(bottleImageView)
+        imageContainerView.addSubview(wishlistButton)
 
         cardView.addSubview(brandLabel)
         cardView.addSubview(perfumeNameLabel)
@@ -126,6 +147,11 @@ final class HomePerfumeCardCell: UICollectionViewCell {
             // 향수 이미지를 이미지 컨테이너 꽉 채우게
         bottleImageView.snp.makeConstraints {
             $0.edges.equalToSuperview()
+        }
+
+        wishlistButton.snp.makeConstraints {
+            $0.trailing.bottom.equalToSuperview().inset(8)
+            $0.size.equalTo(28)
         }
 
         placeholderCapView.snp.makeConstraints {
@@ -157,9 +183,10 @@ final class HomePerfumeCardCell: UICollectionViewCell {
 
         // MARK: - Configure
 
-    func configure(with item: HomePerfumeItem) {
+    func configure(with item: HomePerfumeItem, isLiked: Bool = false) {
         brandLabel.text = item.brandName
         perfumeNameLabel.text = item.perfumeName
+        wishlistButton.isSelected = isLiked
 
         let monogram = String(item.brandName.prefix(1)).uppercased()
         placeholderMonogramLabel.text = monogram
@@ -264,29 +291,11 @@ final class HomePerfumeCardCell: UICollectionViewCell {
         placeholderBottleView.isHidden = false
         placeholderCapView.isHidden = false
     }
-
-    override func prepareForReuse() {
-        super.prepareForReuse()
-        bottleImageView.kf.cancelDownloadTask()
-        bottleImageView.image = nil
-        accordsStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        showPlaceholder()
-    }
 }
 
     // MARK: - UIColor helpers
 
 private extension UIColor {
-    convenience init(hex: String) {
-        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-        var int: UInt64 = 0
-        Scanner(string: hex).scanHexInt64(&int)
-        let r = CGFloat((int >> 16) & 0xFF) / 255
-        let g = CGFloat((int >> 8) & 0xFF) / 255
-        let b = CGFloat(int & 0xFF) / 255
-        self.init(red: r, green: g, blue: b, alpha: 1)
-    }
-
     func darker(by amount: CGFloat) -> UIColor {
         var h: CGFloat = 0, s: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
         getHue(&h, saturation: &s, brightness: &b, alpha: &a)

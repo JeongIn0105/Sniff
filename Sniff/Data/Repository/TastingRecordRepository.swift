@@ -8,10 +8,6 @@
 import Foundation
 import RxSwift
 
-protocol TastingRecordRepositoryType {
-    func fetchTastingRecords() -> Single<[TastingRecord]>
-}
-
 final class TastingRecordRepository: TastingRecordRepositoryType {
 
     private let firestoreService: FirestoreService
