@@ -27,3 +27,8 @@ Secrets.xcconfig
 
 # Local instruction file
 AGENTS.md
+Sniff/Config/
+
+Sniff/GoogleService-Info.plist
+
+
