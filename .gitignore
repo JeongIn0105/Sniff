@@ -22,7 +22,7 @@ fastlane/screenshots/
 # macOS
 .DS_Store
 
-# Local config / secrets
+# Sniff / config / secrets
 Secrets.xcconfig
 
 # Local instruction file
