@@ -13,6 +13,11 @@ final class RecommendationEngine {
     private let aggregator = PreferenceAggregator()
     private let queryBuilder = RecommendationQueryBuilder()
     let scorer = PerfumeScorer()
+    private let perfumeCatalogRepository: PerfumeCatalogRepositoryType
+
+    init(perfumeCatalogRepository: PerfumeCatalogRepositoryType) {
+        self.perfumeCatalogRepository = perfumeCatalogRepository
+    }
 
     func recommend(
         onboarding: TasteAnalysisResult,
@@ -28,7 +33,7 @@ final class RecommendationEngine {
 
         let queries = queryBuilder.buildQueries(from: profile)
         let searchRequests = queries.map {
-            FragellaService.shared
+            perfumeCatalogRepository
                 .search(query: $0, limit: 10)
                 .catchAndReturn([])
         }

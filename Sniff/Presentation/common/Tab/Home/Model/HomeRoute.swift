@@ -11,5 +11,5 @@ enum HomeRoute {
     case perfumeRegister
     case tastingNoteWrite
     case tasteReport
-    case perfumeDetail(id: String)
+    case perfumeDetail(perfume: Perfume)
 }

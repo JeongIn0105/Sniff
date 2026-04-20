@@ -40,20 +40,11 @@ final class OnboardingViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
 
     // MARK: - 태그 목록
-    let vibeTags: [String] = [
-        "세련된", "고급스러운", "자연스러운", "활기찬",
-        "신비로운", "중성적인", "자신감있는", "여유로운",
-        "트렌디한", "신뢰감있는", "품위있는"
-    ]
+    let vibeTags: [String] = PreferenceTag.vibeTags.map(\.displayName)
+    let imageTags: [String] = PreferenceTag.imageTags.map(\.displayName)
 
-    let imageTags: [String] = [
-        "달콤한", "시원한", "따뜻한", "강렬한",
-        "은은한", "상큼한", "싱그러운", "묵직한",
-        "보송보송한", "무거운", "가벼운"
-    ]
-
-    init(userTasteRepository: UserTasteRepositoryType? = nil) {
-        self.userTasteRepository = userTasteRepository ?? UserTasteRepository()
+    init(userTasteRepository: UserTasteRepositoryType) {
+        self.userTasteRepository = userTasteRepository
         bindNickname()
     }
 

@@ -10,6 +10,12 @@ import RxSwift
 import RxCocoa
 import UIKit
 
+typealias HomeFeedData = (
+    tasteAnalysis: TasteAnalysisResult,
+    collection: [CollectedPerfume],
+    tastingRecords: [TastingRecord]
+)
+
 final class HomeViewModel {
 
     struct Input {
@@ -41,19 +47,19 @@ final class HomeViewModel {
 
     private let userTasteRepository: UserTasteRepositoryType
     private let collectionRepository: CollectionRepositoryType
-    private let tastingRepository: TastingRecordRepositoryType
-    private let recommendationEngine: RecommendationEngine
+    private let tastingRecordRepository: TastingRecordRepositoryType
+    private let recommendPerfumesUseCase: RecommendPerfumesUseCaseType
 
     init(
-        userTasteRepository: UserTasteRepositoryType? = nil,
-        collectionRepository: CollectionRepositoryType? = nil,
-        tastingRepository: TastingRecordRepositoryType? = nil,
-        recommendationEngine: RecommendationEngine? = nil
+        userTasteRepository: UserTasteRepositoryType,
+        collectionRepository: CollectionRepositoryType,
+        tastingRecordRepository: TastingRecordRepositoryType,
+        recommendPerfumesUseCase: RecommendPerfumesUseCaseType
     ) {
-        self.userTasteRepository = userTasteRepository ?? UserTasteRepository()
-        self.collectionRepository = collectionRepository ?? CollectionRepository()
-        self.tastingRepository = tastingRepository ?? TastingRecordRepository()
-        self.recommendationEngine = recommendationEngine ?? RecommendationEngine()
+        self.userTasteRepository = userTasteRepository
+        self.collectionRepository = collectionRepository
+        self.tastingRecordRepository = tastingRecordRepository
+        self.recommendPerfumesUseCase = recommendPerfumesUseCase
     }
 
     func transform(input: Input) -> Output {
@@ -70,13 +76,26 @@ final class HomeViewModel {
 
             // 세 소스를 한 번에 묶어서 share — banner / profile / recommendations 모두 여기서 파생
         let sourceData = input.viewDidLoad
-            .flatMapLatest { [weak self] _ -> Observable<(TasteAnalysisResult, [CollectedPerfume], [TastingRecord])?> in
+            .flatMapLatest { [weak self] _ -> Observable<HomeFeedData?> in
                 guard let self else { return .just(nil) }
 
-                return Single.zip(
-                    self.userTasteRepository.fetchTasteAnalysis(),
-                    self.collectionRepository.fetchCollection().catchAndReturn([]),
-                    self.tastingRepository.fetchTastingRecords().catchAndReturn([])
+                return self.fetchHomeFeed()
+                    .map(Optional.some)
+                    .catchAndReturn(nil)
+                    .asObservable()
+            }
+            .share(replay: 1, scope: .whileConnected)
+
+        let recommendationResult = sourceData
+            .flatMapLatest { [weak self] data -> Observable<RecommendationResult?> in
+                guard let self, let data else {
+                    return .just(nil)
+                }
+
+                return self.recommendPerfumesUseCase.execute(
+                    onboarding: data.tasteAnalysis,
+                    collection: data.collection,
+                    tastingRecords: data.tastingRecords
                 )
                 .map(Optional.some)
                 .catchAndReturn(nil)
@@ -84,50 +103,23 @@ final class HomeViewModel {
             }
             .share(replay: 1, scope: .whileConnected)
 
-// MARK: - 추천 결과
-    private func loadRecommendation(
-        onboarding: OnboardingData,
-        collection: [CollectedPerfume],
-        tasting: [TastingRecord]
-    ) async {
-        let result = try? await recommendationEngine.recommend(
-            onboarding: onboarding,
-            collection: collection,
-            tastingRecords: tasting
-        )
-        await MainActor.run {
-            self.recommendationResult = result
-            self.banner = result.map { makeBanner(from: $0.profile) } ?? Self.defaultBanner()
-            self.profile = result.map {
-                HomeProfileItem(
-                    profile: $0.profile,
-                    collectionCount: collection.count,
-                    tastingCount: tasting.count
+        let banner = recommendationResult
+            .map { [weak self] result -> HomeTasteBannerItem in
+                guard let self, let result else { return Self.defaultBanner() }
+                return self.makeBanner(from: result.profile)
+            }
+            .asDriver(onErrorJustReturn: Self.defaultBanner())
+
+        let profile = Observable.combineLatest(sourceData, recommendationResult)
+            .map { source, result -> HomeProfileItem? in
+                guard let source, let result = result else { return nil }
+                return HomeProfileItem(
+                    profile: result.profile,
+                    collectionCount: source.collection.count,
+                    tastingCount: source.tastingRecords.count
                 )
             }
-            self.bannerTitle = result.map { "\($0.profile.primaryProfileName) 취향과 함께" }
-                ?? "킁킁 서비스와 함께"
-            self.bannerSubtitle = {
-                guard let result else { return "나에게 맞는 향수를 찾아가요" }
-                let familySummary = result.profile.preferredFamilies.prefix(2).joined(separator: " · ")
-                return familySummary.isEmpty ? "나에게 맞는 향수를 찾아가요" : "\(familySummary) 무드의 향수를 찾아가요"
-            }()
-        }
-    }
-            }
             .asDriver(onErrorJustReturn: nil)
-
-        let recommendations = recommendationResult
-            .map { [weak self] result -> [HomePerfumeItem] in
-                guard let self, let result else {
-                    self?.recommendationItemsRelay.accept([])
-                    return []
-                }
-                let items = result.perfumes.map { self.mapToHomePerfumeItem($0) }
-                self.recommendationItemsRelay.accept(items)
-                return items
-            }
-            .asDriver(onErrorJustReturn: [])
 
         input.perfumeRegisterTap
             .map { HomeRoute.perfumeRegister }
@@ -148,7 +140,7 @@ final class HomeViewModel {
             .withLatestFrom(recommendationItemsRelay.asObservable()) { ($0, $1) }
             .compactMap { indexPath, items -> HomeRoute? in
                 guard items.indices.contains(indexPath.item) else { return nil }
-                return .perfumeDetail(id: items[indexPath.item].id)
+                return .perfumeDetail(perfume: items[indexPath.item].perfume)
             }
             .bind(to: routeRelay)
             .disposed(by: disposeBag)
@@ -168,6 +160,7 @@ private extension HomeViewModel {
     func mapToHomePerfumeItem(_ recommendation: RecommendedPerfume) -> HomePerfumeItem {
         let perfume = recommendation.perfume
         return HomePerfumeItem(
+            perfume: perfume,
             id: perfume.id,
             brandName: perfume.brand,
             perfumeName: perfume.name,
@@ -177,7 +170,7 @@ private extension HomeViewModel {
         )
     }
 
-    func makeAccordText(_ perfume: FragellaPerfume) -> String {
+    func makeAccordText(_ perfume: Perfume) -> String {
         let accords = ScentFamilyNormalizer.canonicalNames(
             for: Array(perfume.mainAccords.prefix(2))
         ).prefix(2)
@@ -186,9 +179,7 @@ private extension HomeViewModel {
         : accords.map { "• \($0)" }.joined(separator: "  ")
     }
 
-if accords.isEmpty { return "• Floral  • Musky" }
-        return accords.map { "• \($0)" }.joined(separator: "  ")
-    }
+
 
     func makeBanner(from profile: UserTasteProfile) -> HomeTasteBannerItem {
         let familyText = profile.preferredFamilies.prefix(2).joined(separator: " · ")
@@ -216,4 +207,18 @@ if accords.isEmpty { return "• Floral  • Musky" }
             familyText: ""
         )
     }
+func fetchHomeFeed() -> Single<HomeFeedData> {
+    Single.zip(
+        userTasteRepository.fetchTasteAnalysis(),
+        collectionRepository.fetchCollection().catchAndReturn([]),
+        tastingRecordRepository.fetchTastingRecords().catchAndReturn([])
+    )
+    .map { tasteAnalysis, collection, tastingRecords in
+        (
+            tasteAnalysis: tasteAnalysis,
+            collection: collection,
+            tastingRecords: tastingRecords
+        )
+    }
+}
 }

@@ -1,21 +1,30 @@
+
+
 //
-    //  GeminiService.swift
-    //  Sniff
-    //
-    //  Created by t2025-m0239 on 2026.04.13.
-    //
+//  GeminiService.swift
+//  Sniff
+//
+//  Created by t2025-m0239 on 2026.04.13.
+//
 
 import Foundation
 import RxSwift
 
+
+
     // MARK: - Input Model
+
+
 struct TasteAnalysisInput {
     let experience: String
     let vibes: [String]
     let images: [String]
 }
 
-    // MARK: - Service
+
+// MARK: - Service
+
+
 final class GeminiTasteAnalysisService {
 
     private let apiKey: String
@@ -29,11 +38,13 @@ final class GeminiTasteAnalysisService {
         "https://generativelanguage.googleapis.com/v1beta/models/\(model):generateContent?key=\(apiKey)"
     }
 
+
     func requestTasteAnalysis(input: TasteAnalysisInput) async throws -> TasteAnalysisResult {
         try await request(input: input)
     }
 
         // MARK: - RxSwift 기반 취향 분석 호출
+
     func analyzeTaste(input: TasteAnalysisInput) -> Single<TasteAnalysisResult> {
         Single.create { [weak self] single in
             guard let self else {
@@ -56,7 +67,10 @@ final class GeminiTasteAnalysisService {
         }
     }
 
-        // MARK: - 실제 네트워크 요청
+
+    // MARK: - 실제 네트워크 요청
+
+
     private func request(input: TasteAnalysisInput) async throws -> TasteAnalysisResult {
         guard let url = URL(string: baseURL) else {
             throw GeminiError.invalidURL
@@ -84,7 +98,11 @@ final class GeminiTasteAnalysisService {
         return try parseResponse(data: data)
     }
 
+
+
         // MARK: - 요청 바디 조립
+
+
     private func buildRequestBody(input: TasteAnalysisInput) -> [String: Any] {
         let vibesString = input.vibes.map { "\"\($0)\"" }.joined(separator: ", ")
         let imagesString = input.images.map { "\"\($0)\"" }.joined(separator: ", ")
@@ -117,7 +135,10 @@ final class GeminiTasteAnalysisService {
         ]
     }
 
-        // MARK: - 응답 파싱
+
+// MARK: - 응답 파싱
+
+
     private func parseResponse(data: Data) throws -> TasteAnalysisResult {
         guard
             let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -140,7 +161,10 @@ final class GeminiTasteAnalysisService {
     }
 }
 
+
+
     // MARK: - Error
+
 enum GeminiError: Error, LocalizedError {
     case serviceDeallocated
     case invalidURL
@@ -151,6 +175,7 @@ enum GeminiError: Error, LocalizedError {
 
     var errorDescription: String? {
         switch self {
+
             case .serviceDeallocated:
                 return "서비스 객체가 해제되었어요"
             case .invalidURL:
@@ -163,6 +188,7 @@ enum GeminiError: Error, LocalizedError {
                 return "결과를 분석하는 데 실패했어요\n\(rawText)"
             case .decodingFailed(let decodedText):
                 return "결과 디코딩에 실패했어요\n\(decodedText)"
+
         }
     }
 }

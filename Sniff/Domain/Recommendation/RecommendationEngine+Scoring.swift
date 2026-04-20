@@ -10,7 +10,7 @@ import Foundation
 extension RecommendationEngine {
 
     func makeRecommendedPerfume(
-        from perfume: FragellaPerfume,
+        from perfume: Perfume,
         profile: UserTasteProfile
     ) -> RecommendedPerfume {
         RecommendedPerfume(
@@ -21,7 +21,7 @@ extension RecommendationEngine {
     }
 
     func makeRecommendationReason(
-        for perfume: FragellaPerfume,
+        for perfume: Perfume,
         profile: UserTasteProfile
     ) -> String {
         let families = ScentFamilyNormalizer.canonicalNames(for: perfume.mainAccords)
