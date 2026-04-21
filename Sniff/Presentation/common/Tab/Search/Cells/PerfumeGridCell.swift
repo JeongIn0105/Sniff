@@ -33,6 +33,14 @@ final class PerfumeGridCell: UICollectionViewCell {
         $0.clipsToBounds = true
     }
 
+    private let placeholderLabel = UILabel().then {
+        $0.text = "이미지 준비중입니다"
+        $0.font = .systemFont(ofSize: 12, weight: .medium)
+        $0.textColor = .secondaryLabel
+        $0.textAlignment = .center
+        $0.numberOfLines = 2
+    }
+
     let wishlistButton = UIButton(type: .custom).then {
         $0.setImage(UIImage(systemName: "heart")?.withRenderingMode(.alwaysTemplate), for: .normal)
         $0.setImage(UIImage(systemName: "heart.fill")?.withRenderingMode(.alwaysTemplate), for: .selected)
@@ -72,6 +80,7 @@ final class PerfumeGridCell: UICollectionViewCell {
         disposeBag = DisposeBag()
         bottleImageView.kf.cancelDownloadTask()
         bottleImageView.image = nil
+        placeholderLabel.isHidden = false
         wishlistButton.isSelected = false
         accordStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
     }
@@ -83,6 +92,7 @@ final class PerfumeGridCell: UICollectionViewCell {
 
         contentView.addSubview(imageContainerView)
         imageContainerView.addSubview(bottleImageView)
+        imageContainerView.addSubview(placeholderLabel)
         imageContainerView.addSubview(wishlistButton)
 
         [brandLabel, nameLabel, accordStackView].forEach {
@@ -96,6 +106,12 @@ final class PerfumeGridCell: UICollectionViewCell {
 
         bottleImageView.snp.makeConstraints {
             $0.edges.equalToSuperview().inset(12)
+        }
+
+        placeholderLabel.snp.makeConstraints {
+            $0.center.equalToSuperview()
+            $0.leading.greaterThanOrEqualToSuperview().offset(16)
+            $0.trailing.lessThanOrEqualToSuperview().offset(-16)
         }
 
         wishlistButton.snp.makeConstraints {
@@ -127,13 +143,21 @@ final class PerfumeGridCell: UICollectionViewCell {
         brandLabel.text = perfume.brand
         nameLabel.text = perfume.name
         wishlistButton.isSelected = isLiked
+        placeholderLabel.isHidden = false
 
         if let urlStr = perfume.imageUrl, let url = URL(string: urlStr) {
             bottleImageView.kf.setImage(
                 with: url,
                 placeholder: nil,
                 options: [.transition(.fade(0.2))]
-            )
+            ) { [weak self] result in
+                switch result {
+                case .success:
+                    self?.placeholderLabel.isHidden = true
+                case .failure:
+                    self?.placeholderLabel.isHidden = false
+                }
+            }
         }
 
             // Accord Pill — 최대 2개

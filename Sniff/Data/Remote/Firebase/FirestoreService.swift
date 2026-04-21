@@ -189,6 +189,23 @@ final class FirestoreService {
             .delete()
     }
 
+    func saveLikedPerfume(_ perfume: Perfume) async throws {
+        let now = FieldValue.serverTimestamp()
+        let ref = try userDocumentRef()
+            .collection("likes")
+            .document(perfume.id)
+
+        let data: [String: Any] = [
+            "name": perfume.name,
+            "brand": perfume.brand,
+            "imageUrl": perfume.imageUrl as Any,
+            "mainAccords": perfume.mainAccords,
+            "likedAt": now
+        ]
+
+        try await ref.setData(data, merge: true)
+    }
+
     func fetchTastingRecords() async throws -> [TastingRecord] {
         let snapshot = try await userDocumentRef()
             .collection("tastingRecords")

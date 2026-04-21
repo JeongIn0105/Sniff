@@ -14,9 +14,21 @@ enum LoginSceneFactory {
         onNewUser: @escaping () -> Void,
         onExistingUser: @escaping () -> Void
     ) -> LoginView {
+        makeView(
+            dependencyContainer: AppDependencyContainer(),
+            onNewUser: onNewUser,
+            onExistingUser: onExistingUser
+        )
+    }
+
+    static func makeView(
+        dependencyContainer: AppDependencyContainer,
+        onNewUser: @escaping () -> Void,
+        onExistingUser: @escaping () -> Void
+    ) -> LoginView {
         let viewModel = LoginViewModel(
-            authService: AuthService.shared,
-            userProfileStatusRepository: UserProfileStatusRepository(),
+            authService: dependencyContainer.authService,
+            userProfileStatusRepository: dependencyContainer.makeUserProfileStatusRepository(),
             appleSignInHelper: AppleSignInHelper(),
             onNewUser: onNewUser,
             onExistingUser: onExistingUser

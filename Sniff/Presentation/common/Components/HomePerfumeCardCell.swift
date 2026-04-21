@@ -73,6 +73,16 @@ final class HomePerfumeCardCell: UICollectionViewCell {
         return l
     }()
 
+    private let placeholderMessageLabel: UILabel = {
+        let l = UILabel()
+        l.text = "이미지 준비중입니다"
+        l.font = .systemFont(ofSize: 11, weight: .medium)
+        l.textAlignment = .center
+        l.numberOfLines = 2
+        l.textColor = UIColor(red: 0.55, green: 0.48, blue: 0.40, alpha: 1)
+        return l
+    }()
+
         // 텍스트 영역
     private let brandLabel: UILabel = {
         let l = UILabel()
@@ -128,6 +138,7 @@ final class HomePerfumeCardCell: UICollectionViewCell {
         imageContainerView.addSubview(placeholderCapView)
         imageContainerView.addSubview(placeholderBottleView)
         placeholderBottleView.addSubview(placeholderMonogramLabel)
+        imageContainerView.addSubview(placeholderMessageLabel)
             // 이미지는 플레이스홀더 위에 올라옴
         imageContainerView.addSubview(bottleImageView)
         imageContainerView.addSubview(wishlistButton)
@@ -141,7 +152,7 @@ final class HomePerfumeCardCell: UICollectionViewCell {
             // 이미지 영역 높이 늘림 (기존 126 → 148)
         imageContainerView.snp.makeConstraints {
             $0.top.leading.trailing.equalToSuperview()
-            $0.height.equalTo(148)
+            $0.height.equalTo(188)
         }
 
             // 향수 이미지를 이미지 컨테이너 꽉 채우게
@@ -150,34 +161,40 @@ final class HomePerfumeCardCell: UICollectionViewCell {
         }
 
         wishlistButton.snp.makeConstraints {
-            $0.trailing.bottom.equalToSuperview().inset(8)
-            $0.size.equalTo(28)
+            $0.trailing.bottom.equalToSuperview().inset(10)
+            $0.size.equalTo(32)
         }
 
         placeholderCapView.snp.makeConstraints {
             $0.centerX.equalToSuperview()
-            $0.top.equalToSuperview().offset(22)
-            $0.size.equalTo(CGSize(width: 22, height: 9))
+            $0.top.equalToSuperview().offset(28)
+            $0.size.equalTo(CGSize(width: 24, height: 10))
         }
         placeholderBottleView.snp.makeConstraints {
             $0.center.equalToSuperview()
-            $0.size.equalTo(CGSize(width: 78, height: 78))
+            $0.size.equalTo(CGSize(width: 96, height: 96))
         }
         placeholderMonogramLabel.snp.makeConstraints { $0.edges.equalToSuperview() }
+        placeholderMessageLabel.snp.makeConstraints {
+            $0.top.equalTo(placeholderBottleView.snp.bottom).offset(10)
+            $0.centerX.equalToSuperview()
+            $0.leading.greaterThanOrEqualToSuperview().offset(16)
+            $0.trailing.lessThanOrEqualToSuperview().offset(-16)
+        }
 
         brandLabel.snp.makeConstraints {
-            $0.top.equalTo(imageContainerView.snp.bottom).offset(10)
-            $0.leading.trailing.equalToSuperview().inset(12)
+            $0.top.equalTo(imageContainerView.snp.bottom).offset(12)
+            $0.leading.trailing.equalToSuperview().inset(14)
         }
         perfumeNameLabel.snp.makeConstraints {
             $0.top.equalTo(brandLabel.snp.bottom).offset(2)
-            $0.leading.trailing.equalToSuperview().inset(12)
+            $0.leading.trailing.equalToSuperview().inset(14)
         }
         accordsStackView.snp.makeConstraints {
-            $0.top.equalTo(perfumeNameLabel.snp.bottom).offset(8)
-            $0.leading.equalToSuperview().inset(12)
-            $0.trailing.lessThanOrEqualToSuperview().inset(12)
-            $0.bottom.lessThanOrEqualToSuperview().inset(12)
+            $0.top.equalTo(perfumeNameLabel.snp.bottom).offset(10)
+            $0.leading.equalToSuperview().inset(14)
+            $0.trailing.lessThanOrEqualToSuperview().inset(14)
+            $0.bottom.lessThanOrEqualToSuperview().inset(14)
         }
     }
 
@@ -277,6 +294,7 @@ final class HomePerfumeCardCell: UICollectionViewCell {
         bottleImageView.isHidden = false
         placeholderBottleView.isHidden = true
         placeholderCapView.isHidden = true
+        placeholderMessageLabel.isHidden = true
     }
 
     private func showPlaceholder() {
@@ -284,12 +302,14 @@ final class HomePerfumeCardCell: UICollectionViewCell {
         bottleImageView.image = nil
         placeholderBottleView.isHidden = false
         placeholderCapView.isHidden = false
+        placeholderMessageLabel.isHidden = false
     }
 
     private func showLoadingState() {
         bottleImageView.isHidden = true
         placeholderBottleView.isHidden = false
         placeholderCapView.isHidden = false
+        placeholderMessageLabel.isHidden = false
     }
 }
 

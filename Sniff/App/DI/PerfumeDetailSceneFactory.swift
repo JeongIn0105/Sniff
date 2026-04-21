@@ -10,11 +10,17 @@ import Foundation
 enum PerfumeDetailSceneFactory {
 
     static func makeViewController(perfume: Perfume) -> PerfumeDetailViewController {
-        let repository = PerfumeCatalogRepository()
-        let collectionRepository = CollectionRepository()
+        makeViewController(perfume: perfume, dependencyContainer: AppDependencyContainer())
+    }
+
+    static func makeViewController(
+        perfume: Perfume,
+        dependencyContainer: AppDependencyContainer
+    ) -> PerfumeDetailViewController {
+        let collectionRepository = dependencyContainer.makeCollectionRepository()
         let viewModel = PerfumeDetailViewModel(
             perfume: perfume,
-            perfumeCatalogRepository: repository
+            perfumeCatalogRepository: dependencyContainer.makePerfumeCatalogRepository()
         )
         return PerfumeDetailViewController(
             viewModel: viewModel,
@@ -23,11 +29,17 @@ enum PerfumeDetailSceneFactory {
     }
 
     static func makeViewController(perfumeId: String) -> PerfumeDetailViewController {
-        let repository = PerfumeCatalogRepository()
-        let collectionRepository = CollectionRepository()
+        makeViewController(perfumeId: perfumeId, dependencyContainer: AppDependencyContainer())
+    }
+
+    static func makeViewController(
+        perfumeId: String,
+        dependencyContainer: AppDependencyContainer
+    ) -> PerfumeDetailViewController {
+        let collectionRepository = dependencyContainer.makeCollectionRepository()
         let viewModel = PerfumeDetailViewModel(
             perfumeId: perfumeId,
-            perfumeCatalogRepository: repository
+            perfumeCatalogRepository: dependencyContainer.makePerfumeCatalogRepository()
         )
         return PerfumeDetailViewController(
             viewModel: viewModel,

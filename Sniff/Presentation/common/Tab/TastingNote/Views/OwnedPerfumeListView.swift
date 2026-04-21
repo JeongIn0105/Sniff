@@ -9,12 +9,16 @@ import Kingfisher
 
 struct OwnedPerfumeListView: View {
 
-    @StateObject private var viewModel = OwnedPerfumeListViewModel()
+    @StateObject private var viewModel: OwnedPerfumeListViewModel
     @Environment(\.dismiss) private var dismiss
     private let columns = [
         GridItem(.flexible(), spacing: 12),
         GridItem(.flexible(), spacing: 12)
     ]
+
+    init(viewModel: OwnedPerfumeListViewModel) {
+        _viewModel = StateObject(wrappedValue: viewModel)
+    }
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -140,7 +144,12 @@ struct OwnedPerfumeListView: View {
                             }
                     } else {
                         NavigationLink {
-                            PerfumeDetailContainerView(perfumeId: perfume.id)
+                            TastingNoteSceneFactory.makeListView(
+                                perfumeScope: TastingNotePerfumeScope(
+                                    perfumeName: perfume.name,
+                                    brandName: perfume.brand
+                                )
+                            )
                         } label: {
                             ownedPerfumeCard(perfume)
                         }
@@ -290,7 +299,7 @@ private struct AttachedOwnedTastingRecordBadgeShape: Shape {
 
 #Preview {
     NavigationStack {
-        OwnedPerfumeListView()
+        TastingNoteSceneFactory.makeOwnedPerfumeListView()
     }
 }
 
@@ -298,7 +307,7 @@ private struct PerfumeDetailContainerView: UIViewControllerRepresentable {
     let perfumeId: String
 
     func makeUIViewController(context: Context) -> PerfumeDetailViewController {
-        PerfumeDetailViewController(perfumeId: perfumeId)
+        PerfumeDetailSceneFactory.makeViewController(perfumeId: perfumeId)
     }
 
     func updateUIViewController(_ uiViewController: PerfumeDetailViewController, context: Context) {}

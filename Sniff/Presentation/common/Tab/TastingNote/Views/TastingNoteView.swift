@@ -11,7 +11,11 @@ import Kingfisher
 
 struct TastingNoteView: View {
 
-    @StateObject private var viewModel = TastingNoteViewModel()
+    @StateObject private var viewModel: TastingNoteViewModel
+
+    init(viewModel: TastingNoteViewModel) {
+        _viewModel = StateObject(wrappedValue: viewModel)
+    }
 
     var body: some View {
         NavigationStack {
@@ -49,7 +53,7 @@ struct TastingNoteView: View {
                 // 폼 닫힌 직후 강제 새로고침 (리스너 지연 대비)
                 Task { await viewModel.reload() }
             }) {
-                TastingNoteFormView { perfumeName in
+                TastingNoteSceneFactory.makeFormView { perfumeName in
                     viewModel.showToast(perfumeName: perfumeName)
                 }
             }
@@ -77,7 +81,7 @@ struct TastingNoteView: View {
         VStack(alignment: .leading, spacing: 16) {
             // 타이틀 + 삭제 버튼
             HStack(alignment: .center) {
-                Text("시향 기록")
+                Text(viewModel.perfumeScope?.title ?? "시향 기록")
                     .font(.system(size: 30, weight: .bold))
 
                 Spacer()
@@ -124,6 +128,9 @@ struct TastingNoteView: View {
     }
 
     private var emptyTitle: String {
+        if let perfumeScope = viewModel.perfumeScope {
+            return "\(perfumeScope.perfumeName) 시향 기록이 없어요"
+        }
         switch viewModel.selectedFilter {
         case .all:    return "등록된 시향 기록이 없어요"
         case .owned:  return "보유 향수에 기록된 시향 기록이 없어요"
@@ -132,6 +139,9 @@ struct TastingNoteView: View {
     }
 
     private var emptyMessage: String {
+        if viewModel.perfumeScope != nil {
+            return "+ 버튼을 눌러 이 향수의 시향 기록을 추가해 주세요"
+        }
         switch viewModel.selectedFilter {
         case .all:    return "+ 버튼을 눌러 시향 기록을 추가해 주세요"
         case .owned:  return "보유 향수에 먼저 향수를 등록해 주세요"

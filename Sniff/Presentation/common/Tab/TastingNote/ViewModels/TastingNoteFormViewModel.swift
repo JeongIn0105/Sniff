@@ -96,9 +96,13 @@ final class TastingNoteFormViewModel: ObservableObject {
 
     // MARK: - Init
 
-    init(editingNote: TastingNote? = nil) {
+    init(editingNote: TastingNote? = nil, initialPerfume: Perfume? = nil) {
         self.editingNote = editingNote
-        if let editingNote { loadEditingNote(editingNote) }
+        if let editingNote {
+            loadEditingNote(editingNote)
+        } else if let initialPerfume {
+            preloadPerfume(initialPerfume)
+        }
         setupSearchDebounce()
     }
 
@@ -121,6 +125,31 @@ final class TastingNoteFormViewModel: ObservableObject {
         memo = note.memo
         searchText = note.perfumeName
         selectedFragrance = nil
+    }
+
+    private func preloadPerfume(_ perfume: Perfume) {
+        let fragrance = FragellaFragrance(
+            id: perfume.id,
+            name: perfume.name,
+            brand: perfume.brand,
+            koreanName: nil,
+            koreanBrand: PerfumeKoreanTranslator.koreanBrand(for: perfume.brand),
+            mainAccords: PerfumeKoreanTranslator.koreanAccords(for: perfume.mainAccords),
+            concentration: perfume.concentration,
+            imageURL: perfume.imageUrl
+        )
+
+        selectedFragrance = fragrance
+        perfumeName = fragrance.displayName
+        brandName = fragrance.displayBrand
+        mainAccords = fragrance.mainAccords
+        concentration = fragrance.concentration ?? ""
+        suppressNextSearch = true
+        searchText = fragrance.displayName
+        isSearchResultVisible = false
+        searchResults = []
+        searchGuideMessage = nil
+        latestSearchQuery = fragrance.displayName
     }
 
     // MARK: - 검색 디바운스
@@ -154,7 +183,7 @@ final class TastingNoteFormViewModel: ObservableObject {
                     self.searchResults = []
                     self.isSearchResultVisible = false
                     self.isSearching = false
-                    self.searchGuideMessage = "3자 이상 입력해주세요"
+                    self.searchGuideMessage = "2자 이상 입력해주세요"
                     self.latestSearchQuery = ""
                     return
                 }
@@ -176,7 +205,7 @@ final class TastingNoteFormViewModel: ObservableObject {
         guard trimmed.count >= 2 else {
             searchResults = []
             isSearchResultVisible = false
-            searchGuideMessage = "3자 이상 입력해주세요"
+            searchGuideMessage = "2자 이상 입력해주세요"
             return
         }
         searchGuideMessage = nil
@@ -189,7 +218,7 @@ final class TastingNoteFormViewModel: ObservableObject {
             searchResults = []
             isSearchResultVisible = false
             isSearching = false
-            searchGuideMessage = "3자 이상 입력해주세요"
+            searchGuideMessage = "2자 이상 입력해주세요"
             return
         }
 
@@ -566,7 +595,7 @@ private enum FragellaAPIError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .missingAPIKey:         return "Fragella API 키를 먼저 설정해주세요"
-        case .minimumSearchLength:   return "3자 이상 입력해주세요"
+        case .minimumSearchLength:   return "2자 이상 입력해주세요"
         case .invalidURL:            return "요청 URL 생성에 실패했어요"
         case .invalidResponse:       return "응답을 확인할 수 없어요"
         case .decodingFailed:        return "응답 해석에 실패했어요"

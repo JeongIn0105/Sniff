@@ -18,35 +18,11 @@ struct CollectedPerfume {
     let createdAt: Date?
 
     var scentFamilies: [String] {
-        [scentFamily, scentFamily2].compactMap { $0 }.filter { !$0.isEmpty }
+        mainAccords.filter { !$0.isEmpty }
     }
 }
 
-// MARK: - 편의 생성자
 extension CollectedPerfume {
-
-    init(
-        id: String,
-        name: String,
-        brand: String,
-        imageUrl: String? = nil,
-        mainAccords: [String],
-        accordStrengths: [String: AccordStrength],
-        memo: String?,
-        createdAt: Date?
-    ) {
-        self.init(
-            id: id,
-            name: name,
-            brand: brand,
-            imageUrl: imageUrl,
-            mainAccords: mainAccords,
-            accordStrengths: accordStrengths,
-            memo: memo,
-            createdAt: createdAt
-        )
-    }
-
     init(
         id: String,
         name: String,
@@ -56,14 +32,20 @@ extension CollectedPerfume {
         imageURL: String?,
         createdAt: Date?
     ) {
+        let legacyFamilies: [String?] = [scentFamily, scentFamily2]
+        let mainAccords = legacyFamilies.compactMap { rawValue -> String? in
+            guard let value = rawValue?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else {
+                return nil
+            }
+            return value
+        }
+
         self.init(
             id: id,
             name: name,
             brand: brand,
-            scentFamily: scentFamily,
-            scentFamily2: scentFamily2,
             imageUrl: imageURL,
-            mainAccords: [],
+            mainAccords: mainAccords,
             accordStrengths: [:],
             memo: nil,
             createdAt: createdAt
@@ -111,7 +93,6 @@ extension CollectedPerfume {
     }
 }
 
-// MARK: - Perfume 변환
 extension CollectedPerfume {
     func toPerfume() -> Perfume {
         Perfume(
@@ -128,6 +109,7 @@ extension CollectedPerfume {
             concentration: nil,
             gender: nil,
             season: nil,
+            seasonRanking: [],
             situation: nil,
             longevity: nil,
             sillage: nil

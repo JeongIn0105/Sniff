@@ -84,11 +84,52 @@ enum PreferenceTag: String, CaseIterable, Codable {
         }
     }
 
+    var relatedScentFamilies: [ScentFamilyFilter] {
+        switch self {
+        case .warm:
+            return [.amber, .vanilla, .woody, .spicy, .musky]
+        case .cool:
+            return [.citrus, .green, .aquatic, .aromatic]
+        case .subtle:
+            return [.powdery, .musky, .floral, .whiteFloral]
+        case .intense:
+            return [.woody, .amber, .spicy, .leather]
+        case .fresh:
+            return [.citrus, .green, .aquatic, .fruity]
+        case .sweet:
+            return [.vanilla, .gourmand, .fruity, .amber]
+        case .powdery:
+            return [.powdery, .musky, .whiteFloral]
+        case .heavy:
+            return [.amber, .woody, .spicy, .leather]
+        case .light:
+            return [.citrus, .green, .aquatic, .floral]
+        case .clean:
+            return [.musky, .powdery, .aquatic, .whiteFloral]
+        case .cozy:
+            return [.vanilla, .musky, .powdery, .amber]
+        case .sophisticated:
+            return [.woody, .rose, .whiteFloral, .leather]
+        case .luxurious:
+            return [.amber, .woody, .rose, .vanilla, .leather]
+        case .natural:
+            return [.green, .woody, .aromatic, .floral]
+        case .mysterious:
+            return [.amber, .woody, .spicy, .leather, .rose]
+        case .vibrant:
+            return [.citrus, .fruity, .green, .floral]
+        case .neutral:
+            return [.musky, .woody, .aromatic, .aquatic]
+        case .relaxed:
+            return [.aromatic, .green, .musky, .woody]
+        }
+    }
+
     static var vibeTags: [PreferenceTag] {
         allCases.filter { $0.category == .vibe }
     }
 
     static var imageTags: [PreferenceTag] {
-        allCases.filter { $0.category == .image }
+        [.warm, .cool, .fresh, .sweet, .clean, .cozy, .intense]
     }
 }

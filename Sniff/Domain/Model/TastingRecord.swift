@@ -16,19 +16,13 @@ struct TastingRecord {
     let rating: Int
     let moodTags: [String]
     let memo: String?
-    /// 재사용 의향 태그 (V1 필드명 — 구 호환 유지)
     let wantToRevisit: String?
-    /// 재사용 의향 태그 (V2 feature/tasting-note 필드명)
     let revisitDesire: String?
-    /// 최초 시향 날짜 — recencyMultiplier 계산 기준
     let createdAt: Date
     let updatedAt: Date
 }
 
-// MARK: - 편의 생성자 (다양한 호출 패턴 대응)
 extension TastingRecord {
-
-    /// VectorParsing (makeTastingRecordV2) 용: accordStrengths + memo + wantToRevisit (createdAt/revisitDesire 없음)
     init(
         id: String,
         perfumeName: String,
@@ -51,13 +45,12 @@ extension TastingRecord {
             moodTags: moodTags,
             memo: memo,
             wantToRevisit: wantToRevisit,
-            revisitDesire: wantToRevisit,   // 두 필드 동기화
+            revisitDesire: wantToRevisit,
             createdAt: updatedAt,
             updatedAt: updatedAt
         )
     }
 
-    /// 구 FirestoreService.makeTastingRecord 용: revisitDesire + createdAt (accordStrengths/memo 없음)
     init(
         id: String,
         perfumeName: String,
@@ -85,7 +78,6 @@ extension TastingRecord {
         )
     }
 
-    /// 최소 생성자 (accordStrengths/memo/revisitDesire 없음)
     init(
         id: String,
         perfumeName: String,
@@ -105,12 +97,13 @@ extension TastingRecord {
             moodTags: moodTags,
             memo: nil,
             wantToRevisit: nil,
+            revisitDesire: nil,
+            createdAt: updatedAt,
             updatedAt: updatedAt
         )
     }
 }
 
-// MARK: - 재사용 의향 태그 상수
 extension TastingRecord {
     static let revisitOptions: [String] = [
         "매일 뿌리고 싶어",

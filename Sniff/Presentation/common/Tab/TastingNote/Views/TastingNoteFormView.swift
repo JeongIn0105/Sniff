@@ -16,10 +16,10 @@ struct TastingNoteFormView: View {
     private let onSaveSuccess: (String) -> Void
 
     init(
-        editingNote: TastingNote? = nil,
+        viewModel: TastingNoteFormViewModel,
         onSaveSuccess: @escaping (String) -> Void = { _ in }
     ) {
-        _vm = StateObject(wrappedValue: TastingNoteFormViewModel(editingNote: editingNote))
+        _vm = StateObject(wrappedValue: viewModel)
         self.onSaveSuccess = onSaveSuccess
     }
 

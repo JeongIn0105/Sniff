@@ -31,35 +31,17 @@
 		991561532F7E90AE0030F8BC /* Exceptions for "Sniff" folder in "Sniff" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Config/Debug.xcconfig,
-				Config/Release.xcconfig,
-				Config/Secrets.xcconfig,
-				Config/Secrets.xcconfig.example,
 				Info.plist,
 			);
 			target = 9915613D2F7E90AD0030F8BC /* Sniff */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
-/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
-		99F814A02F905ACF0005ED4C /* Exceptions for "Sniff" folder in "Compile Sources" phase from "Sniff" target */ = {
-			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
-			buildPhase = 9915613A2F7E90AD0030F8BC /* Sources */;
-			membershipExceptions = (
-				Config/Debug.xcconfig,
-				Config/Release.xcconfig,
-				Config/Secrets.xcconfig,
-				Config/Secrets.xcconfig.example,
-			);
-		};
-/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		991561402F7E90AD0030F8BC /* Sniff */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				991561532F7E90AE0030F8BC /* Exceptions for "Sniff" folder in "Sniff" target */,
-				99F814A02F905ACF0005ED4C /* Exceptions for "Sniff" folder in "Compile Sources" phase from "Sniff" target */,
 			);
 			path = Sniff;
 			sourceTree = "<group>";
@@ -327,7 +309,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -386,7 +368,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;

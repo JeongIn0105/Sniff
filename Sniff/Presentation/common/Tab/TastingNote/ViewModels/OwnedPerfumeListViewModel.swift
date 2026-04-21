@@ -34,18 +34,14 @@ final class OwnedPerfumeListViewModel: ObservableObject {
 
     private let collectionRepository: CollectionRepositoryType
     private let tastingRepository: TastingRecordRepositoryType
-    private let firestoreService: FirestoreService
-    private let disposeBag = DisposeBag()
     private var toastTask: Task<Void, Never>?
 
     init(
-        collectionRepository: CollectionRepositoryType? = nil,
-        tastingRepository: TastingRecordRepositoryType? = nil,
-        firestoreService: FirestoreService? = nil
+        collectionRepository: CollectionRepositoryType,
+        tastingRepository: TastingRecordRepositoryType
     ) {
-        self.collectionRepository = collectionRepository ?? CollectionRepository()
-        self.tastingRepository = tastingRepository ?? TastingRecordRepository()
-        self.firestoreService = firestoreService ?? .shared
+        self.collectionRepository = collectionRepository
+        self.tastingRepository = tastingRepository
     }
 
     deinit {
@@ -64,7 +60,10 @@ final class OwnedPerfumeListViewModel: ObservableObject {
                 let tastingRecords = try await fetchTastingRecords()
                 tastingKeys = Set(
                     tastingRecords.map { record in
-                        makeRecordKey(perfumeName: record.perfumeName, brandName: record.brandName)
+                        PerfumePresentationSupport.recordKey(
+                            perfumeName: record.perfumeName,
+                            brandName: record.brandName
+                        )
                     }
                 )
             } catch {
@@ -73,7 +72,7 @@ final class OwnedPerfumeListViewModel: ObservableObject {
 
             let likedIDs: Set<String>
             do {
-                let likedPerfumes = try await firestoreService.fetchLikedPerfumes()
+                let likedPerfumes = try await collectionRepository.fetchLikedPerfumes().async()
                 likedIDs = Set(likedPerfumes.map(\.id))
             } catch {
                 likedIDs = []
@@ -84,9 +83,17 @@ final class OwnedPerfumeListViewModel: ObservableObject {
                     id: perfume.id,
                     name: perfume.name,
                     brand: perfume.brand,
-                    imageURL: perfume.imageURL,
-                    accordTags: previewAccords(mainAccords: perfume.mainAccords, fallback: perfume.scentFamilies),
-                    hasTastingRecord: tastingKeys.contains(makeRecordKey(perfumeName: perfume.name, brandName: perfume.brand)),
+                    imageURL: perfume.imageUrl,
+                    accordTags: PerfumePresentationSupport.previewAccords(
+                        mainAccords: perfume.mainAccords,
+                        fallback: perfume.scentFamilies
+                    ),
+                    hasTastingRecord: tastingKeys.contains(
+                        PerfumePresentationSupport.recordKey(
+                            perfumeName: perfume.name,
+                            brandName: perfume.brand
+                        )
+                    ),
                     isLiked: likedIDs.contains(perfume.id)
                 )
             }
@@ -140,42 +147,11 @@ final class OwnedPerfumeListViewModel: ObservableObject {
 private extension OwnedPerfumeListViewModel {
 
     func fetchCollection() async throws -> [CollectedPerfume] {
-        try await withCheckedThrowingContinuation { continuation in
-            collectionRepository.fetchCollection()
-                .subscribe(
-                    onSuccess: { items in
-                        continuation.resume(returning: items)
-                    },
-                    onFailure: { error in
-                        continuation.resume(throwing: error)
-                    }
-                )
-                .disposed(by: disposeBag)
-        }
+        try await collectionRepository.fetchCollection().async()
     }
 
     func fetchTastingRecords() async throws -> [TastingRecord] {
-        try await withCheckedThrowingContinuation { continuation in
-            tastingRepository.fetchTastingRecords()
-                .subscribe(
-                    onSuccess: { items in
-                        continuation.resume(returning: items)
-                    },
-                    onFailure: { error in
-                        continuation.resume(throwing: error)
-                    }
-                )
-                .disposed(by: disposeBag)
-        }
-    }
-
-    func previewAccords(mainAccords: [String], fallback: [String]) -> [String] {
-        let source = mainAccords.isEmpty ? fallback : mainAccords
-        return Array(source.prefix(2))
-    }
-
-    func makeRecordKey(perfumeName: String, brandName: String) -> String {
-        "\(brandName.lowercased())|\(perfumeName.lowercased())"
+        try await tastingRepository.fetchTastingRecords().async()
     }
 
     func showToast(message: String) {

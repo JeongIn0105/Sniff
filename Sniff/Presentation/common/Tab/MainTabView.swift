@@ -23,17 +23,13 @@ struct MainTabView: View {
                     Text("검색")
                 }
 
-            TastingNoteView()
+            TastingNoteSceneFactory.makeListView()
                 .tabItem {
                     Image(systemName: "book.closed")
                     Text("시향 기록")
                 }
 
-MyTabContainerView()
-    .tabItem {
-        Image(systemName: "person.circle")
-        Text("MY")
-    }
+            MyTabContainerView()
                 .tabItem {
                     Image(systemName: "person.circle")
                     Text("MY")

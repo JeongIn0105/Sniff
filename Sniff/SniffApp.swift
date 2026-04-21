@@ -51,18 +51,18 @@ struct SniffApp: App {
                     }
                 }
         case .login:
-                LoginView(
-                    onNewUser: { appStateManager.state = .onboardingIntro },
-                    onExistingUser: { appStateManager.state = .main }
+            LoginSceneFactory.makeView(
+                onNewUser: { appStateManager.state = .onboardingIntro },
+                onExistingUser: { appStateManager.state = .main }
             )
         case .onboardingIntro:
             OnboardingIntroView {
                 appStateManager.state = .onboarding
             }
         case .onboarding:
-                OnboardingContainerView(
-                    onBack: { appStateManager.state = .onboardingIntro },
-                    onComplete: { appStateManager.state = .main }
+            OnboardingSceneFactory.makeView(
+                onBack: { appStateManager.state = .onboardingIntro },
+                onComplete: { appStateManager.state = .main }
             )
         case .main:
             MainTabView()

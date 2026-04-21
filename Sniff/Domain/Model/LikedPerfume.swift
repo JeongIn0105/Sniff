@@ -23,3 +23,27 @@ struct LikedPerfume: Identifiable {
         [scentFamily, scentFamily2].compactMap { $0 }.filter { !$0.isEmpty }
     }
 }
+
+extension LikedPerfume {
+    func toPerfume() -> Perfume {
+        Perfume(
+            id: id,
+            name: name,
+            brand: brand,
+            imageUrl: imageURL,
+            rawMainAccords: mainAccords,
+            mainAccords: mainAccords,
+            mainAccordStrengths: [:],
+            topNotes: nil,
+            middleNotes: nil,
+            baseNotes: nil,
+            concentration: nil,
+            gender: nil,
+            season: nil,
+            seasonRanking: [],
+            situation: nil,
+            longevity: nil,
+            sillage: nil
+        )
+    }
+}

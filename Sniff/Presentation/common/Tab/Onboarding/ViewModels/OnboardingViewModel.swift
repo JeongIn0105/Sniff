@@ -159,6 +159,7 @@ final class OnboardingViewModel: ObservableObject {
 
         isLoading = true
         errorMessage = nil
+        currentStep = .loadingResult
 
         do {
             nicknameValidationState = .available
@@ -170,6 +171,7 @@ final class OnboardingViewModel: ObservableObject {
             tasteResult = result
             currentStep = .result
         } catch {
+            currentStep = .taste
             errorMessage = error.localizedDescription
         }
 
