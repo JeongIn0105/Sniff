@@ -7,6 +7,7 @@ xcuserdata/
 # Swift Package Manager
 .build/
 Packages/
+SourcePackages/
 
 # CocoaPods
 Pods/
@@ -23,11 +24,9 @@ fastlane/screenshots/
 .DS_Store
 
 # Sniff / config / secrets
-Secrets.xcconfig
+Sniff/Config/Secrets.xcconfig
+Sniff/GoogleService-Info.plist
 
 # Local instruction file
 AGENTS.md
-Sniff/Config/
-Sniff/GoogleService-Info.plist
-
-
+.home/

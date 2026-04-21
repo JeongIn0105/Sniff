@@ -11,5 +11,6 @@ enum OnboardingStep {
     case nickname
     case experience
     case taste
+    case loadingResult
     case result
 }

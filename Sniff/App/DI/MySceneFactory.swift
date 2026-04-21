@@ -6,9 +6,19 @@
 //
 
 import Foundation
+import UIKit
 
 enum MySceneFactory {
-    static func makeViewController() -> LikePerfumesViewController {
-        LikePerfumesViewController(collectionRepository: CollectionRepository())
+
+    @MainActor
+    static func makeViewController() -> UIViewController {
+        makeViewController(dependencyContainer: AppDependencyContainer())
+    }
+
+    @MainActor
+    static func makeViewController(
+        dependencyContainer: AppDependencyContainer
+    ) -> UIViewController {
+        MyPageSceneFactory.makeViewController(dependencyContainer: dependencyContainer)
     }
 }

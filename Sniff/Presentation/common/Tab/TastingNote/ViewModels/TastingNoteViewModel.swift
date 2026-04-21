@@ -19,6 +19,15 @@ enum TastingNoteFilter: Equatable {
     case liked  // LIKE 향수
 }
 
+struct TastingNotePerfumeScope: Equatable {
+    let perfumeName: String
+    let brandName: String
+
+    var title: String {
+        "\(perfumeName) 시향 기록"
+    }
+}
+
 // MARK: - 시향 기록 목록 뷰모델
 
 @MainActor
@@ -43,18 +52,24 @@ final class TastingNoteViewModel: ObservableObject {
 
     private var ownedKeys: Set<String> = []
     private var likedKeys: Set<String> = []
+    let perfumeScope: TastingNotePerfumeScope?
 
     // MARK: - Computed
 
     /// 필터 적용 후 표시할 시향 기록 목록
     var filteredNotes: [TastingNote] {
+        let scopedNotes = notes.filter { note in
+            guard let perfumeScope else { return true }
+            return noteKey(note) == perfumeKey(perfumeName: perfumeScope.perfumeName, brandName: perfumeScope.brandName)
+        }
+
         switch selectedFilter {
         case .all:
-            return notes
+            return scopedNotes
         case .owned:
-            return notes.filter { ownedKeys.contains(noteKey($0)) }
+            return scopedNotes.filter { ownedKeys.contains(noteKey($0)) }
         case .liked:
-            return notes.filter { likedKeys.contains(noteKey($0)) }
+            return scopedNotes.filter { likedKeys.contains(noteKey($0)) }
         }
     }
 
@@ -77,10 +92,18 @@ final class TastingNoteViewModel: ObservableObject {
  
     private var listenerRegistration: ListenerRegistration?
     private var toastTask: Task<Void, Never>?
+    private let firestoreService: FirestoreService
  
     // MARK: - Init / Deinit
  
-    init() { fetchNotes() }
+    init(
+        firestoreService: FirestoreService,
+        perfumeScope: TastingNotePerfumeScope? = nil
+    ) {
+        self.firestoreService = firestoreService
+        self.perfumeScope = perfumeScope
+        fetchNotes()
+    }
  
     deinit {
         listenerRegistration?.remove()
@@ -98,7 +121,7 @@ final class TastingNoteViewModel: ObservableObject {
             .addSnapshotListener { [weak self] snapshot, error in
                 guard let self else { return }
                 self.isLoading = false
-                if let error {
+                if error != nil {
                     // 권한 오류 등 리스너 에러는 조용히 무시하고 단발성 조회로 대체
                     Task { await self.reload() }
                     return
@@ -188,8 +211,8 @@ final class TastingNoteViewModel: ObservableObject {
 
     private func loadFilterKeys() async {
         do {
-            async let ownedFetch = FirestoreService.shared.fetchCollection()
-            async let likedFetch = FirestoreService.shared.fetchLikedPerfumes()
+            async let ownedFetch = firestoreService.fetchCollection()
+            async let likedFetch = firestoreService.fetchLikedPerfumes()
             let (owned, liked) = try await (ownedFetch, likedFetch)
             ownedKeys = Set(owned.map { "\($0.brand.lowercased())|\($0.name.lowercased())" })
             likedKeys = Set(liked.map { "\($0.brand.lowercased())|\($0.name.lowercased())" })
@@ -203,6 +226,10 @@ final class TastingNoteViewModel: ObservableObject {
     // MARK: - 시향 기록 키 생성 (브랜드|이름 소문자)
 
     private func noteKey(_ note: TastingNote) -> String {
-        "\(note.brandName.lowercased())|\(note.perfumeName.lowercased())"
+        perfumeKey(perfumeName: note.perfumeName, brandName: note.brandName)
+    }
+
+    func perfumeKey(perfumeName: String, brandName: String) -> String {
+        "\(brandName.lowercased())|\(perfumeName.lowercased())"
     }
 }

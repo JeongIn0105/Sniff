@@ -9,8 +9,12 @@ import Kingfisher
 
 struct LikedPerfumeListView: View {
 
-    @StateObject private var viewModel = LikedPerfumeListViewModel()
+    @StateObject private var viewModel: LikedPerfumeListViewModel
     @Environment(\.dismiss) private var dismiss
+
+    init(viewModel: LikedPerfumeListViewModel) {
+        _viewModel = StateObject(wrappedValue: viewModel)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -92,7 +96,18 @@ struct LikedPerfumeListView: View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(viewModel.perfumes) { perfume in
-                    perfumeRow(perfume)
+                    NavigationLink {
+                        TastingNoteSceneFactory.makeListView(
+                            perfumeScope: TastingNotePerfumeScope(
+                                perfumeName: perfume.name,
+                                brandName: perfume.brand
+                            )
+                        )
+                    } label: {
+                        perfumeRow(perfume)
+                    }
+                    .buttonStyle(.plain)
+
                     Divider()
                         .padding(.leading, 96)
                 }
@@ -204,5 +219,5 @@ struct LikedPerfumeListView: View {
 // MARK: - Preview
 
 #Preview {
-    LikedPerfumeListView()
+    TastingNoteSceneFactory.makeLikedPerfumeListView()
 }

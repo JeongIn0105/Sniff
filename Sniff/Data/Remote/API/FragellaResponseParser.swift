@@ -45,7 +45,6 @@ enum FragellaResponseParser {
             let name = stringValue(forKeys: ["name", "Name", "perfume_name", "fragrance_name"], in: dictionary),
             let brand = stringValue(forKeys: ["brand", "Brand", "brand_name", "house"], in: dictionary)
         else { return nil }
-        if isLowConfidence(in: dictionary) { return nil }
 
         let id = stringValue(forKeys: ["id", "ID", "perfume_id", "fragrance_id"], in: dictionary)
             ?? makeSyntheticID(name: name, brand: brand)
@@ -216,13 +215,6 @@ enum FragellaResponseParser {
             }
         }
         return nil
-    }
-
-    private static func isLowConfidence(in dictionary: [String: Any]) -> Bool {
-        guard let confidence = stringValue(forKeys: ["Confidence", "confidence"], in: dictionary) else {
-            return false
-        }
-        return confidence.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "low"
     }
 
     private static func makeSyntheticID(name: String, brand: String) -> String {

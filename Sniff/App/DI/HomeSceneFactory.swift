@@ -10,23 +10,22 @@ import Foundation
 enum HomeSceneFactory {
 
     static func makeViewController() -> HomeViewController {
-        let userTasteRepository = UserTasteRepository()
-        let collectionRepository = CollectionRepository()
-        let tastingRecordRepository = TastingRecordRepository()
-        let perfumeCatalogRepository = PerfumeCatalogRepository()
+        makeViewController(dependencyContainer: AppDependencyContainer())
+    }
 
-        let recommendationEngine = RecommendationEngine(
-            perfumeCatalogRepository: perfumeCatalogRepository
-        )
-        let recommendPerfumesUseCase = RecommendPerfumesUseCase(
-            recommendationEngine: recommendationEngine
-        )
+    static func makeViewController(
+        dependencyContainer: AppDependencyContainer
+    ) -> HomeViewController {
+        let collectionRepository = dependencyContainer.makeCollectionRepository()
         let viewModel = HomeViewModel(
-            userTasteRepository: userTasteRepository,
+            userTasteRepository: dependencyContainer.makeUserTasteRepository(),
             collectionRepository: collectionRepository,
-            tastingRecordRepository: tastingRecordRepository,
-            recommendPerfumesUseCase: recommendPerfumesUseCase
+            tastingRecordRepository: dependencyContainer.makeTastingRecordRepository(),
+            recommendPerfumesUseCase: dependencyContainer.makeRecommendPerfumesUseCase()
         )
-        return HomeViewController(viewModel: viewModel)
+        return HomeViewController(
+            viewModel: viewModel,
+            collectionRepository: collectionRepository
+        )
     }
 }

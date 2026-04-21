@@ -80,7 +80,7 @@ struct TastingNoteDetailView: View {
         .toolbar(.hidden, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
         .fullScreenCover(isPresented: $showEditSheet) {
-            TastingNoteFormView(editingNote: currentNote)
+            TastingNoteSceneFactory.makeFormView(editingNote: currentNote)
         }
         .alert("시향 기록 삭제", isPresented: $showDeleteAlert) {
             Button("삭제", role: .destructive) {
@@ -276,4 +276,3 @@ struct TastingNoteDetailView: View {
         }
     }
 }
-
