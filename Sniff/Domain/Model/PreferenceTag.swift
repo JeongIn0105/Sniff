@@ -32,7 +32,7 @@ enum PreferenceTag: String, CaseIterable, Codable {
     case neutral = "중성적인"
     case relaxed = "여유로운"
 
-    var displayName: String { rawValue }
+    nonisolated var displayName: String { rawValue }
 
     var category: PreferenceTagCategory {
         switch self {
@@ -84,7 +84,7 @@ enum PreferenceTag: String, CaseIterable, Codable {
         }
     }
 
-    var relatedScentFamilies: [ScentFamilyFilter] {
+    nonisolated var relatedScentFamilies: [ScentFamilyFilter] {
         switch self {
         case .warm:
             return [.amber, .vanilla, .woody, .spicy, .musky]

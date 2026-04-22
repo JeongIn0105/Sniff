@@ -24,7 +24,7 @@ struct TastingNotePerfumeScope: Equatable {
     let brandName: String
 
     var title: String {
-        "\(perfumeName) 시향 기록"
+        "\(PerfumePresentationSupport.displayPerfumeName(perfumeName)) 시향 기록"
     }
 }
 

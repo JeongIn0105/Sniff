@@ -22,7 +22,9 @@ final class CollectedPerfumeCacheStore {
     }
 
     func save(_ perfumes: [CollectedPerfume]) {
-        let payload = perfumes.map(CachedCollectedPerfume.init)
+        let payload = perfumes.map { perfume in
+            CachedCollectedPerfume(perfume)
+        }
         guard let encoded = try? JSONEncoder().encode(payload) else { return }
         UserDefaults.standard.set(encoded, forKey: key)
     }
@@ -51,7 +53,7 @@ private struct CachedCollectedPerfume: Codable {
     let memo: String?
     let createdAt: Date?
 
-    init(_ perfume: CollectedPerfume) {
+    nonisolated init(_ perfume: CollectedPerfume) {
         id = perfume.id
         name = perfume.name
         brand = perfume.brand
@@ -62,7 +64,7 @@ private struct CachedCollectedPerfume: Codable {
         createdAt = perfume.createdAt
     }
 
-    var model: CollectedPerfume {
+    nonisolated var model: CollectedPerfume {
         CollectedPerfume(
             id: id,
             name: name,

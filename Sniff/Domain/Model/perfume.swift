@@ -13,7 +13,7 @@ enum AccordStrength: String {
     case moderate
     case subtle
 
-    init?(rawDescription: String) {
+    nonisolated init?(rawDescription: String) {
         switch rawDescription.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
         case "dominant":
             self = .dominant
@@ -28,7 +28,7 @@ enum AccordStrength: String {
         }
     }
 
-    var weight: Double {
+    nonisolated var weight: Double {
         switch self {
         case .dominant:
             return 1.0
@@ -68,7 +68,7 @@ struct Perfume {
     let longevity: String?
     let sillage: String?
 
-    init(
+    nonisolated init(
         id: String,
         name: String,
         brand: String,
@@ -115,7 +115,7 @@ struct Perfume {
         self.sillage = sillage
     }
 
-    private static func normalizeAccordStrengths(
+    nonisolated private static func normalizeAccordStrengths(
         from rawStrengths: [String: AccordStrength],
         orderedMainAccords: [String]
     ) -> [String: AccordStrength] {
@@ -139,7 +139,7 @@ struct Perfume {
         return normalized
     }
 
-    private static func normalizeImageURL(_ value: String?) -> String? {
+    nonisolated private static func normalizeImageURL(_ value: String?) -> String? {
         guard let value else { return nil }
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
@@ -156,7 +156,7 @@ struct Perfume {
         return normalized.addingPercentEncoding(withAllowedCharacters: .urlFragmentAllowed) ?? normalized
     }
 
-    private static func normalizeAliases(_ values: [String]) -> [String] {
+    nonisolated private static func normalizeAliases(_ values: [String]) -> [String] {
         var seen = Set<String>()
 
         return values

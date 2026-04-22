@@ -23,7 +23,7 @@ struct CollectedPerfume {
 }
 
 extension CollectedPerfume {
-    init(
+    nonisolated init(
         id: String,
         name: String,
         brand: String,
@@ -52,7 +52,7 @@ extension CollectedPerfume {
         )
     }
 
-    init(
+    nonisolated init(
         id: String,
         name: String,
         brand: String,
@@ -73,7 +73,7 @@ extension CollectedPerfume {
         )
     }
 
-    init(
+    nonisolated init(
         id: String,
         name: String,
         brand: String,
@@ -94,7 +94,7 @@ extension CollectedPerfume {
 }
 
 extension CollectedPerfume {
-    func toPerfume() -> Perfume {
+    nonisolated func toPerfume() -> Perfume {
         Perfume(
             id: id,
             name: name,

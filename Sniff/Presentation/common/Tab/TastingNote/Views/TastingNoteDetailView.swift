@@ -97,7 +97,7 @@ struct TastingNoteDetailView: View {
 
     private var headerView: some View {
         ZStack {
-            Text("\(currentNote.perfumeName) 시향 기록")
+            Text("\(PerfumePresentationSupport.displayPerfumeName(currentNote.perfumeName)) 시향 기록")
                 .font(.system(size: 17, weight: .semibold))
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
@@ -160,17 +160,17 @@ struct TastingNoteDetailView: View {
             .clipShape(RoundedRectangle(cornerRadius: 12))
 
             VStack(alignment: .leading, spacing: 8) {
-                Text(currentNote.brandName)
+                Text(PerfumePresentationSupport.displayBrand(currentNote.brandName))
                     .font(.system(size: 14))
                     .foregroundColor(.secondary)
 
-                Text(currentNote.perfumeName)
+                Text(PerfumePresentationSupport.displayPerfumeName(currentNote.perfumeName))
                     .font(.system(size: 18, weight: .bold))
                     .foregroundColor(.primary)
 
                 if !currentNote.mainAccords.isEmpty {
                     HStack(spacing: 6) {
-                        ForEach(currentNote.mainAccords.prefix(3), id: \.self) { accord in
+                        ForEach(PerfumePresentationSupport.displayAccords(Array(currentNote.mainAccords.prefix(3))), id: \.self) { accord in
                             HStack(spacing: 4) {
                                 Circle()
                                     .frame(width: 5, height: 5)

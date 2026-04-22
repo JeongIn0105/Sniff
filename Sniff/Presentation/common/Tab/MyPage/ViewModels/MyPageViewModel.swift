@@ -26,6 +26,7 @@ final class MyPageViewModel: ObservableObject {
         let accordTags: [String]
         let hasTastingRecord: Bool
         let isLiked: Bool
+        let sourcePerfume: Perfume
     }
 
     struct LikedPreviewItem: Identifiable {
@@ -34,6 +35,7 @@ final class MyPageViewModel: ObservableObject {
         let brand: String
         let imageURL: String?
         let accordTags: [String]
+        let sourcePerfume: Perfume
     }
 
     @Published private(set) var profileInfo: ProfileInfo?
@@ -44,12 +46,20 @@ final class MyPageViewModel: ObservableObject {
     @Published private(set) var isLoading = false
     @Published var errorMessage: String?
 
+    private enum DisplayLimit {
+        static let ownedPreview = 5
+        static let likedPreview = 10
+    }
+
     /// Preview 전용 플래그 — true이면 load()를 실행하지 않음
     var isMock = false
 
     private let firestoreService: FirestoreService
     private let collectionRepository: CollectionRepositoryType
     private let tastingRepository: TastingRecordRepositoryType
+    private var allOwnedPerfumes: [OwnedPreviewItem] = []
+    private var allLikedPerfumes: [LikedPreviewItem] = []
+
     init(
         firestoreService: FirestoreService,
         collectionRepository: CollectionRepositoryType,
@@ -74,21 +84,25 @@ final class MyPageViewModel: ObservableObject {
                 let collection = try await fetchCollectionItems()
                 let tastingKeys = await fetchTastingKeys()
                 let likedIDs = await fetchLikedIDs()
-                ownedCount = collection.count
-                ownedPerfumes = Array(collection.prefix(4)).map {
+                allOwnedPerfumes = collection.map {
                     makeOwnedPreviewItem(from: $0, tastingKeys: tastingKeys, likedIDs: likedIDs)
                 }
+                ownedCount = allOwnedPerfumes.count
+                ownedPerfumes = Array(allOwnedPerfumes.prefix(DisplayLimit.ownedPreview))
             } catch {
                 ownedCount = 0
+                allOwnedPerfumes = []
                 ownedPerfumes = []
             }
 
             do {
                 let liked = try await collectionRepository.fetchLikedPerfumes().async()
-                likedCount = liked.count
-                likedPerfumes = Array(liked.prefix(6)).map(makeLikedPreviewItem)
+                allLikedPerfumes = liked.map(makeLikedPreviewItem)
+                likedCount = allLikedPerfumes.count
+                likedPerfumes = Array(allLikedPerfumes.prefix(DisplayLimit.likedPreview))
             } catch {
                 likedCount = 0
+                allLikedPerfumes = []
                 likedPerfumes = []
             }
         } catch {
@@ -101,6 +115,86 @@ final class MyPageViewModel: ObservableObject {
 
     func clearError() {
         errorMessage = nil
+    }
+
+    func toggleOwnedPerfumeLike(id: String) async {
+        guard let ownedIndex = allOwnedPerfumes.firstIndex(where: { $0.id == id }) else { return }
+
+        let ownedItem = allOwnedPerfumes[ownedIndex]
+        let willLike = !ownedItem.isLiked
+        let previousOwned = allOwnedPerfumes
+        let previousLiked = allLikedPerfumes
+        let previousLikedCount = likedCount
+
+        allOwnedPerfumes[ownedIndex] = OwnedPreviewItem(
+            id: ownedItem.id,
+            name: ownedItem.name,
+            brand: ownedItem.brand,
+            imageURL: ownedItem.imageURL,
+            accordTags: ownedItem.accordTags,
+            hasTastingRecord: ownedItem.hasTastingRecord,
+            isLiked: willLike,
+            sourcePerfume: ownedItem.sourcePerfume
+        )
+
+        if willLike {
+            if !allLikedPerfumes.contains(where: { $0.id == ownedItem.id }) {
+                allLikedPerfumes.insert(makeLikedPreviewItem(from: ownedItem.sourcePerfume), at: 0)
+            }
+            likedCount += 1
+        } else {
+            allLikedPerfumes.removeAll { $0.id == ownedItem.id }
+            likedCount = max(0, likedCount - 1)
+        }
+        applyPreviewLimits()
+
+        do {
+            if willLike {
+                try await collectionRepository.saveLikedPerfume(ownedItem.sourcePerfume).async()
+            } else {
+                try await collectionRepository.deleteLikedPerfume(id: ownedItem.id).async()
+            }
+        } catch {
+            allOwnedPerfumes = previousOwned
+            allLikedPerfumes = previousLiked
+            likedCount = previousLikedCount
+            applyPreviewLimits()
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func removeLikedPerfume(id: String) async {
+        let previousLiked = allLikedPerfumes
+        let previousLikedCount = likedCount
+        let previousOwned = allOwnedPerfumes
+
+        allLikedPerfumes.removeAll { $0.id == id }
+        likedCount = max(0, likedCount - 1)
+
+        if let ownedIndex = allOwnedPerfumes.firstIndex(where: { $0.id == id }) {
+            let item = allOwnedPerfumes[ownedIndex]
+            allOwnedPerfumes[ownedIndex] = OwnedPreviewItem(
+                id: item.id,
+                name: item.name,
+                brand: item.brand,
+                imageURL: item.imageURL,
+                accordTags: item.accordTags,
+                hasTastingRecord: item.hasTastingRecord,
+                isLiked: false,
+                sourcePerfume: item.sourcePerfume
+            )
+        }
+        applyPreviewLimits()
+
+        do {
+            try await collectionRepository.deleteLikedPerfume(id: id).async()
+        } catch {
+            allLikedPerfumes = previousLiked
+            likedCount = previousLikedCount
+            allOwnedPerfumes = previousOwned
+            applyPreviewLimits()
+            errorMessage = error.localizedDescription
+        }
     }
 }
 
@@ -137,7 +231,9 @@ private extension MyPageViewModel {
         tastingKeys: Set<String>,
         likedIDs: Set<String>
     ) -> OwnedPreviewItem {
-        OwnedPreviewItem(
+        let sourcePerfume = perfume.toPerfume()
+
+        return OwnedPreviewItem(
             id: perfume.id,
             name: perfume.name,
             brand: perfume.brand,
@@ -152,20 +248,26 @@ private extension MyPageViewModel {
                     brandName: perfume.brand
                 )
             ),
-            isLiked: likedIDs.contains(perfume.id)
+            isLiked: likedIDs.contains(perfume.id),
+            sourcePerfume: sourcePerfume
         )
     }
 
     func makeLikedPreviewItem(from perfume: LikedPerfume) -> LikedPreviewItem {
-        LikedPreviewItem(
+        makeLikedPreviewItem(from: perfume.toPerfume())
+    }
+
+    func makeLikedPreviewItem(from perfume: Perfume) -> LikedPreviewItem {
+        return LikedPreviewItem(
             id: perfume.id,
             name: perfume.name,
             brand: perfume.brand,
-            imageURL: perfume.imageURL,
+            imageURL: perfume.imageUrl,
             accordTags: PerfumePresentationSupport.previewAccords(
                 mainAccords: perfume.mainAccords,
-                fallback: perfume.scentFamilies
-            )
+                fallback: perfume.mainAccords
+            ),
+            sourcePerfume: perfume
         )
     }
 
@@ -194,6 +296,11 @@ private extension MyPageViewModel {
             return []
         }
     }
+
+    func applyPreviewLimits() {
+        ownedPerfumes = Array(allOwnedPerfumes.prefix(DisplayLimit.ownedPreview))
+        likedPerfumes = Array(allLikedPerfumes.prefix(DisplayLimit.likedPreview))
+    }
 }
 
 // MARK: - Preview 전용 목 데이터
@@ -218,19 +325,43 @@ extension MyPageViewModel {
                 id: "1", name: "어나더 13 오 드 퍼퓸", brand: "르 라보",
                 imageURL: "https://fimgs.net/mdimg/perfume/375x500.25186.jpg",
                 accordTags: ["Floral", "Musky"],
-                hasTastingRecord: true, isLiked: false
+                hasTastingRecord: true, isLiked: false,
+                sourcePerfume: Perfume(
+                    id: "1", name: "Another 13 Eau de Parfum", brand: "Le Labo",
+                    imageUrl: "https://fimgs.net/mdimg/perfume/375x500.25186.jpg",
+                    rawMainAccords: ["Floral", "Musky"], mainAccords: ["Floral", "Musky"],
+                    topNotes: nil, middleNotes: nil, baseNotes: nil,
+                    concentration: nil, gender: nil, season: nil, situation: nil,
+                    longevity: nil, sillage: nil
+                )
             ),
             OwnedPreviewItem(
                 id: "2", name: "블랑쉬 오 드 퍼퓸", brand: "바이레도",
                 imageURL: "https://fimgs.net/mdimg/perfume/375x500.17770.jpg",
                 accordTags: ["Musky", "Powdery"],
-                hasTastingRecord: false, isLiked: true
+                hasTastingRecord: false, isLiked: true,
+                sourcePerfume: Perfume(
+                    id: "2", name: "Blanche Eau de Parfum", brand: "Byredo",
+                    imageUrl: "https://fimgs.net/mdimg/perfume/375x500.17770.jpg",
+                    rawMainAccords: ["Musky", "Powdery"], mainAccords: ["Musky", "Powdery"],
+                    topNotes: nil, middleNotes: nil, baseNotes: nil,
+                    concentration: nil, gender: nil, season: nil, situation: nil,
+                    longevity: nil, sillage: nil
+                )
             ),
             OwnedPreviewItem(
                 id: "3", name: "포 허 오드 퍼퓸", brand: "나르시소 로드리게스",
                 imageURL: "https://fimgs.net/mdimg/perfume/375x500.4880.jpg",
                 accordTags: ["Musky", "Woody"],
-                hasTastingRecord: true, isLiked: false
+                hasTastingRecord: true, isLiked: false,
+                sourcePerfume: Perfume(
+                    id: "3", name: "For Her Eau de Parfum", brand: "Narciso Rodriguez",
+                    imageUrl: "https://fimgs.net/mdimg/perfume/375x500.4880.jpg",
+                    rawMainAccords: ["Musky", "Woody"], mainAccords: ["Musky", "Woody"],
+                    topNotes: nil, middleNotes: nil, baseNotes: nil,
+                    concentration: nil, gender: nil, season: nil, situation: nil,
+                    longevity: nil, sillage: nil
+                )
             )
         ]
         vm.likedCount = 3
@@ -238,17 +369,41 @@ extension MyPageViewModel {
             LikedPreviewItem(
                 id: "1", name: "어나더 13 오 드 퍼퓸", brand: "르 라보",
                 imageURL: "https://fimgs.net/mdimg/perfume/375x500.25186.jpg",
-                accordTags: ["Floral", "Musky"]
+                accordTags: ["Floral", "Musky"],
+                sourcePerfume: Perfume(
+                    id: "1", name: "Another 13 Eau de Parfum", brand: "Le Labo",
+                    imageUrl: "https://fimgs.net/mdimg/perfume/375x500.25186.jpg",
+                    rawMainAccords: ["Floral", "Musky"], mainAccords: ["Floral", "Musky"],
+                    topNotes: nil, middleNotes: nil, baseNotes: nil,
+                    concentration: nil, gender: nil, season: nil, situation: nil,
+                    longevity: nil, sillage: nil
+                )
             ),
             LikedPreviewItem(
                 id: "2", name: "블랑쉬 오 드 퍼퓸", brand: "바이레도",
                 imageURL: "https://fimgs.net/mdimg/perfume/375x500.17770.jpg",
-                accordTags: ["Musky", "Powdery"]
+                accordTags: ["Musky", "Powdery"],
+                sourcePerfume: Perfume(
+                    id: "2", name: "Blanche Eau de Parfum", brand: "Byredo",
+                    imageUrl: "https://fimgs.net/mdimg/perfume/375x500.17770.jpg",
+                    rawMainAccords: ["Musky", "Powdery"], mainAccords: ["Musky", "Powdery"],
+                    topNotes: nil, middleNotes: nil, baseNotes: nil,
+                    concentration: nil, gender: nil, season: nil, situation: nil,
+                    longevity: nil, sillage: nil
+                )
             ),
             LikedPreviewItem(
                 id: "3", name: "포 허 오드 퍼퓸", brand: "나르시소 로드리게스",
                 imageURL: "https://fimgs.net/mdimg/perfume/375x500.4880.jpg",
-                accordTags: ["Musky", "Woody"]
+                accordTags: ["Musky", "Woody"],
+                sourcePerfume: Perfume(
+                    id: "3", name: "For Her Eau de Parfum", brand: "Narciso Rodriguez",
+                    imageUrl: "https://fimgs.net/mdimg/perfume/375x500.4880.jpg",
+                    rawMainAccords: ["Musky", "Woody"], mainAccords: ["Musky", "Woody"],
+                    topNotes: nil, middleNotes: nil, baseNotes: nil,
+                    concentration: nil, gender: nil, season: nil, situation: nil,
+                    longevity: nil, sillage: nil
+                )
             )
         ]
         return vm
