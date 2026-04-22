@@ -172,7 +172,9 @@ final class SeasonSelectionView: UIView {
     required init?(coder: NSCoder) { fatalError() }
 
     func configure(selectedSeasons: [String]) {
-        visibleTexts = Array(selectedSeasons.prefix(2)).map { displayMap[$0.lowercased()] ?? $0 }
+        visibleTexts = Array(selectedSeasons.prefix(2)).map {
+            displayMap[$0.lowercased()] ?? PerfumeKoreanTranslator.koreanSeason(for: $0)
+        }
         subviews.forEach { $0.removeFromSuperview() }
         setNeedsLayout()
         invalidateIntrinsicContentSize()

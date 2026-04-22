@@ -5,12 +5,23 @@
 
 // MARK: - LIKE 향수 전체 목록 화면
 import SwiftUI
-import Kingfisher
 
 struct LikedPerfumeListView: View {
 
     @StateObject private var viewModel: LikedPerfumeListViewModel
     @Environment(\.dismiss) private var dismiss
+    private enum Layout {
+        static let horizontalPadding: CGFloat = PerfumeGridCardLayout.listHorizontalPadding
+        static let rowSpacing: CGFloat = PerfumeGridCardLayout.listRowSpacing
+        static let thumbnailSize: CGFloat = PerfumeGridCardLayout.listThumbnailSize
+        static let rowVerticalPadding: CGFloat = 4
+        static let contentSpacing: CGFloat = 12
+        static let inlineInfoSpacing: CGFloat = 7
+        static let nameToMetaSpacing: CGFloat = 6
+        static let badgeTopSpacing: CGFloat = 8
+        static let heartSize: CGFloat = 18
+        static let heartTopPadding: CGFloat = 6
+    }
 
     init(viewModel: LikedPerfumeListViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -94,115 +105,74 @@ struct LikedPerfumeListView: View {
 
     private var perfumeListView: some View {
         ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: Layout.rowSpacing) {
                 ForEach(viewModel.perfumes) { perfume in
-                    NavigationLink {
-                        TastingNoteSceneFactory.makeListView(
-                            perfumeScope: TastingNotePerfumeScope(
-                                perfumeName: perfume.name,
-                                brandName: perfume.brand
-                            )
-                        )
-                    } label: {
-                        perfumeRow(perfume)
-                    }
-                    .buttonStyle(.plain)
-
-                    Divider()
-                        .padding(.leading, 96)
+                    perfumeNavigationRow(perfume)
                 }
                 Spacer().frame(height: 40)
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, Layout.horizontalPadding)
         }
     }
 
-    private func perfumeRow(_ perfume: LikedPerfumeListViewModel.PerfumeRowItem) -> some View {
-        HStack(alignment: .top, spacing: 14) {
-            perfumeImage(url: perfume.imageURL)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(perfume.name)
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(.primary)
-                    .lineLimit(2)
-
-                accordTextLine(brand: perfume.brand, accords: perfume.accordTags)
-
-                if perfume.hasTastingRecord {
-                    tastingRecordBadge
-                        .padding(.top, 4)
-                }
+    private func perfumeNavigationRow(_ perfume: LikedPerfumeListViewModel.PerfumeRowItem) -> some View {
+        ZStack(alignment: .topTrailing) {
+            NavigationLink {
+                PerfumeDetailContainerView(perfume: perfume.sourcePerfume)
+            } label: {
+                perfumeRowContent(perfume)
             }
-            .padding(.top, 4)
-
-            Spacer(minLength: 8)
+            .buttonStyle(.plain)
 
             Button {
                 Task { await viewModel.removeLike(id: perfume.id) }
             } label: {
                 Image(systemName: "heart.fill")
-                    .font(.system(size: 21, weight: .semibold))
+                    .font(.system(size: Layout.heartSize, weight: .semibold))
                     .foregroundColor(Color(.systemGray))
-                    .frame(width: 32, height: 32)
+                    .frame(width: 28, height: 28)
             }
             .buttonStyle(.plain)
-            .padding(.top, 10)
+            .padding(.top, Layout.heartTopPadding)
         }
-        .padding(.vertical, 14)
+    }
+
+    private func perfumeRowContent(_ perfume: LikedPerfumeListViewModel.PerfumeRowItem) -> some View {
+        HStack(alignment: .top, spacing: Layout.contentSpacing) {
+            perfumeImage(url: perfume.imageURL)
+
+            VStack(alignment: .leading, spacing: 0) {
+                Text(PerfumePresentationSupport.displayPerfumeName(perfume.name))
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(.primary)
+                    .lineLimit(2)
+                    .lineSpacing(2)
+                    .multilineTextAlignment(.leading)
+
+                likeMetaLine(
+                    brand: perfume.brand,
+                    accords: perfume.accordTags
+                )
+                .padding(.top, Layout.nameToMetaSpacing)
+
+                if perfume.hasTastingRecord {
+                    tastingRecordBadge
+                        .padding(.top, Layout.badgeTopSpacing)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+
+            Spacer(minLength: 44)
+        }
+        .padding(.vertical, Layout.rowVerticalPadding)
     }
 
     private func perfumeImage(url: String?) -> some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.secondarySystemBackground))
-
-            if let url, let imageURL = URL(string: url) {
-                KFImage(imageURL)
-                    .placeholder {
-                        Image(systemName: "shippingbox")
-                            .font(.system(size: 24))
-                            .foregroundColor(Color(.systemGray3))
-                    }
-                    .resizable()
-                    .scaledToFit()
-                    .padding(12)
-            } else {
-                Image(systemName: "shippingbox")
-                    .font(.system(size: 24))
-                    .foregroundColor(Color(.systemGray3))
-            }
-        }
-        .frame(width: 88, height: 88)
-    }
-
-    private func accordTextLine(brand: String, accords: [String]) -> some View {
-        let displayAccords = Array(accords.prefix(2))
-
-        return HStack(spacing: 4) {
-            Text(brand)
-                .font(.system(size: 12, weight: .regular))
-                .foregroundColor(Color(.systemGray2))
-                .lineLimit(1)
-
-            if !displayAccords.isEmpty {
-                Text("|")
-                    .font(.system(size: 12, weight: .regular))
-                    .foregroundColor(Color(.systemGray3))
-
-                ForEach(Array(displayAccords.enumerated()), id: \.offset) { index, accord in
-                    Circle()
-                        .fill(index == 0 ? Color(red: 0.97, green: 0.67, blue: 0.67) : Color(.systemGray3))
-                        .frame(width: 8, height: 8)
-
-                    Text(accord)
-                        .font(.system(size: 12, weight: .regular))
-                        .foregroundColor(Color(.systemGray2))
-                        .lineLimit(1)
-                }
-            }
-        }
-        .fixedSize(horizontal: false, vertical: true)
+        PerfumeCardArtworkView(
+            imageURL: url,
+            style: .listThumbnail
+        )
+        .frame(width: Layout.thumbnailSize, height: Layout.thumbnailSize)
     }
 
     private var tastingRecordBadge: some View {
@@ -211,8 +181,39 @@ struct LikedPerfumeListView: View {
             .foregroundColor(Color(.systemGray))
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
-            .background(Color(.secondarySystemBackground))
+            .background(Color(red: 0.97, green: 0.95, blue: 0.92))
             .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    private func likeMetaLine(brand: String, accords: [String]) -> some View {
+        let displayAccords = PerfumePresentationSupport.displayAccords(Array(accords.prefix(2)))
+
+        return HStack(spacing: Layout.inlineInfoSpacing) {
+            Text(PerfumePresentationSupport.displayBrand(brand))
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+
+            Text("|")
+                .font(.system(size: 12, weight: .regular))
+                .foregroundColor(Color(.systemGray3))
+
+            ForEach(Array(displayAccords.enumerated()), id: \.offset) { index, accord in
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(index == 0 ? Color(red: 0.97, green: 0.67, blue: 0.67) : Color(red: 0.73, green: 0.42, blue: 0.55))
+                        .frame(width: 7, height: 7)
+
+                    Text(accord)
+                        .font(.system(size: 12, weight: .regular))
+                        .foregroundColor(Color(.systemGray2))
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer(minLength: 0)
+        }
+        .fixedSize(horizontal: false, vertical: true)
     }
 }
 

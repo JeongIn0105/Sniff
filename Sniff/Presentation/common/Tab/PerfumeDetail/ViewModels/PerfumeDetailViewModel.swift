@@ -30,6 +30,7 @@ final class PerfumeDetailViewModel {
         // MARK: - Properties
     private let perfumeId: String
     private let perfumeCatalogRepository: PerfumeCatalogRepositoryType
+    private let seedPerfume: Perfume?
     private let disposeBag = DisposeBag()
 
     private let perfumeRelay = BehaviorRelay<Perfume?>(value: nil)
@@ -40,11 +41,13 @@ final class PerfumeDetailViewModel {
     init(perfumeId: String, perfumeCatalogRepository: PerfumeCatalogRepositoryType) {
         self.perfumeId = perfumeId
         self.perfumeCatalogRepository = perfumeCatalogRepository
+        self.seedPerfume = nil
     }
 
     init(perfume: Perfume, perfumeCatalogRepository: PerfumeCatalogRepositoryType) {
         self.perfumeId = perfume.id
         self.perfumeCatalogRepository = perfumeCatalogRepository
+        self.seedPerfume = perfume
         self.perfumeRelay.accept(perfume)
     }
 
@@ -52,7 +55,6 @@ final class PerfumeDetailViewModel {
     func transform(input: Input) -> Output {
 
         input.viewDidLoad
-            .filter { [weak self] _ in self?.perfumeRelay.value == nil }
             .subscribe(onNext: { [weak self] in
                 self?.fetchDetail()
             })
@@ -79,7 +81,7 @@ final class PerfumeDetailViewModel {
     private func fetchDetail() {
         isLoadingRelay.accept(true)
 
-        perfumeCatalogRepository.fetchDetail(perfumeId: perfumeId)
+        detailRequest()
             .subscribe(
                 onSuccess: { [weak self] perfume in
                     self?.isLoadingRelay.accept(false)
@@ -87,9 +89,65 @@ final class PerfumeDetailViewModel {
                 },
                 onFailure: { [weak self] error in
                     self?.isLoadingRelay.accept(false)
-                    self?.errorRelay.accept(error.localizedDescription)
+                    if self?.seedPerfume == nil {
+                        self?.errorRelay.accept(error.localizedDescription)
+                    }
                 }
             )
             .disposed(by: disposeBag)
+    }
+
+    private func detailRequest() -> Single<Perfume> {
+        let directRequest = perfumeCatalogRepository.fetchDetail(perfumeId: perfumeId)
+
+        guard let seedPerfume else {
+            return directRequest
+        }
+
+        return directRequest
+            .catch { [weak self] _ in
+                guard let self else { return .just(seedPerfume) }
+                return self.searchFallbackDetail(for: seedPerfume)
+            }
+            .catchAndReturn(seedPerfume)
+    }
+
+    private func searchFallbackDetail(for perfume: Perfume) -> Single<Perfume> {
+        let query = "\(perfume.brand) \(perfume.name)"
+
+        return perfumeCatalogRepository.search(query: query, limit: 30)
+            .flatMap { [weak self] results in
+                guard
+                    let self,
+                    let matched = self.bestMatchedPerfume(in: results, target: perfume)
+                else {
+                    return .just(perfume)
+                }
+
+                return self.perfumeCatalogRepository.fetchDetail(perfumeId: matched.id)
+                    .catchAndReturn(matched)
+            }
+    }
+
+    private func bestMatchedPerfume(in perfumes: [Perfume], target: Perfume) -> Perfume? {
+        let normalizedTargetName = normalize(target.name)
+        let normalizedTargetBrand = normalize(target.brand)
+
+        return perfumes.first {
+            normalize($0.name) == normalizedTargetName &&
+            normalize($0.brand) == normalizedTargetBrand
+        } ?? perfumes.first {
+            normalize($0.name).contains(normalizedTargetName) &&
+            normalize($0.brand) == normalizedTargetBrand
+        } ?? perfumes.first {
+            normalize($0.name) == normalizedTargetName
+        }
+    }
+
+    private func normalize(_ value: String) -> String {
+        value
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "en_US_POSIX"))
+            .lowercased()
     }
 }

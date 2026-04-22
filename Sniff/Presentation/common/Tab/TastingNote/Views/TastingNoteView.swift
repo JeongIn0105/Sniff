@@ -129,7 +129,7 @@ struct TastingNoteView: View {
 
     private var emptyTitle: String {
         if let perfumeScope = viewModel.perfumeScope {
-            return "\(perfumeScope.perfumeName) 시향 기록이 없어요"
+            return "\(PerfumePresentationSupport.displayPerfumeName(perfumeScope.perfumeName)) 시향 기록이 없어요"
         }
         switch viewModel.selectedFilter {
         case .all:    return "등록된 시향 기록이 없어요"
@@ -243,13 +243,13 @@ struct TastingNoteRowView: View {
             perfumeThumbnail
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(note.perfumeName)
+                Text(PerfumePresentationSupport.displayPerfumeName(note.perfumeName))
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(.primary)
                     .lineLimit(1)
 
                 HStack(spacing: 4) {
-                    Text(note.brandName)
+                    Text(PerfumePresentationSupport.displayBrand(note.brandName))
                         .font(.system(size: 13))
                         .foregroundColor(.secondary)
 
@@ -258,7 +258,7 @@ struct TastingNoteRowView: View {
                             .font(.system(size: 13))
                             .foregroundColor(Color(.systemGray4))
 
-                        ForEach(Array(note.mainAccords.prefix(2).enumerated()), id: \.offset) { _, accord in
+                        ForEach(Array(PerfumePresentationSupport.displayAccords(Array(note.mainAccords.prefix(2))).enumerated()), id: \.offset) { _, accord in
                             HStack(spacing: 3) {
                                 Circle()
                                     .frame(width: 4, height: 4)

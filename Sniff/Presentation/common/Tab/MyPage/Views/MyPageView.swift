@@ -6,44 +6,43 @@
 //
 
 import SwiftUI
-import Kingfisher
 
 @MainActor
 struct MyPageView: View {
 
     @StateObject private var viewModel: MyPageViewModel
 
+    private enum Layout {
+        static let horizontalPadding: CGFloat = 20
+        static let headerTopPadding: CGFloat = 12
+        static let sectionSpacing: CGFloat = 30
+        static let sectionHeaderBottomSpacing: CGFloat = 14
+        static let profileTopSpacing: CGFloat = 10
+        static let profileBottomSpacing: CGFloat = 12
+        static let profileImageSize: CGFloat = 84
+        static let profileTextSpacing: CGFloat = 8
+        static let cardSpacing: CGFloat = PerfumeGridCardLayout.previewCardSpacing
+        static let trailingPeekInset: CGFloat = PerfumeGridCardLayout.previewTrailingPeekInset
+        static let likedSectionTopSpacing: CGFloat = 18
+        static let bottomContentPadding: CGFloat = 68
+    }
+
     init(viewModel: MyPageViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
     }
 
-    // 보유 향수 미리보기: LIKE 향수와 동일한 3열
-    private let ownedPreviewColumns = [
-        GridItem(.flexible(), spacing: 8),
-        GridItem(.flexible(), spacing: 8),
-        GridItem(.flexible(), spacing: 8)
-    ]
-
-    // LIKE 향수 미리보기: 3열
-    private let likedPreviewColumns = [
-        GridItem(.flexible(), spacing: 8),
-        GridItem(.flexible(), spacing: 8),
-        GridItem(.flexible(), spacing: 8)
-    ]
-
     var body: some View {
         NavigationStack {
             ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 28) {
+                VStack(alignment: .leading, spacing: Layout.sectionSpacing) {
                     headerSection
                     profileSection
                     ownedSection
-                        .padding(.top, 12)
                     likedSection
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
-                .padding(.bottom, 32)
+                .padding(.horizontal, Layout.horizontalPadding)
+                .padding(.top, Layout.headerTopPadding)
+                .padding(.bottom, Layout.bottomContentPadding)
             }
             .background(Color(.systemBackground))
             .toolbar(.hidden, for: .navigationBar)
@@ -69,7 +68,7 @@ struct MyPageView: View {
     private var headerSection: some View {
         HStack(alignment: .center) {
             Text("마이페이지")
-                .font(.system(size: 22, weight: .semibold))
+                .font(.system(size: 25, weight: .bold))
                 .foregroundColor(.primary)
 
             Spacer()
@@ -78,9 +77,9 @@ struct MyPageView: View {
                 SettingsSceneFactory.makeSettingsView()
             } label: {
                 Image(systemName: "gearshape")
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(.system(size: 21, weight: .semibold))
                     .foregroundColor(.primary)
-                    .frame(width: 28, height: 28)
+                    .frame(width: 32, height: 32)
             }
             .buttonStyle(.plain)
         }
@@ -88,46 +87,31 @@ struct MyPageView: View {
 
     private var profileSection: some View {
         HStack(spacing: 16) {
-            Image(systemName: "person.crop.circle.fill")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 72, height: 72)
-                .foregroundColor(Color(.systemGray4))
+            CheckerboardProfilePlaceholder()
+                .frame(width: Layout.profileImageSize, height: Layout.profileImageSize)
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: Layout.profileTextSpacing) {
                 Text(viewModel.profileInfo?.nickname ?? "사용자")
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(.system(size: 21, weight: .bold))
                     .foregroundColor(.primary)
 
                 Text(viewModel.profileInfo?.email ?? "등록된 이메일이 없어요")
-                    .font(.system(size: 14))
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 16, weight: .regular))
+                    .foregroundColor(Color(.systemGray))
                     .lineLimit(1)
             }
         }
+        .padding(.top, Layout.profileTopSpacing)
+        .padding(.bottom, Layout.profileBottomSpacing)
     }
 
     private var ownedSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("보유 향수")
-                    .font(.system(size: 19, weight: .semibold))
-                    .foregroundColor(.primary)
-
-                Text("\(viewModel.ownedCount)개")
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundColor(.secondary)
-
-                Spacer()
-
-                NavigationLink {
-                    TastingNoteSceneFactory.makeOwnedPerfumeListView()
-                } label: {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.secondary)
-                }
-            }
+            sectionHeader(
+                title: "보유 향수",
+                count: viewModel.ownedCount,
+                destination: TastingNoteSceneFactory.makeOwnedPerfumeListView()
+            )
 
             if viewModel.ownedPerfumes.isEmpty {
                 emptySection(
@@ -135,16 +119,23 @@ struct MyPageView: View {
                     message: "향수 정보 페이지에서 보유 향수를 등록해주세요"
                 )
             } else {
-                LazyVGrid(columns: ownedPreviewColumns, spacing: 14) {
-                    ForEach(viewModel.ownedPerfumes) { perfume in
-                        compactPreviewCard(
-                            imageURL: perfume.imageURL,
-                            brand: perfume.brand,
-                            name: perfume.name,
-                            accords: perfume.accordTags,
-                            isLiked: perfume.isLiked
-                        )
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(alignment: .top, spacing: Layout.cardSpacing) {
+                        ForEach(viewModel.ownedPerfumes) { perfume in
+                            previewNavigationCard(
+                                perfume: perfume.sourcePerfume,
+                                imageURL: perfume.imageURL,
+                                brand: perfume.brand,
+                                name: perfume.name,
+                                accords: perfume.accordTags,
+                                isLiked: perfume.isLiked,
+                                hasTastingRecord: perfume.hasTastingRecord
+                            ) {
+                                Task { await viewModel.toggleOwnedPerfumeLike(id: perfume.id) }
+                            }
+                        }
                     }
+                    .padding(.trailing, Layout.trailingPeekInset)
                 }
             }
         }
@@ -152,25 +143,11 @@ struct MyPageView: View {
 
     private var likedSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("LIKE 향수")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(.primary)
-
-                Text("\(viewModel.likedCount)개")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.secondary)
-
-                Spacer()
-
-                NavigationLink {
-                    TastingNoteSceneFactory.makeLikedPerfumeListView()
-                } label: {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.secondary)
-                }
-            }
+            sectionHeader(
+                title: "LIKE 향수",
+                count: viewModel.likedCount,
+                destination: TastingNoteSceneFactory.makeLikedPerfumeListView()
+            )
 
             if viewModel.likedPerfumes.isEmpty {
                 emptySection(
@@ -178,19 +155,56 @@ struct MyPageView: View {
                     message: "향수 카드의 하트 아이콘을 눌러 추가해주세요"
                 )
             } else {
-                LazyVGrid(columns: likedPreviewColumns, spacing: 14) {
-                    ForEach(viewModel.likedPerfumes) { perfume in
-                        compactPreviewCard(
-                            imageURL: perfume.imageURL,
-                            brand: perfume.brand,
-                            name: perfume.name,
-                            accords: perfume.accordTags,
-                            isLiked: true
-                        )
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(alignment: .top, spacing: Layout.cardSpacing) {
+                        ForEach(viewModel.likedPerfumes) { perfume in
+                            previewNavigationCard(
+                                perfume: perfume.sourcePerfume,
+                                imageURL: perfume.imageURL,
+                                brand: perfume.brand,
+                                name: perfume.name,
+                                accords: perfume.accordTags,
+                                isLiked: true,
+                                hasTastingRecord: false
+                            ) {
+                                Task { await viewModel.removeLikedPerfume(id: perfume.id) }
+                            }
+                        }
                     }
+                    .padding(.trailing, Layout.trailingPeekInset)
                 }
             }
         }
+        .padding(.top, Layout.likedSectionTopSpacing)
+    }
+
+    private func sectionHeader<Destination: View>(
+        title: String,
+        count: Int,
+        destination: Destination
+    ) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Text(title)
+                .font(.system(size: 22, weight: .bold))
+                .foregroundColor(.primary)
+
+            Text("\(count)개")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(.secondary)
+
+            Spacer()
+
+            NavigationLink {
+                destination
+            } label: {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundColor(.secondary)
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.bottom, Layout.sectionHeaderBottomSpacing)
     }
 
     private func emptySection(title: String, message: String) -> some View {
@@ -213,74 +227,81 @@ struct MyPageView: View {
         brand: String,
         name: String,
         accords: [String],
-        isLiked: Bool
+        isLiked: Bool,
+        hasTastingRecord: Bool
     ) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
-            ZStack(alignment: .bottomTrailing) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color(.secondarySystemBackground))
-
-                    if let urlString = imageURL, let resolvedURL = URL(string: urlString) {
-                        KFImage(resolvedURL)
-                            .placeholder {
-                                Image(systemName: "shippingbox")
-                                    .font(.system(size: 20))
-                                    .foregroundColor(Color(.systemGray3))
-                            }
-                            .resizable()
-                            .scaledToFit()
-                            .padding(12)
-                    } else {
-                        Image(systemName: "shippingbox")
-                            .font(.system(size: 20))
-                            .foregroundColor(Color(.systemGray3))
-                    }
-                }
-                .aspectRatio(1, contentMode: .fit)
-
-                if isLiked {
-                    Image(systemName: "heart.fill")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(Color(.systemGray2))
-                        .padding(.trailing, 7)
-                        .padding(.bottom, 7)
-                }
-            }
-
-            Text(brand)
-                .font(.system(size: 10, weight: .medium))
-                .foregroundColor(.secondary)
-                .lineLimit(1)
-
-            Text(name)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(.primary)
-                .lineLimit(2)
-                .lineSpacing(1)
-
-            accordTextLine(Array(accords.prefix(2)))
-        }
+        PerfumeGridCardView(
+            imageURL: imageURL,
+            brand: brand,
+            name: name,
+            accords: accords,
+            isLiked: isLiked,
+            style: .preview,
+            cardWidth: PerfumeGridCardLayout.previewCardWidth,
+            showsHeartIcon: false,
+            hasTastingRecord: hasTastingRecord
+        )
     }
 
-    private func accordTextLine(_ accords: [String]) -> some View {
-        let displayAccords = Array(accords.prefix(2))
+    private func previewNavigationCard(
+        perfume: Perfume,
+        imageURL: String?,
+        brand: String,
+        name: String,
+        accords: [String],
+        isLiked: Bool,
+        hasTastingRecord: Bool,
+        heartAction: @escaping () -> Void
+    ) -> some View {
+        ZStack(alignment: .bottomTrailing) {
+            NavigationLink {
+                PerfumeDetailContainerView(perfume: perfume)
+            } label: {
+                compactPreviewCard(
+                    imageURL: imageURL,
+                    brand: brand,
+                    name: name,
+                    accords: accords,
+                    isLiked: isLiked,
+                    hasTastingRecord: hasTastingRecord
+                )
+            }
+            .buttonStyle(.plain)
 
-        return HStack(spacing: 8) {
-            ForEach(Array(displayAccords.enumerated()), id: \.offset) { index, accord in
-                HStack(spacing: 4) {
-                    Circle()
-                        .fill(index == 0 ? Color(red: 0.97, green: 0.67, blue: 0.67) : Color(.systemGray3))
-                        .frame(width: 8, height: 8)
+            PerfumeCardHeartButton(isLiked: isLiked, style: .preview, action: heartAction)
+                .padding(.trailing, PerfumeCardStyle.preview.likeIconInset)
+                .padding(.bottom, PerfumeCardStyle.preview.likeIconInset + (PerfumeCardStyle.preview.textBlockHeight ?? 0) + PerfumeCardStyle.preview.contentTopSpacing)
+        }
+        .frame(width: PerfumeGridCardLayout.previewCardWidth, alignment: .topLeading)
+    }
+}
 
-                    Text(accord)
-                        .font(.system(size: 11, weight: .regular))
-                        .foregroundColor(Color(.systemGray2))
-                        .lineLimit(1)
+private struct CheckerboardProfilePlaceholder: View {
+    private let tileCount = 10
+
+    var body: some View {
+        GeometryReader { geometry in
+            let size = min(geometry.size.width, geometry.size.height)
+            let tileSize = size / CGFloat(tileCount)
+
+            ZStack {
+                Circle()
+                    .fill(Color.white)
+
+                VStack(spacing: 0) {
+                    ForEach(0..<tileCount, id: \.self) { row in
+                        HStack(spacing: 0) {
+                            ForEach(0..<tileCount, id: \.self) { column in
+                                Rectangle()
+                                    .fill((row + column).isMultiple(of: 2) ? Color(red: 0.97, green: 0.97, blue: 0.97) : Color(red: 0.92, green: 0.92, blue: 0.92))
+                                    .frame(width: tileSize, height: tileSize)
+                            }
+                        }
+                    }
                 }
+                .clipShape(Circle())
             }
         }
-        .fixedSize(horizontal: false, vertical: true)
     }
 }
 

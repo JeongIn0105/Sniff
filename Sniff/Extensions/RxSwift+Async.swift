@@ -45,3 +45,29 @@ extension PrimitiveSequence where Trait == SingleTrait {
         }
     }
 }
+
+extension PrimitiveSequence where Trait == CompletableTrait, Element == Never {
+    func async() async throws {
+        let box = DisposableBox()
+
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                let disposable = self.subscribe(
+                    onCompleted: {
+                        continuation.resume()
+                    },
+                    onError: { error in
+                        continuation.resume(throwing: error)
+                    }
+                )
+                Task {
+                    await box.set(disposable)
+                }
+            }
+        } onCancel: {
+            Task {
+                await box.dispose()
+            }
+        }
+    }
+}

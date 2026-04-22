@@ -25,8 +25,10 @@ fastlane/screenshots/
 
 # Sniff / config / secrets
 Sniff/Config/Secrets.xcconfig
+Sniff/Config/Secrets/
 Sniff/GoogleService-Info.plist
 
 # Local instruction file
 AGENTS.md
 .home/
+

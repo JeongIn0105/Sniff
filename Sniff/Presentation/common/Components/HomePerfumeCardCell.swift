@@ -201,8 +201,8 @@ final class HomePerfumeCardCell: UICollectionViewCell {
         // MARK: - Configure
 
     func configure(with item: HomePerfumeItem, isLiked: Bool = false) {
-        brandLabel.text = item.brandName
-        perfumeNameLabel.text = item.perfumeName
+        brandLabel.text = PerfumePresentationSupport.displayBrand(item.brandName)
+        perfumeNameLabel.text = PerfumePresentationSupport.displayPerfumeName(item.perfumeName)
         wishlistButton.isSelected = isLiked
 
         let monogram = String(item.brandName.prefix(1)).uppercased()
@@ -223,7 +223,7 @@ final class HomePerfumeCardCell: UICollectionViewCell {
             .prefix(2)
 
         for accord in accords {
-            accordsStackView.addArrangedSubview(makePill(accord))
+            accordsStackView.addArrangedSubview(makePill(PerfumePresentationSupport.displayAccord(accord)))
         }
 
             // 이미지 로드
@@ -266,13 +266,13 @@ final class HomePerfumeCardCell: UICollectionViewCell {
 
     private func pillColors(for family: String) -> (UIColor, UIColor) {
         switch family {
-            case "Floral", "Soft Floral": return (UIColor(hex: "#fbeaf0"), UIColor(hex: "#993556"))
-            case "Amber", "Woody Amber":  return (UIColor(hex: "#fdf0e0"), UIColor(hex: "#9a5c12"))
-            case "Woody", "Dry Woods", "Mossy Woods": return (UIColor(hex: "#f5ede3"), UIColor(hex: "#7a4f2a"))
-            case "Fresh", "Citrus":       return (UIColor(hex: "#e4f5ef"), UIColor(hex: "#1a6b52"))
-            case "Water", "Aquatic":      return (UIColor(hex: "#e4eef8"), UIColor(hex: "#1a4a7a"))
-            case "Musk":                  return (UIColor(hex: "#eef0f8"), UIColor(hex: "#4a5280"))
-            case "Fruity", "Green":       return (UIColor(hex: "#edf5e0"), UIColor(hex: "#3d6b15"))
+            case "플로럴", "소프트 플로럴": return (UIColor(hex: "#fbeaf0"), UIColor(hex: "#993556"))
+            case "앰버", "우디 앰버": return (UIColor(hex: "#fdf0e0"), UIColor(hex: "#9a5c12"))
+            case "우디", "드라이 우즈", "모씨 우즈": return (UIColor(hex: "#f5ede3"), UIColor(hex: "#7a4f2a"))
+            case "프레시", "시트러스": return (UIColor(hex: "#e4f5ef"), UIColor(hex: "#1a6b52"))
+            case "워터", "아쿠아틱": return (UIColor(hex: "#e4eef8"), UIColor(hex: "#1a4a7a"))
+            case "머스크", "머스키": return (UIColor(hex: "#eef0f8"), UIColor(hex: "#4a5280"))
+            case "프루티", "그린": return (UIColor(hex: "#edf5e0"), UIColor(hex: "#3d6b15"))
             default:                      return (UIColor(hex: "#f0ede8"), UIColor(hex: "#6b6560"))
         }
     }

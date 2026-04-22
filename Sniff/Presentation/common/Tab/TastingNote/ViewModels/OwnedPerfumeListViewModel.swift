@@ -11,6 +11,10 @@ import RxSwift
 @MainActor
 final class OwnedPerfumeListViewModel: ObservableObject {
 
+    private enum DisplayLimit {
+        static let maxItems = 10
+    }
+
     struct PerfumeCardItem: Identifiable {
         let id: String
         let name: String
@@ -19,6 +23,7 @@ final class OwnedPerfumeListViewModel: ObservableObject {
         let accordTags: [String]
         let hasTastingRecord: Bool
         let isLiked: Bool
+        let sourcePerfume: Perfume
     }
 
     @Published private(set) var perfumes: [PerfumeCardItem] = []
@@ -78,8 +83,10 @@ final class OwnedPerfumeListViewModel: ObservableObject {
                 likedIDs = []
             }
 
-            perfumes = collection.map { perfume in
-                PerfumeCardItem(
+            perfumes = Array(collection.prefix(DisplayLimit.maxItems)).map { perfume in
+                let sourcePerfume = perfume.toPerfume()
+
+                return PerfumeCardItem(
                     id: perfume.id,
                     name: perfume.name,
                     brand: perfume.brand,
@@ -94,7 +101,8 @@ final class OwnedPerfumeListViewModel: ObservableObject {
                             brandName: perfume.brand
                         )
                     ),
-                    isLiked: likedIDs.contains(perfume.id)
+                    isLiked: likedIDs.contains(perfume.id),
+                    sourcePerfume: sourcePerfume
                 )
             }
 
@@ -141,6 +149,36 @@ final class OwnedPerfumeListViewModel: ObservableObject {
 
     func clearError() {
         errorMessage = nil
+    }
+
+    func toggleLike(for id: String) async {
+        guard let index = perfumes.firstIndex(where: { $0.id == id }) else { return }
+
+        let item = perfumes[index]
+        let willLike = !item.isLiked
+        let previousPerfumes = perfumes
+
+        perfumes[index] = PerfumeCardItem(
+            id: item.id,
+            name: item.name,
+            brand: item.brand,
+            imageURL: item.imageURL,
+            accordTags: item.accordTags,
+            hasTastingRecord: item.hasTastingRecord,
+            isLiked: willLike,
+            sourcePerfume: item.sourcePerfume
+        )
+
+        do {
+            if willLike {
+                try await collectionRepository.saveLikedPerfume(item.sourcePerfume).async()
+            } else {
+                try await collectionRepository.deleteLikedPerfume(id: item.id).async()
+            }
+        } catch {
+            perfumes = previousPerfumes
+            errorMessage = error.localizedDescription
+        }
     }
 }
 
