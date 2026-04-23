@@ -7,14 +7,9 @@
 
 import Foundation
 
-// MARK: - 향수 용어 한국어 변환 유틸리티
-
 enum PerfumeKoreanTranslator {
 
-    // MARK: - Accord(향 계열) → 한국어 변환 사전
-
     static let accordToKorean: [String: String] = [
-        // 플로럴 계열
         "Floral": "플로럴",
         "White Floral": "화이트 플로럴",
         "Soft Floral": "소프트 플로럴",
@@ -34,8 +29,6 @@ enum PerfumeKoreanTranslator {
         "Peony": "피오니",
         "Ylang-Ylang": "일랑일랑",
         "Neroli": "네롤리",
-
-        // 우디 계열
         "Woody": "우디",
         "Woods": "우즈",
         "Woody Amber": "우디 앰버",
@@ -49,11 +42,9 @@ enum PerfumeKoreanTranslator {
         "Vetiver": "베티버",
         "Patchouli": "파출리",
         "Oud": "우드",
-
-        // 프레시 계열
+        "Fresh": "프레시",
         "Fresh Spicy": "프레시 스파이시",
         "Citrus": "시트러스",
-        "Water": "워터",
         "Aquatic": "아쿠아틱",
         "Marine": "마린",
         "Green": "그린",
@@ -66,8 +57,7 @@ enum PerfumeKoreanTranslator {
         "Orange": "오렌지",
         "Grapefruit": "그레이프프루트",
         "Sea": "씨",
-
-        // 오리엔탈/앰버 계열
+        "Water": "워터",
         "Amber": "앰버",
         "Amber(Oriental)": "앰버(오리엔탈)",
         "Amber Vanilla": "앰버 바닐라",
@@ -88,8 +78,6 @@ enum PerfumeKoreanTranslator {
         "Cardamom": "카다몸",
         "Cinnamon": "시나몬",
         "Pepper": "페퍼",
-
-        // 구르망/프루티 계열
         "Fruity": "프루티",
         "Gourmand": "구르망",
         "Peach": "피치",
@@ -104,8 +92,6 @@ enum PerfumeKoreanTranslator {
         "Caramel": "카라멜",
         "Almond": "아몬드",
         "Beeswax": "비즈왁스",
-
-        // 기타
         "Herbal": "허벌",
         "Earthy": "어시",
         "Mossy": "모씨",
@@ -115,23 +101,132 @@ enum PerfumeKoreanTranslator {
         "Soapy": "소피",
     ]
 
-    // MARK: - 소문자 accord → 한국어 역맵 (API 소문자 대응)
-    // accordToKorean 키를 전부 소문자로 낮춰서 저장 → 대소문자 무관 검색
-    // uniquingKeysWith: 중복 시 마지막 값으로 덮어씀
+    static let noteToKorean: [String: String] = [
+        "Bergamot": "베르가못",
+        "Lemon": "레몬",
+        "Orange": "오렌지",
+        "Mandarin Orange": "만다린 오렌지",
+        "Mandarin": "만다린",
+        "Neroli": "네롤리",
+        "Petitgrain": "프티그랭",
+        "Grapefruit": "그레이프프루트",
+        "Yuzu": "유자",
+        "Blackcurrant": "블랙커런트",
+        "Black Currant": "블랙커런트",
+        "Pear": "배",
+        "Apple": "사과",
+        "Peach": "복숭아",
+        "Raspberry": "라즈베리",
+        "Strawberry": "딸기",
+        "Coconut": "코코넛",
+        "Fig": "무화과",
+        "Tea": "티",
+        "Green Tea": "그린티",
+        "Lavender": "라벤더",
+        "Rose": "로즈",
+        "Jasmine": "재스민",
+        "Iris": "아이리스",
+        "Violet": "바이올렛",
+        "Peony": "피오니",
+        "Lily": "릴리",
+        "Lily-of-the-Valley": "은방울꽃",
+        "Lily of the Valley": "은방울꽃",
+        "Freesia": "프리지아",
+        "Gardenia": "가디니아",
+        "Tuberose": "튜베로즈",
+        "Orange Blossom": "오렌지 블로섬",
+        "Magnolia": "마그놀리아",
+        "Geranium": "제라늄",
+        "Carnation": "카네이션",
+        "Cedar": "시더",
+        "Cedarwood": "시더우드",
+        "Sandalwood": "샌달우드",
+        "Vetiver": "베티버",
+        "Patchouli": "파출리",
+        "Oud": "우드",
+        "Oakmoss": "오크모스",
+        "Amber": "앰버",
+        "Musk": "머스크",
+        "White Musk": "화이트 머스크",
+        "Vanilla": "바닐라",
+        "Tonka Bean": "통카빈",
+        "Benzoin": "벤조인",
+        "Incense": "인센스",
+        "Frankincense": "프랑킨센스",
+        "Myrrh": "미르",
+        "Leather": "레더",
+        "Tobacco": "타바코",
+        "Coffee": "커피",
+        "Cacao": "카카오",
+        "Chocolate": "초콜릿",
+        "Honey": "허니",
+        "Salt": "소금",
+        "Sea Notes": "바다 노트",
+        "Marine Notes": "마린 노트",
+        "Aldehydes": "알데하이드",
+        "Pink Pepper": "핑크 페퍼",
+        "Pepper": "페퍼",
+        "Cardamom": "카다몸",
+        "Cinnamon": "시나몬",
+        "Saffron": "사프란",
+        "Ginger": "진저",
+    ]
+
+    static let concentrationToKorean: [String: String] = [
+        "parfum": "퍼퓸",
+        "perfume": "퍼퓸",
+        "extrait": "엑스트레 드 퍼퓸",
+        "extrait de parfum": "엑스트레 드 퍼퓸",
+        "edp": "오 드 퍼퓸",
+        "eau de parfum": "오 드 퍼퓸",
+        "edt": "오 드 뚜왈렛",
+        "eau de toilette": "오 드 뚜왈렛",
+        "edc": "오 드 코롱",
+        "eau de cologne": "오 드 코롱",
+        "cologne": "오 드 코롱",
+        "fraiche": "오 프레쉬",
+        "eau fraiche": "오 프레쉬",
+        "oil": "오일",
+    ]
+
+    static let longevityToKorean: [String: String] = [
+        "very weak": "매우 약함",
+        "weak": "약함",
+        "moderate": "보통",
+        "long lasting": "오래 지속됨",
+        "very long lasting": "매우 오래 지속됨",
+    ]
+
+    static let sillageToKorean: [String: String] = [
+        "intimate": "은은함",
+        "soft": "약함",
+        "moderate": "보통",
+        "strong": "강함",
+        "enormous": "매우 강함",
+        "overwhelming": "압도적",
+    ]
+
+    static let seasonToKorean: [String: String] = [
+        "spring": "봄",
+        "summer": "여름",
+        "fall": "가을",
+        "autumn": "가을",
+        "winter": "겨울",
+    ]
 
     static let lowerAccordToKorean: [String: String] = {
         Dictionary(accordToKorean.map { ($0.key.lowercased(), $0.value) },
                    uniquingKeysWith: { _, last in last })
     }()
 
-    // MARK: - 한국어 → Accord 역변환 (검색용)
-    // uniquingKeysWith: 중복 값이 있어도 크래시 없이 마지막 값으로 덮어씀
+    static let lowerNoteToKorean: [String: String] = {
+        Dictionary(noteToKorean.map { ($0.key.lowercased(), $0.value) },
+                   uniquingKeysWith: { _, last in last })
+    }()
 
     static let koreanToAccord: [String: String] = {
         Dictionary(accordToKorean.map { ($1, $0) }, uniquingKeysWith: { _, last in last })
     }()
-
-    // MARK: - 브랜드명 한국어 변환 사전
 
     static let brandToKorean: [String: String] = [
         "Le Labo": "르 라보",
@@ -183,14 +278,14 @@ enum PerfumeKoreanTranslator {
         "Memo Paris": "메모 파리",
         "Orto Parisi": "오르토 파리시",
         "Masque Milano": "마스크 밀라노",
-        "L'Artisan Parfumeur": "라르티장 파르퍼뫄",
+        "L'Artisan Parfumeur": "라르티장 파르퓌메르",
         "Atelier Cologne": "아뜰리에 코롱",
         "Etat Libre d'Orange": "에따 리브르 도랑쥬",
         "Parfums de Nicolai": "파르팡 드 니콜라이",
-        "L'Occitane": "록시탄",
+        "L'Occitane": "록시땅",
         "Issey Miyake": "이세이 미야케",
         "Thierry Mugler": "티에리 뮈글러",
-        "Carolina Herrera": "캐롤리나 에레라",
+        "Carolina Herrera": "캐롤리나 헤레라",
         "Marc Jacobs": "마크 제이콥스",
         "Dolce & Gabbana": "돌체 앤 가바나",
         "Burberry": "버버리",
@@ -205,48 +300,17 @@ enum PerfumeKoreanTranslator {
         "Missoni": "미쏘니",
         "Etro": "에트로",
         "Nuxe": "뉙스",
+        "Fresh": "프레쉬",
+        "Floral Street": "플로럴 스트리트",
+        "Bdk Parfums": "비디케이 퍼퓸즈",
+        "Snif": "스니프",
     ]
-
-    // MARK: - 한국어 → 브랜드 역변환
-    // uniquingKeysWith: "에르메스"→Hermès/Hermes 등 중복 매핑을 안전하게 처리
 
     static let koreanToBrand: [String: String] = {
         Dictionary(brandToKorean.map { ($1, $0) }, uniquingKeysWith: { _, last in last })
     }()
 
-    // MARK: - 한국어 포함 여부 확인
-
-    static func containsKorean(_ text: String) -> Bool {
-        text.unicodeScalars.contains {
-            (0xAC00...0xD7A3).contains($0.value) ||  // 한글 음절
-            (0x1100...0x11FF).contains($0.value) ||  // 한글 자모
-            (0x3130...0x318F).contains($0.value)      // 한글 호환 자모
-        }
-    }
-
-    // MARK: - Accord 한국어 변환 (단일)
-    // 1) 이미 한국어  →  그대로
-    // 2) 사전에 정확히 있으면  →  바로 반환
-    // 3) 소문자 변환 후 lowerAccordToKorean 에서 검색  →  API 소문자 대응
-    // 4) 모두 실패 시 원본 반환
-
-    static func korean(for accord: String) -> String {
-        if containsKorean(accord) { return accord }
-        if let k = accordToKorean[accord] { return k }
-        return lowerAccordToKorean[accord.lowercased()] ?? accord
-    }
-
-    // MARK: - Accord 배열 한국어 변환
-
-    static func koreanAccords(for accords: [String]) -> [String] {
-        accords.map { korean(for: $0) }
-    }
-
-    // MARK: - 한국어 향수명 단어 → 영문 역변환 사전
-    // (PerfumeNameTranslationService.wordDict 의 value→key 역방향)
-
     static let koreanWordToEnglish: [String: String] = [
-        // ── 크리드 ──
         "어벤투스": "aventus", "히말라야": "himalaya", "카르미나": "carmina",
         "타바롬": "tabarome", "에롤파": "erolfa", "델피너스": "delphinus",
         "밀레짐": "millesime", "임페리알레": "imperiale", "부아": "bois",
@@ -256,7 +320,6 @@ enum PerfumeKoreanTranslator {
         "플뢰리시모": "fleurissimo", "플로라리": "floralie",
         "센타우루스": "centaurus", "셀렉션": "selection", "베르트": "verte",
         "튜베르즈": "tubereuse", "인디아나": "indiana", "상탈": "santal",
-        // ── 조 말론 ──
         "버라이어티": "variety", "그레이프프루트": "grapefruit",
         "워터릴리": "waterlily", "가든": "garden", "하이아신스": "hyacinth",
         "타바코": "tobacco", "만다린": "mandarin", "베르가못": "bergamot",
@@ -268,7 +331,6 @@ enum PerfumeKoreanTranslator {
         "베이": "bay", "코리앤더": "coriander", "오스만투스": "osmanthus",
         "포피": "poppy", "발리": "barley", "스칼렛": "scarlet",
         "문릿": "moonlit", "카모마일": "camomile",
-        // ── 프랑스어 ──
         "누아르": "noir", "블랑": "blanc", "루즈": "rouge",
         "뿌르": "pour", "옴므": "homme", "팜므": "femme",
         "소바쥬": "sauvage", "블루": "bleu",
@@ -277,11 +339,9 @@ enum PerfumeKoreanTranslator {
         "플뢰르": "fleur", "솔레이": "soleil", "뉘": "nuit",
         "자르당": "jardin", "베티버": "vetiver", "패출리": "patchouli",
         "이리스": "iris", "바닐": "vanille",
-        // ── 이탈리아어 ──
         "지오": "gio", "프로푸모": "profumo", "인텐사": "intensa",
         "테라": "terra", "벨라": "bella", "비타": "vita",
         "아모르": "amor", "로사": "rosa", "프로폰도": "profondo",
-        // ── 일반 향수 단어 ──
         "플로럴": "floral", "프레시": "fresh", "스위트": "sweet",
         "우즈": "woods", "포레스트": "forest", "아쿠아": "aqua",
         "오션": "ocean", "코코넛": "coconut",
@@ -292,7 +352,6 @@ enum PerfumeKoreanTranslator {
         "익스트림": "extreme", "앱솔루트": "absolute",
         "컬렉션": "collection", "에디션": "edition",
         "스페셜": "special", "시그니처": "signature",
-        // ── 자연 재료 ──
         "시더": "cedar", "샌달우드": "sandalwood",
         "라벤더": "lavender", "재스민": "jasmine",
         "바이올렛": "violet", "앰버": "amber",
@@ -309,7 +368,6 @@ enum PerfumeKoreanTranslator {
         "로터스": "lotus", "허니서클": "honeysuckle",
         "엘더플라워": "elderflower", "프랑킨센스": "frankincense",
         "통카": "tonka",
-        // ── 형용사/수식어 ──
         "와일드": "wild", "퓨어": "pure", "딥": "deep",
         "리치": "rich", "라이트": "light", "다크": "dark",
         "소프트": "soft", "웜": "warm", "쿨": "cool",
@@ -319,11 +377,9 @@ enum PerfumeKoreanTranslator {
         "매직": "magic", "드림": "dream", "레전드": "legend",
         "클래식": "classic", "모던": "modern", "어반": "urban",
         "럭셔리": "luxury", "프리미엄": "premium",
-        // ── 공간/장소 ──
         "파리": "paris", "로마": "rome", "런던": "london",
         "밀란": "milan", "도쿄": "tokyo",
         "아일랜드": "island", "리버": "river", "밸리": "valley",
-        // ── 특정 향수 고유명 ──
         "샬리마르": "shalimar", "옵세션": "obsession",
         "이터니티": "eternity", "유포리아": "euphoria",
         "앙쥬": "angel", "에이리언": "alien",
@@ -335,31 +391,102 @@ enum PerfumeKoreanTranslator {
         "미네럴": "mineral", "솔트": "salt",
         "드리프트우드": "driftwood", "코랄": "coral",
         "헤븐": "heaven", "파라다이스": "paradise",
-        // ── 기타 ──
         "콜론": "cologne", "파르팡": "parfum", "뚜왈렛": "toilette",
         "엑스트레": "extrait", "포르테": "forte",
     ]
 
-    // MARK: - 한국어 검색어 → 영문 변환 (검색 fallback 용)
-    // 한국어 향수명/브랜드명을 단어 단위로 영문으로 변환하여 Fragella API 검색 가능하게 함
+    static func containsKorean(_ text: String) -> Bool {
+        text.unicodeScalars.contains {
+            (0xAC00...0xD7A3).contains($0.value) ||
+            (0x1100...0x11FF).contains($0.value) ||
+            (0x3130...0x318F).contains($0.value)
+        }
+    }
+
+    static func korean(for accord: String) -> String {
+        if containsKorean(accord) { return accord }
+        if let korean = accordToKorean[accord] { return korean }
+        return lowerAccordToKorean[accord.lowercased()] ?? accord
+    }
+
+    static func koreanAccords(for accords: [String]) -> [String] {
+        accords.map { korean(for: $0) }
+    }
+
+    static func koreanBrand(for brand: String) -> String {
+        if containsKorean(brand) { return brand }
+        return brandToKorean[brand] ?? brand
+    }
+
+    static func koreanNote(for note: String) -> String {
+        if containsKorean(note) { return note }
+        if let korean = noteToKorean[note] { return korean }
+        return lowerNoteToKorean[note.lowercased()] ?? note
+    }
+
+    static func koreanNotes(for notes: [String]) -> [String] {
+        notes.map { koreanNote(for: $0) }
+    }
+
+    static func koreanConcentration(for concentration: String?) -> String {
+        guard let concentration else { return "-" }
+        let trimmed = concentration.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "-" }
+        if containsKorean(trimmed) { return trimmed }
+
+        let key = trimmed.lowercased()
+        if let korean = concentrationToKorean[key] { return korean }
+
+        return trimmed
+            .replacingOccurrences(of: "eau de ", with: "오 드 ")
+            .replacingOccurrences(of: "parfum", with: "퍼퓸")
+            .replacingOccurrences(of: "toilette", with: "뚜왈렛")
+            .replacingOccurrences(of: "cologne", with: "코롱")
+            .capitalized
+    }
+
+    static func koreanPerfumeName(for perfumeName: String) -> String {
+        let trimmed = perfumeName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return perfumeName }
+        if containsKorean(trimmed) { return trimmed }
+        return PerfumeNameTranslationService.localTransliterate(trimmed)
+    }
+
+    static func koreanLongevity(for value: String?) -> String {
+        guard let value else { return "-" }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "-" }
+        if containsKorean(trimmed) { return trimmed }
+        return longevityToKorean[trimmed.lowercased()] ?? trimmed
+    }
+
+    static func koreanSillage(for value: String?) -> String {
+        guard let value else { return "-" }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "-" }
+        if containsKorean(trimmed) { return trimmed }
+        return sillageToKorean[trimmed.lowercased()] ?? trimmed
+    }
+
+    static func koreanSeason(for value: String) -> String {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return value }
+        if containsKorean(trimmed) { return trimmed }
+        return seasonToKorean[trimmed.lowercased()] ?? trimmed
+    }
 
     static func toEnglishQuery(_ query: String) -> String? {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
 
-        // 1) accord 역변환 (정확히 일치)
         if let english = koreanToAccord[trimmed] { return english }
-
-        // 2) 브랜드 역변환 (정확히 일치)
         if let english = koreanToBrand[trimmed] { return english }
 
-        // 3) 단어별 역변환: 한국어 단어를 영문 단어로 변환
         let words = trimmed.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
         var translatedWords: [String] = []
         var anyTranslated = false
-
-        // 멀티워드 브랜드 우선 매칭 (최대 3단어)
         var i = 0
+
         while i < words.count {
             var matched = false
             for len in stride(from: min(3, words.count - i), through: 1, by: -1) {
@@ -375,12 +502,9 @@ enum PerfumeKoreanTranslator {
             if !matched {
                 let word = words[i]
                 if let eng = koreanWordToEnglish[word] {
-                    // 정확히 일치하는 단어
                     translatedWords.append(eng)
                     anyTranslated = true
-                } else if let prefixMatch = koreanWordToEnglish
-                    .first(where: { $0.key.hasPrefix(word) && $0.key != word }) {
-                    // 접두사 매칭: "어벤투" → "어벤투스" 키를 찾아 "aventus" 반환
+                } else if let prefixMatch = koreanWordToEnglish.first(where: { $0.key.hasPrefix(word) && $0.key != word }) {
                     translatedWords.append(prefixMatch.value)
                     anyTranslated = true
                 } else {
@@ -392,7 +516,6 @@ enum PerfumeKoreanTranslator {
 
         if anyTranslated { return translatedWords.joined(separator: " ") }
 
-        // 4) 부분 매칭: 문자열 내 브랜드명 포함 여부
         for (korean, english) in koreanToBrand {
             if trimmed.localizedCaseInsensitiveContains(korean) {
                 let replaced = trimmed.replacingOccurrences(of: korean, with: english, options: .caseInsensitive)
@@ -401,12 +524,5 @@ enum PerfumeKoreanTranslator {
         }
 
         return nil
-    }
-
-    // MARK: - 브랜드명 한국어 변환 (단일)
-
-    static func koreanBrand(for brand: String) -> String {
-        if containsKorean(brand) { return brand }
-        return brandToKorean[brand] ?? brand
     }
 }

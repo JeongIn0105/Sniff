@@ -78,8 +78,20 @@ final class SuggestionCell: UITableViewCell {
         // MARK: - Configure
 
     func configure(with item: SuggestionItem, query: String) {
-        nameLabel.attributedText = highlight(text: item.displayName, query: query)
-        subTitleLabel.text = item.subTitle
+        let displayName: String
+        let displaySubtitle: String?
+
+        switch item {
+        case .brand(let name):
+            displayName = PerfumePresentationSupport.displayBrand(name)
+            displaySubtitle = item.subTitle
+        case .perfume(let name, let brand):
+            displayName = PerfumePresentationSupport.displayPerfumeName(name)
+            displaySubtitle = PerfumePresentationSupport.displayBrand(brand)
+        }
+
+        nameLabel.attributedText = highlight(text: displayName, query: query)
+        subTitleLabel.text = displaySubtitle
 
             // 브랜드 타입은 subTitle을 "브랜드"로 고정 (검정색)
         if case .brand = item {

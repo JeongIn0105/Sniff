@@ -356,17 +356,17 @@ final class PerfumeDetailViewController: UIViewController {
 
     private func configure(with perfume: Perfume) {
         currentPerfume = perfume
-        title = perfume.name
+        title = PerfumePresentationSupport.displayPerfumeName(perfume.name)
 
         configureImage(using: perfume.imageUrl)
 
-        brandLabel.text = perfume.brand
-        nameLabel.text = perfume.name
-        concentrationLabel.text = formattedConcentration(perfume.concentration)
+        brandLabel.text = PerfumePresentationSupport.displayBrand(perfume.brand)
+        nameLabel.text = PerfumePresentationSupport.displayPerfumeName(perfume.name)
+        concentrationLabel.text = PerfumePresentationSupport.displayConcentration(perfume.concentration)
 
         usageInfoView.configure(
-            longevity: localizedLongevity(perfume.longevity ?? "-"),
-            sillage: localizedSillage(perfume.sillage ?? "-")
+            longevity: PerfumePresentationSupport.displayLongevity(perfume.longevity),
+            sillage: PerfumePresentationSupport.displaySillage(perfume.sillage)
         )
 
         let dominantAccordIndices = Set(
@@ -375,20 +375,18 @@ final class PerfumeDetailViewController: UIViewController {
             }
         )
         accordChipsView.configure(
-            texts: perfume.mainAccords.map { formatAccord($0) },
+            texts: perfume.mainAccords.map { PerfumePresentationSupport.displayAccord($0) },
             highlightedIndices: dominantAccordIndices,
             colorPalette: Palette.self
         )
 
         notesView.configure(
-            topNotes: perfume.topNotes ?? [],
-            middleNotes: perfume.middleNotes ?? [],
-            baseNotes: perfume.baseNotes ?? []
+            topNotes: PerfumePresentationSupport.displayNotes(perfume.topNotes ?? []),
+            middleNotes: PerfumePresentationSupport.displayNotes(perfume.middleNotes ?? []),
+            baseNotes: PerfumePresentationSupport.displayNotes(perfume.baseNotes ?? [])
         )
 
-        seasonChipsView.configure(
-            selectedSeasons: topSeasonNames(for: perfume)
-        )
+        seasonChipsView.configure(selectedSeasons: topSeasonNames(for: perfume))
         updateLikeUI(isLiked: likedPerfumeIDs.contains(perfume.id))
         updateOwnedUI(isOwned: ownedPerfumeIDs.contains(perfume.id))
     }
@@ -422,14 +420,8 @@ final class PerfumeDetailViewController: UIViewController {
             .prefix(2)
             .map(\.name)
 
-        return rankedSeasons.isEmpty ? (perfume.season ?? []) : Array(rankedSeasons)
-    }
-
-    private func formatAccord(_ accord: String) -> String {
-        accord
-            .split(separator: " ")
-            .map { $0.prefix(1).uppercased() + $0.dropFirst().lowercased() }
-            .joined(separator: " ")
+        let seasons = rankedSeasons.isEmpty ? (perfume.season ?? []) : Array(rankedSeasons)
+        return PerfumePresentationSupport.displaySeasons(seasons)
     }
 
     private func updateLoadingState(_ isLoading: Bool) {
@@ -439,55 +431,6 @@ final class PerfumeDetailViewController: UIViewController {
             loadingIndicator.stopAnimating()
         }
         scrollView.isHidden = isLoading
-    }
-
-    private func formattedConcentration(_ value: String?) -> String {
-        guard let value, !value.isEmpty else { return "-" }
-        let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-
-        switch normalized {
-            case "parfum", "perfume":
-                return "퍼퓸"
-            case "edp", "eau de parfum":
-                return "오 드 퍼퓸"
-            case "edt", "eau de toilette":
-                return "오 드 뚜왈렛"
-            case "edc", "eau de cologne", "cologne":
-                return "오 드 코롱"
-            case "fraiche", "eau fraiche":
-                return "오 프레쉬"
-            default:
-                break
-        }
-
-        return value.replacingOccurrences(of: "eau de ", with: "오 드 ")
-            .replacingOccurrences(of: "parfum", with: "퍼퓸")
-            .replacingOccurrences(of: "toilette", with: "뚜왈렛")
-            .replacingOccurrences(of: "cologne", with: "코롱")
-            .capitalized
-    }
-
-    private func localizedLongevity(_ value: String) -> String {
-        switch value.lowercased() {
-            case "very weak":         return "매우 약함"
-            case "weak":              return "약함"
-            case "moderate":          return "보통"
-            case "long lasting":      return "오래 지속됨"
-            case "very long lasting": return "매우 오래 지속됨"
-            default:                  return value
-        }
-    }
-
-    private func localizedSillage(_ value: String) -> String {
-        switch value.lowercased() {
-            case "intimate":     return "은은함"
-            case "soft":         return "약함"
-            case "moderate":     return "보통"
-            case "strong":       return "강함"
-            case "enormous":     return "매우 강함"
-            case "overwhelming": return "압도적"
-            default:             return value
-        }
     }
 
     @objc private func backTapped() {
@@ -502,7 +445,7 @@ final class PerfumeDetailViewController: UIViewController {
         let formView = TastingNoteSceneFactory.makeFormView(initialPerfume: perfume) { [weak self] perfumeName in
             self?.showCompletionAlert(
                 title: "시향 기록 저장 완료",
-                message: "\(perfumeName) 시향 기록이 저장되었습니다."
+                message: "\(PerfumePresentationSupport.displayPerfumeName(perfumeName)) 시향 기록이 저장되었습니다."
             )
         }
         let hostingController = UIHostingController(rootView: formView)

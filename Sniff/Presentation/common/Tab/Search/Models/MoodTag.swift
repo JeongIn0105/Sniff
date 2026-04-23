@@ -30,9 +30,9 @@ enum ScentFamilyFilter: String, CaseIterable, Codable {
     case mossyWoods = "Mossy Woods"
     case dryWoods = "Dry Woods"
 
-    var displayName: String { rawValue }
+    nonisolated var displayName: String { rawValue }
 
-    var descriptionText: String {
+    nonisolated var descriptionText: String {
         switch self {
         case .citrus:
             return "레몬과 베르가못처럼 상큼하고 밝은 계열"
@@ -77,7 +77,7 @@ enum ScentFamilyFilter: String, CaseIterable, Codable {
         .softAmber, .amber, .woodyAmber, .woods, .mossyWoods, .dryWoods
     ]
 
-    var matchingRawAccords: [String] {
+    nonisolated var matchingRawAccords: [String] {
         switch self {
         case .citrus:
             return ["citrus", "bergamot", "lemon", "orange", "grapefruit", "mandarin"]
@@ -134,10 +134,10 @@ enum Concentration: String, CaseIterable, Codable {
     case edc       = "오드콜로뉴(EDC)"
     case eauFraiche = "오프레시"
 
-    var displayName: String { rawValue }
+    nonisolated var displayName: String { rawValue }
 
         // Fragella API 값 매핑
-    var fragellaValues: [String] {
+    nonisolated var fragellaValues: [String] {
         switch self {
             case .parfum:      return ["parfum", "extrait de parfum", "pure perfume"]
             case .edp:         return ["eau de parfum", "edp"]
@@ -156,9 +156,9 @@ enum Season: String, CaseIterable, Codable {
     case fall      = "가을"
     case winter    = "겨울"
 
-    var displayName: String { rawValue }
+    nonisolated var displayName: String { rawValue }
 
-    var fragellaValue: String? {
+    nonisolated var fragellaValue: String? {
         switch self {
             case .spring:    return "spring"
             case .summer:    return "summer"

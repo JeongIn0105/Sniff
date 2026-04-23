@@ -141,8 +141,8 @@ final class PerfumeGridCell: UICollectionViewCell {
         // MARK: - Configure
 
     func configure(with perfume: Perfume, isLiked: Bool = false) {
-        brandLabel.text = perfume.brand
-        nameLabel.text = perfume.name
+        brandLabel.text = PerfumePresentationSupport.displayBrand(perfume.brand)
+        nameLabel.text = PerfumePresentationSupport.displayPerfumeName(perfume.name)
         wishlistButton.isSelected = isLiked
         placeholderLabel.isHidden = false
 
@@ -164,7 +164,7 @@ final class PerfumeGridCell: UICollectionViewCell {
             // Accord Pill — 최대 2개
         accordStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         perfume.mainAccords.prefix(2).forEach { accord in
-            let pill = AccordPillView(accord: accord)
+            let pill = AccordPillView(accord: PerfumePresentationSupport.displayAccord(accord))
             accordStackView.addArrangedSubview(pill)
         }
     }
@@ -183,6 +183,7 @@ private final class AccordPillView: UIView {
 
     private func setupUI(accord: String) {
         backgroundColor = .clear
+        let displayAccord = PerfumePresentationSupport.displayAccord(accord)
 
         let dot = UIView().then {
             $0.backgroundColor = ScentFamilyColor.color(for: accord)
@@ -190,7 +191,7 @@ private final class AccordPillView: UIView {
         }
 
         let label = UILabel().then {
-            $0.text = accord
+            $0.text = displayAccord
             $0.font = .systemFont(ofSize: 11)
             $0.textColor = .secondaryLabel
         }

@@ -8,7 +8,7 @@
 import Foundation
 
 enum SearchFilterEngine {
-    static func apply(
+    nonisolated static func apply(
         perfumes: [Perfume],
         filter: SearchFilter,
         sort: SortOption = .recommended
@@ -16,7 +16,7 @@ enum SearchFilterEngine {
         sortPerfumes(filterPerfumes(perfumes, filter: filter), sort: sort)
     }
 
-    static func filterPerfumes(_ perfumes: [Perfume], filter: SearchFilter) -> [Perfume] {
+    nonisolated static func filterPerfumes(_ perfumes: [Perfume], filter: SearchFilter) -> [Perfume] {
         var result = perfumes
 
         if !filter.scentFamilies.isEmpty {
@@ -72,7 +72,7 @@ enum SearchFilterEngine {
         return result
     }
 
-    static func sortPerfumes(_ perfumes: [Perfume], sort: SortOption) -> [Perfume] {
+    nonisolated static func sortPerfumes(_ perfumes: [Perfume], sort: SortOption) -> [Perfume] {
         switch sort {
         case .recommended:
             return perfumes
@@ -93,22 +93,22 @@ enum SearchFilterEngine {
         }
     }
 
-    private static func normalizeOptionalString(_ value: String?) -> String? {
+    nonisolated private static func normalizeOptionalString(_ value: String?) -> String? {
         guard let value else { return nil }
         return normalizeString(value)
     }
 
-    private static func normalizeString(_ value: String) -> String {
+    nonisolated private static func normalizeString(_ value: String) -> String {
         value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
 
-    private static func normalizedSeasonTokens(for season: Season) -> [String] {
+    nonisolated private static func normalizedSeasonTokens(for season: Season) -> [String] {
         let display = normalizeString(season.displayName)
         let fragella = season.fragellaValue.map(normalizeString)
         return [display, fragella].compactMap { $0 }
     }
 
-    private static func normalizedSeasonTokens(for rawValue: String) -> [String] {
+    nonisolated private static func normalizedSeasonTokens(for rawValue: String) -> [String] {
         let normalized = normalizeString(rawValue)
 
         switch normalized {
@@ -125,7 +125,7 @@ enum SearchFilterEngine {
         }
     }
 
-    private static func englishSortKey(for value: String) -> String {
+    nonisolated private static func englishSortKey(for value: String) -> String {
         value
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "en_US_POSIX"))

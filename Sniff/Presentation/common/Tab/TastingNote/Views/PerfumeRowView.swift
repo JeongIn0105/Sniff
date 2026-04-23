@@ -34,14 +34,14 @@ struct PerfumeRowView: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 // 향수명
-                Text(name)
+                Text(PerfumePresentationSupport.displayPerfumeName(name))
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(.primary)
                     .lineLimit(1)
 
                 // 브랜드 | 향 계열
                 HStack(spacing: 4) {
-                    Text(brand)
+                    Text(PerfumePresentationSupport.displayBrand(brand))
                         .font(.system(size: 13))
                         .foregroundColor(.secondary)
 
@@ -49,8 +49,7 @@ struct PerfumeRowView: View {
                         Text("|")
                             .font(.system(size: 13))
                             .foregroundColor(Color(.systemGray4))
-
-                        ForEach(scentFamilies.prefix(2), id: \.self) { family in
+                        ForEach(PerfumePresentationSupport.displayAccords(Array(scentFamilies.prefix(2))), id: \.self) { family in
                             HStack(spacing: 3) {
                                 Circle()
                                     .frame(width: 4, height: 4)

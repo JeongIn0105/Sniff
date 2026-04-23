@@ -130,7 +130,7 @@ struct TastingNoteView: View {
 
     private var emptyTitle: String {
         if let perfumeScope = viewModel.perfumeScope {
-            return "\(perfumeScope.perfumeName) 시향 기록이 없어요"
+            return "\(PerfumePresentationSupport.displayPerfumeName(perfumeScope.perfumeName)) 시향 기록이 없어요"
         }
         switch viewModel.selectedFilter {
         case .all:    return "아직 작성한 시향기가 없어요"
@@ -245,13 +245,13 @@ struct TastingNoteRowView: View {
             perfumeThumbnail
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(note.perfumeName)
+                Text(PerfumePresentationSupport.displayPerfumeName(note.perfumeName))
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(.primary)
                     .lineLimit(1)
 
                 HStack(spacing: 4) {
-                    Text(note.brandName)
+                    Text(PerfumePresentationSupport.displayBrand(note.brandName))
                         .font(.system(size: 13))
                         .foregroundColor(.secondary)
 
@@ -260,20 +260,19 @@ struct TastingNoteRowView: View {
                             .font(.system(size: 13))
                             .foregroundColor(Color(.systemGray4))
 
-                        ForEach(Array(note.mainAccords.prefix(2).enumerated()), id: \.offset) { _, accord in
-                            Text(accord)
-                                .font(.system(size: 13))
-                                .foregroundColor(.secondary)
+                        ForEach(Array(PerfumePresentationSupport.displayAccords(Array(note.mainAccords.prefix(2))).enumerated()), id: \.offset) { _, accord in
+                            HStack(spacing: 3) {
+                                Circle()
+                                    .frame(width: 4, height: 4)
+                                    .foregroundColor(accord.accordColor)
 
-                            if accord != note.mainAccords.prefix(2).last {
-                                Text("•")
+                                Text(accord)
                                     .font(.system(size: 13))
                                     .foregroundColor(Color(.systemGray4))
                             }
                         }
                     }
                 }
-
                 Text(note.updatedAt.tastingNoteFormat)
                     .font(.system(size: 12))
                     .foregroundColor(Color(.tertiaryLabel))

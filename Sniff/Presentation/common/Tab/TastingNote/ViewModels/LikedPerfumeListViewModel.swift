@@ -11,6 +11,10 @@ import RxSwift
 @MainActor
 final class LikedPerfumeListViewModel: ObservableObject {
 
+    private enum DisplayLimit {
+        static let maxItems = 50
+    }
+
     struct PerfumeRowItem: Identifiable {
         let id: String
         let name: String
@@ -18,6 +22,7 @@ final class LikedPerfumeListViewModel: ObservableObject {
         let imageURL: String?
         let accordTags: [String]
         let hasTastingRecord: Bool
+        let sourcePerfume: Perfume
     }
 
     @Published private(set) var perfumes: [PerfumeRowItem] = []
@@ -59,8 +64,10 @@ final class LikedPerfumeListViewModel: ObservableObject {
                 tastingKeys = []
             }
 
-            perfumes = likedPerfumes.map { perfume in
-                PerfumeRowItem(
+            perfumes = Array(likedPerfumes.prefix(DisplayLimit.maxItems)).map { perfume in
+                let sourcePerfume = perfume.toPerfume()
+
+                return PerfumeRowItem(
                     id: perfume.id,
                     name: perfume.name,
                     brand: perfume.brand,
@@ -74,7 +81,8 @@ final class LikedPerfumeListViewModel: ObservableObject {
                             perfumeName: perfume.name,
                             brandName: perfume.brand
                         )
-                    )
+                    ),
+                    sourcePerfume: sourcePerfume
                 )
             }
         } catch {

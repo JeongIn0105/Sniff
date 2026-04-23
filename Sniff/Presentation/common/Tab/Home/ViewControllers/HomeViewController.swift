@@ -487,7 +487,7 @@ private extension HomeViewController {
     func presentLikeSavedAlert(perfumeName: String) {
         let alert = UIAlertController(
             title: nil,
-            message: "\(perfumeName)을 LIKE 향수에 저장했어요.",
+            message: "\(PerfumePresentationSupport.displayPerfumeName(perfumeName))을 LIKE 향수에 저장했어요.",
             preferredStyle: .alert
         )
 
