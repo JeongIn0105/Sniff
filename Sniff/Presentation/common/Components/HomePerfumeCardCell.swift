@@ -24,8 +24,8 @@ final class HomePerfumeCardCell: UICollectionViewCell {
         let v = UIView()
         v.backgroundColor = .systemBackground
         v.layer.cornerRadius = 16
-        v.layer.borderWidth = 0.5
-        v.layer.borderColor = UIColor.separator.withAlphaComponent(0.2).cgColor
+        v.layer.borderWidth = 1
+        v.layer.borderColor = UIColor.separator.withAlphaComponent(0.08).cgColor
         return v
     }()
 
@@ -49,7 +49,8 @@ final class HomePerfumeCardCell: UICollectionViewCell {
         $0.setImage(UIImage(systemName: "heart")?.withRenderingMode(.alwaysTemplate), for: .normal)
         $0.setImage(UIImage(systemName: "heart.fill")?.withRenderingMode(.alwaysTemplate), for: .selected)
         $0.tintColor = .white
-        $0.backgroundColor = .clear
+        $0.backgroundColor = UIColor.black.withAlphaComponent(0.18)
+        $0.layer.cornerRadius = 14
     }
 
         // 플레이스홀더 — 이미지 없을 때만
@@ -86,28 +87,22 @@ final class HomePerfumeCardCell: UICollectionViewCell {
         // 텍스트 영역
     private let brandLabel: UILabel = {
         let l = UILabel()
-        l.font = .systemFont(ofSize: 10, weight: .medium)
-        l.textColor = .tertiaryLabel
+        l.font = .systemFont(ofSize: 12, weight: .regular)
+        l.textColor = .secondaryLabel
         l.numberOfLines = 1
         return l
     }()
 
     private let perfumeNameLabel: UILabel = {
         let l = UILabel()
-        l.font = .systemFont(ofSize: 13, weight: .bold)
+        l.font = .systemFont(ofSize: 14, weight: .medium)
         l.textColor = .label
         l.numberOfLines = 2
         l.lineBreakMode = .byTruncatingTail
         return l
     }()
 
-    private let accordsStackView: UIStackView = {
-        let sv = UIStackView()
-        sv.axis = .horizontal
-        sv.spacing = 4
-        sv.alignment = .center
-        return sv
-    }()
+    private let accordsWrapView = HomeAccordWrapView()
 
         // MARK: - Init
 
@@ -124,7 +119,7 @@ final class HomePerfumeCardCell: UICollectionViewCell {
         wishlistButton.isSelected = false
         bottleImageView.kf.cancelDownloadTask()
         bottleImageView.image = nil
-        accordsStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        accordsWrapView.configure(accords: [])
         showPlaceholder()
     }
 
@@ -145,24 +140,22 @@ final class HomePerfumeCardCell: UICollectionViewCell {
 
         cardView.addSubview(brandLabel)
         cardView.addSubview(perfumeNameLabel)
-        cardView.addSubview(accordsStackView)
+        cardView.addSubview(accordsWrapView)
 
         cardView.snp.makeConstraints { $0.edges.equalToSuperview() }
 
-            // 이미지 영역 높이 늘림 (기존 126 → 148)
         imageContainerView.snp.makeConstraints {
             $0.top.leading.trailing.equalToSuperview()
-            $0.height.equalTo(188)
+            $0.height.equalTo(cardView.snp.width)
         }
 
-            // 향수 이미지를 이미지 컨테이너 꽉 채우게
         bottleImageView.snp.makeConstraints {
-            $0.edges.equalToSuperview()
+            $0.edges.equalToSuperview().inset(10)
         }
 
         wishlistButton.snp.makeConstraints {
-            $0.trailing.bottom.equalToSuperview().inset(10)
-            $0.size.equalTo(32)
+            $0.trailing.bottom.equalToSuperview().inset(8)
+            $0.size.equalTo(28)
         }
 
         placeholderCapView.snp.makeConstraints {
@@ -183,18 +176,17 @@ final class HomePerfumeCardCell: UICollectionViewCell {
         }
 
         brandLabel.snp.makeConstraints {
-            $0.top.equalTo(imageContainerView.snp.bottom).offset(12)
-            $0.leading.trailing.equalToSuperview().inset(14)
+            $0.top.equalTo(imageContainerView.snp.bottom).offset(8)
+            $0.leading.trailing.equalToSuperview().inset(10)
         }
         perfumeNameLabel.snp.makeConstraints {
             $0.top.equalTo(brandLabel.snp.bottom).offset(2)
-            $0.leading.trailing.equalToSuperview().inset(14)
+            $0.leading.trailing.equalToSuperview().inset(10)
         }
-        accordsStackView.snp.makeConstraints {
-            $0.top.equalTo(perfumeNameLabel.snp.bottom).offset(10)
-            $0.leading.equalToSuperview().inset(14)
-            $0.trailing.lessThanOrEqualToSuperview().inset(14)
-            $0.bottom.lessThanOrEqualToSuperview().inset(14)
+        accordsWrapView.snp.makeConstraints {
+            $0.top.equalTo(perfumeNameLabel.snp.bottom).offset(6)
+            $0.leading.trailing.equalToSuperview().inset(10)
+            $0.bottom.lessThanOrEqualToSuperview()
         }
     }
 
@@ -209,22 +201,18 @@ final class HomePerfumeCardCell: UICollectionViewCell {
         placeholderMonogramLabel.text = monogram
 
             // 배경색 단일 크림톤으로 통일
-        let creamBg = UIColor(red: 0.96, green: 0.94, blue: 0.91, alpha: 1)
+        let creamBg = UIColor(red: 0.97, green: 0.95, blue: 0.92, alpha: 1)
         imageContainerView.backgroundColor = creamBg
         placeholderCapView.backgroundColor = UIColor(red: 0.86, green: 0.83, blue: 0.79, alpha: 1)
         placeholderMonogramLabel.textColor = UIColor(red: 0.55, green: 0.48, blue: 0.40, alpha: 1)
 
             // accord pills
-        accordsStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         let accords = item.accordsText
             .components(separatedBy: "  ")
             .map { $0.replacingOccurrences(of: "• ", with: "").trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
-            .prefix(2)
 
-        for accord in accords {
-            accordsStackView.addArrangedSubview(makePill(accord))
-        }
+        accordsWrapView.configure(accords: accords)
 
             // 이미지 로드
         if let urlString = item.imageURL, let url = URL(string: urlString) {
@@ -245,7 +233,7 @@ final class HomePerfumeCardCell: UICollectionViewCell {
 
         // MARK: - Pill
 
-    private func makePill(_ text: String) -> UIView {
+    fileprivate static func makePill(_ text: String) -> UIView {
         let label = UILabel()
         label.text = text
         label.font = .systemFont(ofSize: 10, weight: .medium)
@@ -264,15 +252,15 @@ final class HomePerfumeCardCell: UICollectionViewCell {
         return container
     }
 
-    private func pillColors(for family: String) -> (UIColor, UIColor) {
+    fileprivate static func pillColors(for family: String) -> (UIColor, UIColor) {
         switch family {
-            case "Floral", "Soft Floral": return (UIColor(hex: "#fbeaf0"), UIColor(hex: "#993556"))
-            case "Amber", "Woody Amber":  return (UIColor(hex: "#fdf0e0"), UIColor(hex: "#9a5c12"))
-            case "Woody", "Dry Woods", "Mossy Woods": return (UIColor(hex: "#f5ede3"), UIColor(hex: "#7a4f2a"))
-            case "Fresh", "Citrus":       return (UIColor(hex: "#e4f5ef"), UIColor(hex: "#1a6b52"))
-            case "Water", "Aquatic":      return (UIColor(hex: "#e4eef8"), UIColor(hex: "#1a4a7a"))
-            case "Musk":                  return (UIColor(hex: "#eef0f8"), UIColor(hex: "#4a5280"))
+            case "Floral", "Soft Floral", "Floral Amber": return (UIColor(hex: "#fbeaf0"), UIColor(hex: "#993556"))
+            case "Soft Amber", "Amber", "Woody Amber":  return (UIColor(hex: "#fdf0e0"), UIColor(hex: "#9a5c12"))
+            case "Woods", "Dry Woods", "Mossy Woods": return (UIColor(hex: "#f5ede3"), UIColor(hex: "#7a4f2a"))
+            case "Citrus":       return (UIColor(hex: "#e4f5ef"), UIColor(hex: "#1a6b52"))
+            case "Water":      return (UIColor(hex: "#e4eef8"), UIColor(hex: "#1a4a7a"))
             case "Fruity", "Green":       return (UIColor(hex: "#edf5e0"), UIColor(hex: "#3d6b15"))
+            case "Aromatic":              return (UIColor(hex: "#eeeaf8"), UIColor(hex: "#56468b"))
             default:                      return (UIColor(hex: "#f0ede8"), UIColor(hex: "#6b6560"))
         }
     }
@@ -310,6 +298,70 @@ final class HomePerfumeCardCell: UICollectionViewCell {
         placeholderBottleView.isHidden = false
         placeholderCapView.isHidden = false
         placeholderMessageLabel.isHidden = false
+    }
+}
+
+private final class HomeAccordWrapView: UIView {
+    private var accordViews: [UIView] = []
+    private let horizontalSpacing: CGFloat = 6
+    private let verticalSpacing: CGFloat = 6
+    private let pillHeight: CGFloat = 24
+
+    func configure(accords: [String]) {
+        accordViews.forEach { $0.removeFromSuperview() }
+        accordViews = accords.map { accord in
+            let pill = HomePerfumeCardCell.makePill(accord)
+            addSubview(pill)
+            return pill
+        }
+        setNeedsLayout()
+        invalidateIntrinsicContentSize()
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+
+        for pill in accordViews {
+            let width = pill.systemLayoutSizeFitting(
+                CGSize(width: UIView.layoutFittingCompressedSize.width, height: pillHeight)
+            ).width
+
+            if x + width > bounds.width && x > 0 {
+                x = 0
+                y += pillHeight + verticalSpacing
+            }
+
+            pill.frame = CGRect(x: x, y: y, width: width, height: pillHeight)
+            x += width + horizontalSpacing
+        }
+    }
+
+    override var intrinsicContentSize: CGSize {
+        guard bounds.width > 0 else {
+            let estimatedRows = accordViews.isEmpty ? 0 : 1
+            return CGSize(width: UIView.noIntrinsicMetric, height: CGFloat(estimatedRows) * pillHeight)
+        }
+
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+
+        for pill in accordViews {
+            let width = pill.systemLayoutSizeFitting(
+                CGSize(width: UIView.layoutFittingCompressedSize.width, height: pillHeight)
+            ).width
+
+            if x + width > bounds.width && x > 0 {
+                x = 0
+                y += pillHeight + verticalSpacing
+            }
+
+            x += width + horizontalSpacing
+        }
+
+        return CGSize(width: UIView.noIntrinsicMetric, height: accordViews.isEmpty ? 0 : y + pillHeight)
     }
 }
 

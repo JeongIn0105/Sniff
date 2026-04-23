@@ -19,63 +19,46 @@ struct SettingsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // MARK: - 커스텀 헤더
             customHeader
             Divider()
 
-            // MARK: - 설정 목록
             ScrollView(showsIndicators: false) {
-                VStack(spacing: 0) {
-                    // ─ 계정 정보 셀 (닉네임 + 이메일)
-                    accountCell
-
-                    Divider().padding(.leading, 20)
-
-                    // ── 여기 간격 ──
-                    Spacer().frame(height: 24)
-
-                    // ─ 개인정보처리방침
-                    NavigationLink {
-                        PrivacyPolicyView()
-                    } label: {
-                        infoRow(title: "개인정보처리방침")
+                VStack(spacing: 24) {
+                    settingsSection {
+                        accountCell
                     }
-                    .buttonStyle(.plain)
 
-                    Divider().padding(.leading, 20)
-
-                    // ─ 앱 버전 (탭 불가)
-                    versionRow
-
-                    Divider().padding(.leading, 20)
-
-                    // ─ 로그아웃
-                    Button {
-                        viewModel.showLogoutAlert = true
-                    } label: {
-                        HStack {
-                            Text("로그아웃")
-                                .font(.system(size: 16))
-                                .foregroundColor(.red)
-                            Spacer()
+                    settingsSection {
+                        NavigationLink {
+                            PrivacyPolicyView()
+                        } label: {
+                            settingsRow(title: "개인정보처리방침")
                         }
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 16)
-                        .contentShape(Rectangle())
+                        .buttonStyle(.plain)
+
+                        settingsRow(
+                            title: "앱 버전",
+                            trailing: "현재 버전 \(viewModel.appVersion)",
+                            showsChevron: false
+                        )
+
+                        Button {
+                            viewModel.showLogoutAlert = true
+                        } label: {
+                            settingsRow(title: "로그아웃", tint: .red, showsChevron: false)
+                        }
+                        .buttonStyle(.plain)
+
+                        NavigationLink {
+                            SettingsSceneFactory.makeWithdrawView(nickname: viewModel.nickname)
+                        } label: {
+                            settingsRow(title: "회원 탈퇴", tint: Color(.systemGray), showsChevron: false)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
-
-                    Divider()
-
-                    NavigationLink {
-                        SettingsSceneFactory.makeWithdrawView(nickname: viewModel.nickname)
-                    } label: {
-                        withdrawRow
-                    }
-                    .buttonStyle(.plain)
-
-                    Divider()
                 }
+                .padding(.horizontal, 20)
+                .padding(.top, 24)
             }
         }
         .background(Color(.systemBackground).ignoresSafeArea())
@@ -102,8 +85,6 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: - 커스텀 헤더 (< 환경설정)
-
     private var customHeader: some View {
         HStack(spacing: 4) {
             Button {
@@ -126,8 +107,6 @@ struct SettingsView: View {
         .padding(.bottom, 4)
     }
 
-    // MARK: - 계정 셀 (닉네임 + 이메일)
-
     private var accountCell: some View {
         HStack(alignment: .center, spacing: 0) {
             VStack(alignment: .leading, spacing: 4) {
@@ -145,58 +124,47 @@ struct SettingsView: View {
 
             Spacer()
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 16)
-        .contentShape(Rectangle())
+        .padding(.horizontal, 16)
+        .padding(.vertical, 18)
     }
 
-    // MARK: - 일반 항목 행
+    private func settingsSection<Content: View>(
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(spacing: 0) {
+            content()
+        }
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
 
-    private func infoRow(title: String) -> some View {
-        HStack {
+    private func settingsRow(
+        title: String,
+        trailing: String? = nil,
+        tint: Color = .primary,
+        showsChevron: Bool = true
+    ) -> some View {
+        HStack(spacing: 12) {
             Text(title)
                 .font(.system(size: 16))
-                .foregroundColor(.primary)
+                .foregroundColor(tint)
 
             Spacer()
 
-            Image(systemName: "chevron.right")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(Color(.systemGray3))
+            if let trailing {
+                Text(trailing)
+                    .font(.system(size: 14))
+                    .foregroundColor(Color(.systemGray2))
+            }
+
+            if showsChevron {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(Color(.systemGray3))
+            }
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 16)
-        .contentShape(Rectangle())
-    }
-
-    // MARK: - 앱 버전 행 (탭 불가)
-
-    private var versionRow: some View {
-        HStack {
-            Text("앱 버전")
-                .font(.system(size: 16))
-                .foregroundColor(.primary)
-
-            Spacer()
-
-            Text("현재 버전 \(viewModel.appVersion)")
-                .font(.system(size: 14))
-                .foregroundColor(Color(.systemGray2))
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 16)
-    }
-
-    private var withdrawRow: some View {
-        HStack {
-            Text("회원 탈퇴")
-                .font(.system(size: 13))
-                .foregroundColor(Color(.systemGray))
-
-            Spacer()
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 14)
+        .padding(.horizontal, 16)
+        .frame(height: 54)
         .contentShape(Rectangle())
     }
 }

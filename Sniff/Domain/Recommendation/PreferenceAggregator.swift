@@ -53,10 +53,6 @@ struct PreferenceAggregator {
             .map(\.key)
 
         return UserTasteProfile(
-            primaryProfileCode: onboarding.primaryProfileCode,
-            primaryProfileName: onboarding.primaryProfileName,
-            secondaryProfileCode: onboarding.secondaryProfileCode,
-            secondaryProfileName: onboarding.secondaryProfileName,
             analysisSummary: onboarding.analysisSummary,
             preferredImpressions: onboarding.recommendationDirection.preferredImpression,
             preferredFamilies: Array(sortedFamilies.prefix(5)),
@@ -112,7 +108,6 @@ private extension PreferenceAggregator {
             raw[family, default: 0] += weight
         }
 
-        applyProfileCorrection(code: onboarding.primaryProfileCode, to: &raw)
         return normalize(raw)
     }
 
@@ -152,7 +147,7 @@ private extension PreferenceAggregator {
         for record in records {
             let vec     = perfumeVector(from: record.accordStrengths, fallback: record.mainAccords)
             let recency = recencyMultiplier(for: record.updatedAt)
-            let revisit = revisitMultiplier(for: record.wantToRevisit)
+            let revisit = revisitMultiplier(for: record.revisitDesire)
 
             if record.rating >= 3 {
                 let ratingWeight = positiveRatingWeight(for: record.rating) * recency * revisit
@@ -267,32 +262,6 @@ private extension PreferenceAggregator {
     }
 }
 
-    // MARK: - 프로필 코드 보정
-
-private extension PreferenceAggregator {
-
-    func applyProfileCorrection(code: String, to scores: inout [String: Double]) {
-        let correction: Double = 0.08
-        switch code {
-            case "P1": add(["Fresh", "Citrus", "Water"],          to: &scores, value: correction)
-            case "P2": add(["Citrus", "Fruity", "Fresh"],          to: &scores, value: correction)
-            case "P3": add(["Soft Floral", "Amber", "Musk"],       to: &scores, value: correction)
-            case "P4": add(["Floral", "Soft Floral"],              to: &scores, value: correction)
-            case "P5": add(["Woody", "Amber", "Aromatic"],         to: &scores, value: correction)
-            case "P6": add(["Green", "Aromatic", "Woody"],         to: &scores, value: correction)
-            case "P7": add(["Amber", "Mossy Woods", "Woody"],      to: &scores, value: correction)
-            case "P8": add(["Dry Woods", "Woody Amber"],           to: &scores, value: correction)
-            default:   break
-        }
-    }
-
-    func add(_ families: [String], to scores: inout [String: Double], value: Double) {
-        for family in families {
-            scores[family, default: 0] += value
-        }
-    }
-}
-
     // MARK: - 최근성 & 별점 & 재사용 의향 가중치
 
 private extension PreferenceAggregator {
@@ -347,12 +316,12 @@ private extension PreferenceAggregator {
 
     func mapMoodTagToFamilies(_ tag: String) -> [String] {
         switch tag {
-            case "상큼한":    return ["Citrus", "Fresh"]
-            case "시원한":    return ["Water", "Fresh"]
-            case "싱그러운":  return ["Green", "Fresh"]
+            case "상큼한":    return ["Citrus", "Fruity"]
+            case "시원한":    return ["Water", "Green"]
+            case "싱그러운":  return ["Green", "Aromatic"]
             case "은은한":    return ["Soft Floral", "Floral"]
-            case "보송보송한": return ["Soft Floral", "Musk"]
-            case "따뜻한":    return ["Amber", "Woody Amber"]
+            case "보송보송한": return ["Soft Floral", "Soft Amber"]
+            case "따뜻한":    return ["Soft Amber", "Amber", "Woody Amber"]
             case "묵직한":    return ["Amber", "Mossy Woods", "Dry Woods"]
             case "무거운":    return ["Woody Amber", "Dry Woods"]
             default:         return []

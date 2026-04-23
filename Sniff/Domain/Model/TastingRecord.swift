@@ -16,7 +16,6 @@ struct TastingRecord {
     let rating: Int
     let moodTags: [String]
     let memo: String?
-    let wantToRevisit: String?
     let revisitDesire: String?
     let createdAt: Date
     let updatedAt: Date
@@ -32,7 +31,7 @@ extension TastingRecord {
         rating: Int,
         moodTags: [String],
         memo: String?,
-        wantToRevisit: String?,
+        revisitDesire: String?,
         updatedAt: Date
     ) {
         self.init(
@@ -44,8 +43,7 @@ extension TastingRecord {
             rating: rating,
             moodTags: moodTags,
             memo: memo,
-            wantToRevisit: wantToRevisit,
-            revisitDesire: wantToRevisit,
+            revisitDesire: revisitDesire,
             createdAt: updatedAt,
             updatedAt: updatedAt
         )
@@ -71,7 +69,6 @@ extension TastingRecord {
             rating: rating,
             moodTags: moodTags,
             memo: nil,
-            wantToRevisit: revisitDesire,
             revisitDesire: revisitDesire,
             createdAt: createdAt,
             updatedAt: updatedAt
@@ -96,7 +93,6 @@ extension TastingRecord {
             rating: rating,
             moodTags: moodTags,
             memo: nil,
-            wantToRevisit: nil,
             revisitDesire: nil,
             createdAt: updatedAt,
             updatedAt: updatedAt
