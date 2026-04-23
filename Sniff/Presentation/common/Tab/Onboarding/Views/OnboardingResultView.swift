@@ -36,15 +36,9 @@ struct OnboardingResultView: View {
                     VStack(spacing: 20) {
 
                             // 주 취향 유형명
-                        Text(result.displayTitle)
+                        Text(result.primaryProfileName)
                             .font(.title3)
                             .bold()
-
-                        if !result.displayFamilySummary.isEmpty {
-                            Text(result.displayFamilySummary)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
 
                         Divider()
 
@@ -83,11 +77,10 @@ struct OnboardingResultView: View {
                     )
                     .padding(.horizontal)
 
-                    if !result.displayMajorSummary.isEmpty {
-                        Text(result.displayMajorSummary)
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                    }
+                        // 보조 취향
+                    Text("보조 취향: \(result.secondaryProfileName)")
+                        .font(.caption)
+                        .foregroundColor(.gray)
 
                     Spacer()
 

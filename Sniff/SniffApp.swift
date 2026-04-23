@@ -7,7 +7,6 @@
 
 import SwiftUI
 import FirebaseCore
-import FirebaseAuth
 import UIKit
 
 final class AppDelegate: NSObject, UIApplicationDelegate {}
@@ -26,8 +25,6 @@ struct SniffApp: App {
 
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var appStateManager = AppStateManager()
-    @State private var didResolveInitialRoute = false
-    private let dependencyContainer = AppDependencyContainer.shared
 
     // MARK: - Firebase 초기화
     init() {
@@ -47,16 +44,9 @@ struct SniffApp: App {
         case .splash:
             SplashView()
                 .onAppear {
-                    guard !didResolveInitialRoute else { return }
-                    didResolveInitialRoute = true
-
-                    Task {
-                        try? await Task.sleep(nanoseconds: 2_000_000_000)
-                        let nextState = await resolveInitialState()
-                        await MainActor.run {
-                            withAnimation(.easeInOut) {
-                                appStateManager.state = nextState
-                            }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        withAnimation(.easeInOut) {
+                            appStateManager.state = .login
                         }
                     }
                 }
@@ -76,21 +66,6 @@ struct SniffApp: App {
             )
         case .main:
             MainTabView()
-        }
-    }
-
-    private func resolveInitialState() async -> AppState {
-        guard let userID = Auth.auth().currentUser?.uid else {
-            return .login
-        }
-
-        do {
-            let hasProfile = try await dependencyContainer
-                .makeUserProfileStatusRepository()
-                .hasUserProfile(userID: userID)
-            return hasProfile ? .main : .onboardingIntro
-        } catch {
-            return .login
         }
     }
 }

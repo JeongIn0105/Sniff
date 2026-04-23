@@ -68,6 +68,11 @@ final class PerfumeDetailViewController: UIViewController {
         $0.tintColor = Palette.textPrimary
     }
 
+    private let gridButton = UIButton(type: .system).then {
+        $0.setImage(UIImage(systemName: "square.grid.2x2"), for: .normal)
+        $0.tintColor = Palette.textPrimary
+    }
+
     private let imageStageView = UIView().then {
         $0.backgroundColor = .clear
     }
@@ -166,7 +171,7 @@ final class PerfumeDetailViewController: UIViewController {
             seasonSectionView
         ].forEach { contentView.addSubview($0) }
 
-        topBarView.addSubview(backButton)
+        [backButton, gridButton].forEach { topBarView.addSubview($0) }
         heroSectionView.addSubview(imageStageView)
         imageStageView.addSubview(bottleImageView)
         imageStageView.addSubview(imagePlaceholderLabel)
@@ -206,6 +211,12 @@ final class PerfumeDetailViewController: UIViewController {
 
         backButton.snp.makeConstraints {
             $0.leading.equalToSuperview().offset(20)
+            $0.centerY.equalToSuperview()
+            $0.size.equalTo(28)
+        }
+
+        gridButton.snp.makeConstraints {
+            $0.trailing.equalToSuperview().offset(-20)
             $0.centerY.equalToSuperview()
             $0.size.equalTo(28)
         }
@@ -403,12 +414,11 @@ final class PerfumeDetailViewController: UIViewController {
             with: url,
             options: [.transition(.fade(0.2))]
         ) { [weak self] result in
-            guard let self else { return }
             switch result {
             case .success:
-                self.imagePlaceholderLabel.isHidden = true
+                self?.imagePlaceholderLabel.isHidden = true
             case .failure:
-                self.imagePlaceholderLabel.isHidden = false
+                self?.imagePlaceholderLabel.isHidden = false
             }
         }
     }

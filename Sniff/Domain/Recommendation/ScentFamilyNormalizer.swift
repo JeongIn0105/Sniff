@@ -21,34 +21,34 @@ enum ScentFamilyNormalizer {
             .replacingOccurrences(of: "-", with: " ")
 
         switch normalizedKey {
+        case "fresh", "fresh spicy":
+            return "Fresh"
         case "citrus":
             return "Citrus"
         case "water", "aquatic", "marine", "ozonic":
             return "Water"
-        case "green", "fresh", "clean fresh":
+        case "green":
             return "Green"
         case "floral", "white floral", "yellow floral", "rose":
             return "Floral"
-        case "soft floral", "powdery", "soapy", "clean", "musk", "musky", "white musk", "soft musk", "clean musk":
+        case "soft floral", "powdery", "soapy", "clean":
             return "Soft Floral"
         case "fruity":
             return "Fruity"
-        case "floral amber", "oriental floral":
-            return "Floral Amber"
-        case "soft amber", "soft oriental", "vanilla", "balsamic", "gourmand", "sweet amber":
-            return "Soft Amber"
-        case "amber", "oriental", "warm spicy", "resinous":
+        case "amber", "warm spicy", "vanilla", "balsamic", "gourmand":
             return "Amber"
-        case "woody", "oud", "sandalwood", "cedar", "wood":
-            return "Woods"
+        case "woody", "oud", "sandalwood", "cedar":
+            return "Woody"
         case "woody amber":
             return "Woody Amber"
         case "dry woods", "dry wood", "leather", "smoky":
             return "Dry Woods"
         case "mossy woods", "earthy", "patchouli":
             return "Mossy Woods"
-        case "aromatic", "herbal", "lavender", "fresh spicy":
+        case "aromatic", "herbal", "lavender":
             return "Aromatic"
+        case "musk", "musky", "white musk":
+            return "Musk"
         default:
             return trimmed
         }

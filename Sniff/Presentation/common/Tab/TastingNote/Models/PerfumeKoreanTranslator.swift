@@ -20,7 +20,6 @@ enum PerfumeKoreanTranslator {
         "Soft Floral": "소프트 플로럴",
         "Floral Woody Musk": "플로럴 우디 머스크",
         "Floral Amber": "플로럴 앰버",
-        "Soft Amber": "소프트 앰버",
         "Fresh Floral": "프레시 플로럴",
         "Rose": "로즈",
         "Jasmine": "재스민",
@@ -37,7 +36,6 @@ enum PerfumeKoreanTranslator {
 
         // 우디 계열
         "Woody": "우디",
-        "Woods": "우즈",
         "Woody Amber": "우디 앰버",
         "Woody Spicy": "우디 스파이시",
         "Fresh Woody": "프레시 우디",
@@ -51,9 +49,9 @@ enum PerfumeKoreanTranslator {
         "Oud": "우드",
 
         // 프레시 계열
+        "Fresh": "프레시",
         "Fresh Spicy": "프레시 스파이시",
         "Citrus": "시트러스",
-        "Water": "워터",
         "Aquatic": "아쿠아틱",
         "Marine": "마린",
         "Green": "그린",

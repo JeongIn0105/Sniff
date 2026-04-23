@@ -15,66 +15,72 @@ import Foundation
 typealias MoodTag = PreferenceTag
 
 enum ScentFamilyFilter: String, CaseIterable, Codable {
-    case citrus = "Citrus"
-    case fruity = "Fruity"
-    case green = "Green"
-    case water = "Water"
-    case aromatic = "Aromatic"
-    case floral = "Floral"
-    case softFloral = "Soft Floral"
-    case floralAmber = "Floral Amber"
-    case softAmber = "Soft Amber"
-    case amber = "Amber"
-    case woods = "Woods"
-    case woodyAmber = "Woody Amber"
-    case mossyWoods = "Mossy Woods"
-    case dryWoods = "Dry Woods"
+    case citrus = "시트러스"
+    case fruity = "프루티"
+    case green = "그린"
+    case aquatic = "아쿠아틱"
+    case aromatic = "아로마틱"
+    case floral = "플로럴"
+    case whiteFloral = "화이트 플로럴"
+    case rose = "로즈"
+    case powdery = "파우더리"
+    case musky = "머스키"
+    case woody = "우디"
+    case amber = "앰버"
+    case spicy = "스파이시"
+    case vanilla = "바닐라"
+    case gourmand = "구르망"
+    case leather = "레더"
 
     var displayName: String { rawValue }
 
     var descriptionText: String {
         switch self {
         case .citrus:
-            return "레몬과 베르가못처럼 상큼하고 밝은 계열"
+            return "상큼하고 밝은 첫인상이 강한 계열"
         case .fruity:
-            return "과즙감 있고 달콤한 생기가 느껴지는 계열"
+            return "달콤하고 과즙감 있는 생기 있는 계열"
         case .green:
-            return "풀잎과 허브처럼 싱그럽고 내추럴한 계열"
-        case .water:
+            return "풀잎처럼 싱그럽고 내추럴한 계열"
+        case .aquatic:
             return "물기 어린 시원함과 맑은 공기가 느껴지는 계열"
         case .aromatic:
             return "허브와 잎사귀처럼 산뜻하고 깔끔한 계열"
         case .floral:
-            return "꽃향 중심의 화사하고 우아한 계열"
-        case .softFloral:
-            return "보송하고 부드러운 꽃향이 감도는 계열"
-        case .floralAmber:
-            return "꽃향에 따뜻한 앰버 기운이 더해진 계열"
-        case .softAmber:
-            return "부드럽고 달콤하게 감도는 앰버 계열"
+            return "꽃향 중심의 부드럽고 화사한 계열"
+        case .whiteFloral:
+            return "풍성하고 크리미한 꽃향이 도드라지는 계열"
+        case .rose:
+            return "장미 특유의 우아하고 로맨틱한 계열"
+        case .powdery:
+            return "보송하고 포근하게 감싸는 잔향의 계열"
+        case .musky:
+            return "살냄새처럼 부드럽고 은은하게 남는 계열"
+        case .woody:
+            return "나무결처럼 차분하고 깊이감 있는 계열"
         case .amber:
             return "따뜻하고 묵직한 잔향이 느껴지는 계열"
-        case .woods:
-            return "나무결처럼 차분하고 자연스러운 우디 계열"
-        case .woodyAmber:
-            return "우디와 앰버가 겹쳐 따뜻하고 고급스러운 계열"
-        case .mossyWoods:
-            return "이끼와 흙내음이 감도는 깊고 차분한 우디 계열"
-        case .dryWoods:
-            return "건조하고 또렷한 나무 향이 중심인 우디 계열"
+        case .spicy:
+            return "향신료처럼 또렷하고 존재감 있는 계열"
+        case .vanilla:
+            return "달콤하고 크리미하게 감도는 계열"
+        case .gourmand:
+            return "디저트처럼 먹음직스럽고 진한 단향 계열"
+        case .leather:
+            return "가죽 특유의 드라이하고 시크한 계열"
         }
     }
 
     static let freshFamilies: [ScentFamilyFilter] = [
-        .citrus, .fruity, .green, .water, .aromatic
+        .citrus, .fruity, .green, .aquatic, .aromatic
     ]
 
     static let softFamilies: [ScentFamilyFilter] = [
-        .floral, .softFloral, .floralAmber
+        .floral, .whiteFloral, .rose, .powdery, .musky
     ]
 
     static let deepFamilies: [ScentFamilyFilter] = [
-        .softAmber, .amber, .woodyAmber, .woods, .mossyWoods, .dryWoods
+        .woody, .amber, .spicy, .vanilla, .gourmand, .leather
     ]
 
     var matchingRawAccords: [String] {
@@ -88,38 +94,44 @@ enum ScentFamilyFilter: String, CaseIterable, Codable {
         case .green:
             return ["green", "fresh green", "leafy", "herbal", "vegetal"]
 
-        case .water:
+        case .aquatic:
             return ["aquatic", "marine", "water", "watery", "oceanic"]
 
         case .aromatic:
             return ["aromatic", "fresh spicy", "lavender", "herbal", "tea"]
 
         case .floral:
-            return ["floral", "white floral", "yellow floral", "rose"]
+            return ["floral", "yellow floral", "soft floral"]
 
-        case .softFloral:
-            return ["soft floral", "powdery", "soapy", "clean", "iris", "violet", "musk", "white musk"]
+        case .whiteFloral:
+            return ["white floral", "tuberose", "jasmine", "orange blossom", "gardenia"]
 
-        case .floralAmber:
-            return ["floral amber", "oriental floral", "ylang ylang", "tuberose", "jasmine"]
+        case .rose:
+            return ["rose", "rosy"]
 
-        case .softAmber:
-            return ["soft amber", "soft oriental", "vanilla", "balsamic", "gourmand"]
+        case .powdery:
+            return ["powdery", "soapy", "clean", "iris", "violet"]
+
+        case .musky:
+            return ["musk", "musky", "white musk", "soft musk", "clean musk"]
+
+        case .woody:
+            return ["woody", "cedar", "sandalwood", "dry woods", "mossy woods", "vetiver"]
 
         case .amber:
-            return ["amber", "oriental", "warm spicy", "resinous"]
+            return ["amber", "woody amber", "balsamic", "resinous"]
 
-        case .woods:
-            return ["woody", "wood", "cedar", "sandalwood", "oud", "vetiver"]
+        case .spicy:
+            return ["spicy", "warm spicy", "soft spicy", "fresh spicy"]
 
-        case .woodyAmber:
-            return ["woody amber"]
+        case .vanilla:
+            return ["vanilla", "vanilla powder"]
 
-        case .mossyWoods:
-            return ["mossy woods", "earthy", "patchouli"]
+        case .gourmand:
+            return ["gourmand", "caramel", "chocolate", "honey", "sweet", "dessert"]
 
-        case .dryWoods:
-            return ["dry woods", "dry wood", "leather", "smoky"]
+        case .leather:
+            return ["leather", "suede", "animalic"]
         }
     }
 }

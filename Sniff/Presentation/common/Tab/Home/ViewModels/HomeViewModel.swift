@@ -120,9 +120,7 @@ final class HomeViewModel {
                 guard let result else {
                     return []
                 }
-                return result.perfumes.map { recommendation in
-                    mapToHomePerfumeItem(recommendation, profile: result.profile)
-                }
+                return result.perfumes.map(mapToHomePerfumeItem)
             }
             .do(onNext: { [weak self] items in
                 self?.recommendationItemsRelay.accept(items)
@@ -182,90 +180,30 @@ private extension HomeViewModel {
 
 }
 
-private func mapToHomePerfumeItem(
-    _ recommendation: RecommendedPerfume,
-    profile: UserTasteProfile
-) -> HomePerfumeItem {
+private func mapToHomePerfumeItem(_ recommendation: RecommendedPerfume) -> HomePerfumeItem {
     let perfume = recommendation.perfume
     return HomePerfumeItem(
         perfume: perfume,
         id: perfume.id,
         brandName: perfume.brand,
         perfumeName: perfume.name,
-        accordsText: makeHomeAccordText(perfume, profile: profile),
+        accordsText: makeHomeAccordText(perfume),
         recommendationReason: recommendation.reason,
         imageURL: perfume.imageUrl
     )
 }
 
-private func makeHomeAccordText(_ perfume: Perfume, profile: UserTasteProfile) -> String {
-    let accords = prioritizedHomeAccords(perfume, profile: profile)
+private func makeHomeAccordText(_ perfume: Perfume) -> String {
+    let accords = ScentFamilyNormalizer.canonicalNames(
+        for: Array(perfume.mainAccords.prefix(2))
+    ).prefix(2)
     return accords.isEmpty
         ? "• Floral  • Musk"
         : accords.map { "• \($0)" }.joined(separator: "  ")
 }
 
-private func prioritizedHomeAccords(_ perfume: Perfume, profile: UserTasteProfile) -> [String] {
-    let canonicalAccords = ScentFamilyNormalizer.canonicalNames(for: perfume.mainAccords)
-    guard !canonicalAccords.isEmpty else { return [] }
-
-    let dominantFamilies = canonicalAccords.filter {
-        perfume.mainAccordStrengths[$0] == .dominant
-    }
-
-    let profileFamilies = Set(profile.preferredFamilies)
-
-    if dominantFamilies.count == 2 {
-        return dominantFamilies.sorted { lhs, rhs in
-            let lhsMatchesProfile = profileFamilies.contains(lhs)
-            let rhsMatchesProfile = profileFamilies.contains(rhs)
-            if lhsMatchesProfile != rhsMatchesProfile { return lhsMatchesProfile }
-
-            let lhsStrength = perfume.mainAccordStrengths[lhs]?.weight ?? 0
-            let rhsStrength = perfume.mainAccordStrengths[rhs]?.weight ?? 0
-            if lhsStrength != rhsStrength { return lhsStrength > rhsStrength }
-
-            return lhs.localizedCaseInsensitiveCompare(rhs) == .orderedAscending
-        }
-    }
-
-    if dominantFamilies.count > 2 {
-        let sortedDominant = dominantFamilies.sorted { lhs, rhs in
-            let lhsMatchesProfile = profileFamilies.contains(lhs)
-            let rhsMatchesProfile = profileFamilies.contains(rhs)
-            if lhsMatchesProfile != rhsMatchesProfile { return lhsMatchesProfile }
-
-            let lhsStrength = perfume.mainAccordStrengths[lhs]?.weight ?? 0
-            let rhsStrength = perfume.mainAccordStrengths[rhs]?.weight ?? 0
-            if lhsStrength != rhsStrength { return lhsStrength > rhsStrength }
-
-            return lhs.localizedCaseInsensitiveCompare(rhs) == .orderedAscending
-        }
-
-        return Array(sortedDominant.prefix(2))
-    }
-
-    let sorted = canonicalAccords.sorted { lhs, rhs in
-        let lhsDominant = dominantFamilies.contains(lhs)
-        let rhsDominant = dominantFamilies.contains(rhs)
-        if lhsDominant != rhsDominant { return lhsDominant }
-
-        let lhsMatchesProfile = profileFamilies.contains(lhs)
-        let rhsMatchesProfile = profileFamilies.contains(rhs)
-        if lhsMatchesProfile != rhsMatchesProfile { return lhsMatchesProfile }
-
-        let lhsStrength = perfume.mainAccordStrengths[lhs]?.weight ?? 0
-        let rhsStrength = perfume.mainAccordStrengths[rhs]?.weight ?? 0
-        if lhsStrength != rhsStrength { return lhsStrength > rhsStrength }
-
-        return lhs.localizedCaseInsensitiveCompare(rhs) == .orderedAscending
-    }
-
-    return Array(sorted.prefix(2))
-}
-
 private func makeHomeBanner(from profile: UserTasteProfile) -> HomeTasteBannerItem {
-    let familyText = profile.displayFamilySummary
+    let familyText = profile.preferredFamilies.prefix(2).joined(separator: " · ")
     let summary: String
     if !profile.safeStartingPoint.isEmpty {
         summary = profile.safeStartingPoint
@@ -277,7 +215,7 @@ private func makeHomeBanner(from profile: UserTasteProfile) -> HomeTasteBannerIt
         summary = "나에게 맞는 향수를 찾아가요"
     }
     return HomeTasteBannerItem(
-        title: profile.displayTitle,
+        title: profile.primaryProfileName,
         summary: summary,
         familyText: familyText
     )
@@ -285,7 +223,7 @@ private func makeHomeBanner(from profile: UserTasteProfile) -> HomeTasteBannerIt
 
 private func defaultHomeBanner() -> HomeTasteBannerItem {
     HomeTasteBannerItem(
-        title: "현재 취향을 찾는 중이에요",
+        title: "킁킁 서비스와 함께",
         summary: "나에게 맞는 향수를 찾아가요",
         familyText: ""
     )

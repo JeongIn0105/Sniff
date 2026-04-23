@@ -16,20 +16,20 @@ struct RecommendationQueryBuilder {
 
     private func mapFamilyToSearchQueries(_ family: String) -> [String] {
         switch family {
+        case "Fresh": return ["fresh", "citrus"]
         case "Citrus": return ["citrus", "fresh"]
         case "Water": return ["aquatic", "fresh"]
-        case "Green": return ["green", "fresh"]
+        case "Green": return ["green", "woody"]
         case "Floral": return ["floral"]
         case "Soft Floral": return ["soft floral", "floral"]
-        case "Floral Amber": return ["floral amber", "amber", "floral"]
         case "Fruity": return ["fruity", "floral"]
-        case "Soft Amber": return ["soft amber", "vanilla", "amber"]
         case "Amber": return ["amber"]
-        case "Woods": return ["woody", "woods"]
+        case "Woody": return ["woody"]
         case "Woody Amber": return ["woody", "amber"]
         case "Dry Woods": return ["dry woods", "woody"]
         case "Mossy Woods": return ["mossy woods", "woody"]
         case "Aromatic": return ["aromatic", "fresh"]
+        case "Musk": return ["musk", "soft floral"]
         default: return []
         }
     }

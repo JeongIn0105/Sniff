@@ -58,7 +58,7 @@ final class TastingNoteFormViewModel: ObservableObject {
         }
         if let selectedFragrance { return selectedFragrance }
         return FragellaFragrance(
-            id: "\(brandName)|\(perfumeName)",
+            id: editingNote?.fragranceID ?? "\(brandName)|\(perfumeName)",
             name: perfumeName,
             brand: brandName,
             koreanName: nil,
@@ -384,10 +384,12 @@ final class TastingNoteFormViewModel: ObservableObject {
             mainAccords: mainAccords,
             concentration: concentration.isEmpty ? nil : concentration,
             rating: rating,
+            longevity: 0,
             moodTags: orderedMoodTags(from: selectedMoodTags),
             revisitDesire: revisitDesire,
             memo: memo.trimmingCharacters(in: .whitespacesAndNewlines),
             perfumeImageURL: selectedFragrance?.imageURL ?? editingNote?.perfumeImageURL,
+            fragranceID: selectedFragrance?.id ?? editingNote?.fragranceID,
             createdAt: editingNote?.createdAt ?? now,
             updatedAt: now
         )

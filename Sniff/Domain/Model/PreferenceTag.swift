@@ -87,41 +87,41 @@ enum PreferenceTag: String, CaseIterable, Codable {
     var relatedScentFamilies: [ScentFamilyFilter] {
         switch self {
         case .warm:
-            return [.softAmber, .amber, .woodyAmber, .woods]
+            return [.amber, .vanilla, .woody, .spicy, .musky]
         case .cool:
-            return [.citrus, .green, .water, .aromatic]
+            return [.citrus, .green, .aquatic, .aromatic]
         case .subtle:
-            return [.softFloral, .floral, .floralAmber]
+            return [.powdery, .musky, .floral, .whiteFloral]
         case .intense:
-            return [.dryWoods, .woodyAmber, .amber, .woods]
+            return [.woody, .amber, .spicy, .leather]
         case .fresh:
-            return [.citrus, .green, .water, .fruity]
+            return [.citrus, .green, .aquatic, .fruity]
         case .sweet:
-            return [.softAmber, .amber, .fruity]
+            return [.vanilla, .gourmand, .fruity, .amber]
         case .powdery:
-            return [.softFloral, .floralAmber]
+            return [.powdery, .musky, .whiteFloral]
         case .heavy:
-            return [.amber, .woodyAmber, .mossyWoods, .dryWoods]
+            return [.amber, .woody, .spicy, .leather]
         case .light:
-            return [.citrus, .green, .water, .floral]
+            return [.citrus, .green, .aquatic, .floral]
         case .clean:
-            return [.softFloral, .water, .green]
+            return [.musky, .powdery, .aquatic, .whiteFloral]
         case .cozy:
-            return [.softFloral, .softAmber, .amber]
+            return [.vanilla, .musky, .powdery, .amber]
         case .sophisticated:
-            return [.woods, .floralAmber, .dryWoods]
+            return [.woody, .rose, .whiteFloral, .leather]
         case .luxurious:
-            return [.amber, .woodyAmber, .floralAmber, .woods]
+            return [.amber, .woody, .rose, .vanilla, .leather]
         case .natural:
-            return [.green, .woods, .aromatic, .floral]
+            return [.green, .woody, .aromatic, .floral]
         case .mysterious:
-            return [.amber, .woodyAmber, .mossyWoods, .dryWoods]
+            return [.amber, .woody, .spicy, .leather, .rose]
         case .vibrant:
             return [.citrus, .fruity, .green, .floral]
         case .neutral:
-            return [.softFloral, .woods, .aromatic, .water]
+            return [.musky, .woody, .aromatic, .aquatic]
         case .relaxed:
-            return [.aromatic, .green, .softFloral, .woods]
+            return [.aromatic, .green, .musky, .woody]
         }
     }
 

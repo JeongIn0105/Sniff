@@ -152,11 +152,11 @@ final class TasteProfileCardView: UIView {
         // MARK: - Configure
 
     func configure(with profile: UserTasteProfile, collectionCount: Int, tastingCount: Int) {
-        iconView.backgroundColor = ScentFamilyColor.iconBackground(for: profile.displayLeadingFamily)
-        iconLabel.text = ScentFamilyColor.iconEmoji(for: profile.displayLeadingFamily)
-        profileNameLabel.text = profile.displayTitle
-        profileSubLabel.text = profile.displayFamilySummary
-        profileSubLabel.isHidden = profile.displayFamilySummary.isEmpty
+        iconView.backgroundColor = ScentFamilyColor.iconBackground(for: profile.primaryProfileCode)
+        iconLabel.text = ScentFamilyColor.iconEmoji(for: profile.primaryProfileCode)
+        profileNameLabel.text = profile.primaryProfileName
+        profileSubLabel.text = nil
+        profileSubLabel.isHidden = true
 
         configureHint(
             profile: profile,

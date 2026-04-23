@@ -96,11 +96,10 @@ struct TastingNoteView: View {
                 .opacity(viewModel.isEmpty ? 0.35 : 1)
             }
 
-            // 전체 / 보유 향수 / 좋아요 향수 필터 칩
+            // 보유 향수 / LIKE 향수 필터 칩
             HStack(spacing: 10) {
-                filterChip(title: "전체 시향기", filter: .all)
                 filterChip(title: "보유 향수", filter: .owned)
-                filterChip(title: "좋아요 향수", filter: .liked)
+                filterChip(title: "LIKE 향수", filter: .liked)
                 Spacer()
             }
         }
@@ -133,9 +132,9 @@ struct TastingNoteView: View {
             return "\(perfumeScope.perfumeName) 시향 기록이 없어요"
         }
         switch viewModel.selectedFilter {
-        case .all:    return "아직 작성한 시향기가 없어요"
-        case .owned:  return "보유 향수 시향기가 없어요"
-        case .liked:  return "좋아요 향수 시향기가 없어요"
+        case .all:    return "등록된 시향 기록이 없어요"
+        case .owned:  return "보유 향수에 기록된 시향 기록이 없어요"
+        case .liked:  return "LIKE 향수에 기록된 시향 기록이 없어요"
         }
     }
 
@@ -144,9 +143,9 @@ struct TastingNoteView: View {
             return "+ 버튼을 눌러 이 향수의 시향 기록을 추가해 주세요"
         }
         switch viewModel.selectedFilter {
-        case .all:    return "+ 버튼을 눌러 첫 시향기를 작성해 주세요"
-        case .owned:  return "보유 향수에 등록된 향수의 시향기만 여기에 표시돼요"
-        case .liked:  return "좋아요를 누른 향수의 시향기만 여기에 표시돼요"
+        case .all:    return "+ 버튼을 눌러 시향 기록을 추가해 주세요"
+        case .owned:  return "보유 향수에 먼저 향수를 등록해 주세요"
+        case .liked:  return "LIKE 향수에 먼저 향수를 추가해 주세요"
         }
     }
 
@@ -167,7 +166,6 @@ struct TastingNoteView: View {
 
                     Divider()
                         .padding(.leading, viewModel.isDeleteMode ? 96 : 88)
-                        .opacity(0.55)
                 }
 
                 Spacer()
@@ -196,7 +194,7 @@ struct TastingNoteView: View {
         }
     }
 
-    /// 시향기 필터 칩 버튼
+    /// 보유 / LIKE 향수 필터 칩 버튼
     private func filterChip(title: String, filter: TastingNoteFilter) -> some View {
         let isSelected = viewModel.selectedFilter == filter
         return Button {
@@ -261,20 +259,19 @@ struct TastingNoteRowView: View {
                             .foregroundColor(Color(.systemGray4))
 
                         ForEach(Array(note.mainAccords.prefix(2).enumerated()), id: \.offset) { _, accord in
-                            Text(accord)
-                                .font(.system(size: 13))
-                                .foregroundColor(.secondary)
-
-                            if accord != note.mainAccords.prefix(2).last {
-                                Text("•")
+                            HStack(spacing: 3) {
+                                Circle()
+                                    .frame(width: 4, height: 4)
+                                    .foregroundColor(accord.accordColor)
+                                Text(accord)
                                     .font(.system(size: 13))
-                                    .foregroundColor(Color(.systemGray4))
+                                    .foregroundColor(.secondary)
                             }
                         }
                     }
                 }
 
-                Text(note.updatedAt.tastingNoteFormat)
+                Text(note.createdAt.tastingNoteFormat)
                     .font(.system(size: 12))
                     .foregroundColor(Color(.tertiaryLabel))
             }
@@ -296,8 +293,7 @@ struct TastingNoteRowView: View {
                let url = URL(string: urlString) {
                 KFImage(url)
                     .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .padding(6)
+                    .aspectRatio(contentMode: .fill)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
             }
         }

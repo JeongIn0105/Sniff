@@ -103,8 +103,8 @@ struct PerfumeScorer {
             // MARK: 레이어 3 — 강도 보너스
 
         var intensityBonus: Double = 0
-        let woodyFamilySet: Set<String> = ["Soft Amber", "Amber", "Woody Amber", "Woods", "Dry Woods", "Mossy Woods"]
-        let freshFamilySet: Set<String> = ["Citrus", "Water", "Green", "Aromatic", "Fruity"]
+        let woodyFamilySet: Set<String> = ["Amber", "Woody", "Woody Amber", "Dry Woods"]
+        let freshFamilySet: Set<String> = ["Fresh", "Citrus", "Water"]
 
         if profile.intensityLevel.contains("강") {
             let woodyScore = familyScores

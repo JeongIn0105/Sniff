@@ -69,7 +69,7 @@ extension FirestoreService {
             rating: rating,
             moodTags: data["moodTags"] as? [String] ?? [],
             memo: data["memo"] as? String,
-            revisitDesire: (data["revisitDesire"] as? String) ?? (data["wantToRevisit"] as? String),
+            wantToRevisit: data["wantToRevisit"] as? String,  // 신규
             updatedAt: updatedAt
         )
     }

@@ -9,5 +9,6 @@ import Foundation
 
 protocol AuthServiceType {
     func signInWithApple(identityToken: Data?, rawNonce: String) async throws -> String
+    func signInAnonymouslyForDebug() async throws
     func signOut() throws
 }
