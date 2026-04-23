@@ -14,6 +14,11 @@ import RxRelay
 
 final class FilterViewModel {
 
+    private enum SelectionLimit {
+        static let scentFamilies = 3
+        static let moodTags = 5
+    }
+
         // MARK: - Input
     struct Input {
         let scentFamilyToggle: Observable<ScentFamilyFilter>
@@ -53,8 +58,10 @@ final class FilterViewModel {
                 var filter = self.filterRelay.value
                 if filter.scentFamilies.contains(family) {
                     filter.scentFamilies.remove(family)
-                } else {
+                } else if filter.scentFamilies.count < SelectionLimit.scentFamilies {
                     filter.scentFamilies.insert(family)
+                } else {
+                    return
                 }
                 self.filterRelay.accept(filter)
                 self.updateResultCount(filter: filter)
@@ -68,7 +75,7 @@ final class FilterViewModel {
                 var filter = self.filterRelay.value
                 if filter.moodTags.contains(tag) {
                     filter.moodTags.remove(tag)
-                } else if filter.moodTags.count < 3 {
+                } else if filter.moodTags.count < SelectionLimit.moodTags {
                     filter.moodTags.insert(tag)
                 } else {
                     return
@@ -86,7 +93,7 @@ final class FilterViewModel {
                 if filter.concentrations.contains(conc) {
                     filter.concentrations.remove(conc)
                 } else {
-                    filter.concentrations.insert(conc)
+                    filter.concentrations = [conc]
                 }
                 self.filterRelay.accept(filter)
                 self.updateResultCount(filter: filter)
@@ -118,7 +125,9 @@ final class FilterViewModel {
             })
             .disposed(by: disposeBag)
 
-        let isApplyEnabled = resultCountRelay.map { $0 > 0 }
+        let isApplyEnabled = Observable
+            .combineLatest(filterRelay.asObservable(), resultCountRelay.asObservable())
+            .map { !$0.0.isEmpty && $0.1 > 0 }
 
         let onApply = input.applyTrigger
             .withLatestFrom(filterRelay)

@@ -182,13 +182,21 @@ final class SearchViewController: UIViewController {
         backButton.isHidden = (navigationController?.viewControllers.count ?? 0) <= 1
         loadLikedPerfumes()
     }
+}
 
-        // MARK: - Setup UI
+private extension SearchViewController {
 
-    private func setupUI() {
+    // MARK: - UI Setup
+
+    func setupUI() {
         view.backgroundColor = .systemBackground
 
-            // 최근 검색어 헤더
+        setupRecentHeader()
+        addSubviews()
+        makeConstraints()
+    }
+
+    func setupRecentHeader() {
         [recentTitleLabel, clearAllButton].forEach { recentHeaderView.addSubview($0) }
         recentTitleLabel.snp.makeConstraints {
             $0.leading.equalToSuperview().offset(20)
@@ -199,14 +207,19 @@ final class SearchViewController: UIViewController {
             $0.centerY.equalToSuperview()
         }
         recentHeaderView.snp.makeConstraints { $0.height.equalTo(44) }
+    }
 
-            // 전체 레이아웃
+    func addSubviews() {
         [backButton, searchBar, resultHeaderView,
          brandSectionLabel, brandTableView,
          tableView, perfumeCollectionView, emptyView].forEach {
             view.addSubview($0)
         }
 
+        [resultCountLabel, filterButton, sortButton].forEach { resultHeaderView.addSubview($0) }
+    }
+
+    func makeConstraints() {
         backButton.snp.makeConstraints {
             $0.centerY.equalTo(searchBar.snp.centerY)
             $0.leading.equalToSuperview().offset(16)
@@ -219,8 +232,6 @@ final class SearchViewController: UIViewController {
             $0.trailing.equalToSuperview().offset(-8)
         }
 
-            // 결과 헤더 (카운트 + 필터 + 정렬)
-        [resultCountLabel, filterButton, sortButton].forEach { resultHeaderView.addSubview($0) }
         resultHeaderView.snp.makeConstraints {
             $0.top.equalTo(brandTableView.snp.bottom).offset(4)
             $0.leading.trailing.equalToSuperview()
@@ -267,30 +278,33 @@ final class SearchViewController: UIViewController {
             $0.center.equalToSuperview()
         }
     }
+}
 
-        // MARK: - TableView Setup
+private extension SearchViewController {
 
-    private func setupTableView() {
+    // MARK: - Table/Collection Setup
+
+    func setupTableView() {
         tableView.delegate = self
         tableView.dataSource = self
         brandTableView.delegate = self
         brandTableView.dataSource = self
 
-            // 테이블 헤더 (초기 상태 - Recent)
         tableView.tableHeaderView = recentHeaderView
         recentHeaderView.frame = CGRect(x: 0, y: 0, width: view.bounds.width, height: 44)
     }
 
-        // MARK: - CollectionView Setup
-
-    private func setupCollectionView() {
+    func setupCollectionView() {
         perfumeCollectionView.delegate = self
         perfumeCollectionView.dataSource = self
     }
+}
 
-        // MARK: - Bind ViewModel
+private extension SearchViewController {
 
-    private func bindViewModel() {
+    // MARK: - Bind
+
+    func bindViewModel() {
         let input = SearchViewModel.Input(
             searchText: searchTextRelay.asObservable(),
             searchTrigger: searchTriggerRelay.asObservable(),
@@ -305,42 +319,58 @@ final class SearchViewController: UIViewController {
 
         let output = viewModel.transform(input: input)
 
-            // 상태 변화
-        output.state
+        bindState(output.state)
+        bindRecentSearches(output.recentSearches)
+        bindSuggestions(output.suggestions)
+        bindBrandResults(output.brandResults)
+        bindPerfumeResults(output.perfumeResults)
+        bindFilteredPerfumeResults(output.filteredPerfumeResults)
+        bindResultCount(output.resultCount)
+        bindActiveFilter(output.activeFilter)
+        bindCurrentSort(output.currentSort)
+        bindSearchBar()
+        bindActions()
+    }
+
+    func bindState(_ state: Observable<SearchState>) {
+        state
             .observe(on: MainScheduler.instance)
             .subscribe(onNext: { [weak self] state in
                 self?.currentState = state
                 self?.updateLayout(for: state)
             })
             .disposed(by: disposeBag)
+    }
 
-            // 최근 검색어
-        output.recentSearches
+    func bindRecentSearches(_ recentSearches: Observable<[RecentSearch]>) {
+        recentSearches
             .observe(on: MainScheduler.instance)
             .subscribe(onNext: { [weak self] searches in
                 guard let self else { return }
                 self.recentSearches = searches
                 if case .initial = self.currentState {
                     self.clearAllButton.isHidden = searches.isEmpty
-                    self.tableView.reloadData()
+                    self.reloadTableView()
                 }
             })
             .disposed(by: disposeBag)
+    }
 
-            // 연관 검색어
-        output.suggestions
+    func bindSuggestions(_ suggestions: Observable<[SuggestionItem]>) {
+        suggestions
             .observe(on: MainScheduler.instance)
             .subscribe(onNext: { [weak self] items in
                 guard let self else { return }
                 self.suggestions = items
                 if case .suggesting = self.currentState {
-                    self.tableView.reloadData()
+                    self.reloadTableView()
                 }
             })
             .disposed(by: disposeBag)
+    }
 
-            // 브랜드 결과
-        output.brandResults
+    func bindBrandResults(_ brandResults: Observable<[Perfume]>) {
+        brandResults
             .observe(on: MainScheduler.instance)
             .subscribe(onNext: { [weak self] brands in
                 guard let self else { return }
@@ -356,40 +386,44 @@ final class SearchViewController: UIViewController {
                 self.updateResultVisibility()
             })
             .disposed(by: disposeBag)
+    }
 
-        output.perfumeResults
+    func bindPerfumeResults(_ perfumeResults: Observable<[Perfume]>) {
+        perfumeResults
             .observe(on: MainScheduler.instance)
             .subscribe(onNext: { [weak self] perfumes in
                 self?.allPerfumeResults = perfumes
             })
             .disposed(by: disposeBag)
+    }
 
-            // 향수 결과 (필터 적용)
-        output.filteredPerfumeResults
+    func bindFilteredPerfumeResults(_ filteredPerfumeResults: Observable<[Perfume]>) {
+        filteredPerfumeResults
             .observe(on: MainScheduler.instance)
             .subscribe(onNext: { [weak self] perfumes in
                 guard let self else { return }
                 self.filteredPerfumeResults = perfumes
-                self.perfumeCollectionView.reloadData()
+                self.reloadPerfumeResults()
                 self.updateResultVisibility()
             })
             .disposed(by: disposeBag)
+    }
 
-            // 결과 수
-        output.resultCount
+    func bindResultCount(_ resultCount: Observable<Int>) {
+        resultCount
             .observe(on: MainScheduler.instance)
             .subscribe(onNext: { [weak self] count in
                 self?.resultCountLabel.text = "향수 \(count)개"
             })
             .disposed(by: disposeBag)
+    }
 
-            // 현재 필터
-        output.activeFilter
+    func bindActiveFilter(_ activeFilter: Observable<SearchFilter>) {
+        activeFilter
             .observe(on: MainScheduler.instance)
             .subscribe(onNext: { [weak self] filter in
                 guard let self else { return }
                 self.currentFilter = filter
-                    // 필터 버튼 레이블 업데이트
                 let label = filter.summaryLabel.map { "  \($0)" } ?? ""
                 let image = UIImage(systemName: "slider.horizontal.3")
                 self.filterButton.setTitle(label, for: .normal)
@@ -399,17 +433,19 @@ final class SearchViewController: UIViewController {
                 self.filterButton.setTitleColor(filter.isEmpty ? .label : .white, for: .normal)
             })
             .disposed(by: disposeBag)
+    }
 
-            // 정렬
-        output.currentSort
+    func bindCurrentSort(_ currentSort: Observable<SortOption>) {
+        currentSort
             .observe(on: MainScheduler.instance)
             .subscribe(onNext: { [weak self] sort in
                 self?.currentSort = sort
                 self?.sortButton.setTitle("\(sort.displayName) ▾", for: .normal)
             })
             .disposed(by: disposeBag)
+    }
 
-            // SearchBar 바인딩
+    func bindSearchBar() {
         searchBar.rx.text.orEmpty
             .bind(to: searchTextRelay)
             .disposed(by: disposeBag)
@@ -430,8 +466,9 @@ final class SearchViewController: UIViewController {
         searchBar.rx.cancelButtonClicked
             .bind(to: clearTriggerRelay)
             .disposed(by: disposeBag)
+    }
 
-            // 필터 버튼
+    func bindActions() {
         filterButton.rx.tap
             .subscribe(onNext: { [weak self] in
                 self?.presentFilterSheet()
@@ -456,47 +493,68 @@ final class SearchViewController: UIViewController {
             })
             .disposed(by: disposeBag)
     }
+}
 
-        // MARK: - Layout 전환
+private extension SearchViewController {
 
-    private func updateLayout(for state: SearchState) {
+    // MARK: - Layout
+
+    func updateLayout(for state: SearchState) {
         switch state {
-            case .initial:
-                tableView.isHidden = false
-                resultHeaderView.isHidden = true
-                brandSectionLabel.isHidden = true
-                brandTableView.isHidden = true
-                perfumeCollectionView.isHidden = true
-                emptyView.isHidden = true
-                searchBar.showsCancelButton = false
-                recentTitleLabel.isHidden = false
-                clearAllButton.isHidden = recentSearches.isEmpty
-                tableView.tableHeaderView = recentHeaderView
-                tableView.reloadData()
-
-            case .suggesting:
-                tableView.isHidden = false
-                resultHeaderView.isHidden = true
-                brandSectionLabel.isHidden = true
-                brandTableView.isHidden = true
-                perfumeCollectionView.isHidden = true
-                emptyView.isHidden = true
-                searchBar.showsCancelButton = false
-                tableView.tableHeaderView = nil
-                tableView.reloadData()
-
-            case .result:
-                tableView.isHidden = true
-                resultHeaderView.isHidden = false
-                searchBar.showsCancelButton = false
-                searchBar.endEditing(true)
-                updateResultVisibility()
+        case .initial:
+            showInitialLayout()
+        case .suggesting:
+            showSuggestingLayout()
+        case .result:
+            showResultLayout()
         }
     }
 
-        // MARK: - 필터 바텀시트
+    func showInitialLayout() {
+        tableView.isHidden = false
+        resultHeaderView.isHidden = true
+        brandSectionLabel.isHidden = true
+        brandTableView.isHidden = true
+        perfumeCollectionView.isHidden = true
+        emptyView.isHidden = true
+        searchBar.showsCancelButton = false
+        recentTitleLabel.isHidden = false
+        clearAllButton.isHidden = recentSearches.isEmpty
+        tableView.tableHeaderView = recentHeaderView
+        reloadTableView()
+    }
 
-    private func presentFilterSheet() {
+    func showSuggestingLayout() {
+        tableView.isHidden = false
+        resultHeaderView.isHidden = true
+        brandSectionLabel.isHidden = true
+        brandTableView.isHidden = true
+        perfumeCollectionView.isHidden = true
+        emptyView.isHidden = true
+        searchBar.showsCancelButton = false
+        tableView.tableHeaderView = nil
+        reloadTableView()
+    }
+
+    func showResultLayout() {
+        tableView.isHidden = true
+        resultHeaderView.isHidden = false
+        searchBar.showsCancelButton = false
+        searchBar.endEditing(true)
+        updateResultVisibility()
+    }
+
+    func reloadTableView() {
+        tableView.reloadData()
+    }
+
+    func reloadPerfumeResults() {
+        perfumeCollectionView.reloadData()
+    }
+
+    // MARK: - Filter/Sort
+
+    func presentFilterSheet() {
         let filterVM = FilterViewModel(initialFilter: currentFilter)
         filterVM.currentPerfumes = allPerfumeResults
         let filterVC = FilterViewController(viewModel: filterVM)
@@ -511,9 +569,7 @@ final class SearchViewController: UIViewController {
         present(filterVC, animated: true)
     }
 
-        // MARK: - 정렬 액션시트
-
-    private func presentSortActionSheet() {
+    func presentSortActionSheet() {
         let alert = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
         SortOption.allCases.forEach { option in
             let action = UIAlertAction(title: option.displayName, style: .default) { [weak self] _ in
@@ -548,8 +604,13 @@ final class SearchViewController: UIViewController {
 
         applyKeyboardInset()
     }
+}
 
-    private func bindKeyboard() {
+private extension SearchViewController {
+
+    // MARK: - Keyboard
+
+    func bindKeyboard() {
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(handleKeyboardWillChangeFrame(_:)),
@@ -564,6 +625,11 @@ final class SearchViewController: UIViewController {
             object: nil
         )
     }
+}
+
+private extension SearchViewController {
+
+    // MARK: - Likes
 
     @objc private func handleKeyboardWillChangeFrame(_ notification: Notification) {
         guard
@@ -609,7 +675,7 @@ final class SearchViewController: UIViewController {
             .observe(on: MainScheduler.instance)
             .subscribe(onSuccess: { [weak self] items in
                 self?.likedPerfumeIDs = Set(items.map(\.id))
-                self?.perfumeCollectionView.reloadData()
+                self?.reloadPerfumeResults()
             }, onFailure: { _ in })
             .disposed(by: disposeBag)
     }
@@ -621,7 +687,7 @@ final class SearchViewController: UIViewController {
             .observe(on: MainScheduler.instance)
             .subscribe(onCompleted: { [weak self] in
                 self?.likedPerfumeIDs.insert(perfume.id)
-                self?.perfumeCollectionView.reloadData()
+                self?.reloadPerfumeResults()
             }, onError: { [weak self] _ in
                 self?.presentSaveFailureAlert()
             })
@@ -635,7 +701,7 @@ final class SearchViewController: UIViewController {
             .observe(on: MainScheduler.instance)
             .subscribe(onCompleted: { [weak self] in
                 self?.likedPerfumeIDs.remove(id)
-                self?.perfumeCollectionView.reloadData()
+                self?.reloadPerfumeResults()
             }, onError: { [weak self] _ in
                 self?.presentSaveFailureAlert()
             })

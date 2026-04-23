@@ -56,7 +56,7 @@ final class PerfumeDetailViewModel {
 
         input.viewDidLoad
             .subscribe(onNext: { [weak self] in
-                self?.fetchDetail()
+                self?.loadDetailIfNeeded()
             })
             .disposed(by: disposeBag)
 
@@ -78,17 +78,32 @@ final class PerfumeDetailViewModel {
     }
 
         // MARK: - Private
-    private func fetchDetail() {
-        isLoadingRelay.accept(true)
+    private func loadDetailIfNeeded() {
+        let currentPerfume = perfumeRelay.value
+        let needsDetailFetch = currentPerfume?.needsDetailEnrichment ?? true
+        guard needsDetailFetch else { return }
+        guard currentPerfume?.canFetchRemoteDetail ?? true else { return }
+
+        let shouldShowLoading = currentPerfume == nil
+        fetchDetail(showLoading: shouldShowLoading)
+    }
+
+    private func fetchDetail(showLoading: Bool) {
+        if showLoading {
+            isLoadingRelay.accept(true)
+        }
 
         detailRequest()
             .subscribe(
                 onSuccess: { [weak self] perfume in
-                    self?.isLoadingRelay.accept(false)
+                    if showLoading {
+                        self?.isLoadingRelay.accept(false)
+                    }
                     self?.perfumeRelay.accept(perfume)
                 },
                 onFailure: { [weak self] error in
                     self?.isLoadingRelay.accept(false)
+
                     if self?.seedPerfume == nil {
                         self?.errorRelay.accept(error.localizedDescription)
                     }
@@ -149,5 +164,24 @@ final class PerfumeDetailViewModel {
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "en_US_POSIX"))
             .lowercased()
+    }
+}
+
+private extension Perfume {
+    var needsDetailEnrichment: Bool {
+        let hasCompleteNotes = !(topNotes?.isEmpty ?? true)
+            && !(middleNotes?.isEmpty ?? true)
+            && !(baseNotes?.isEmpty ?? true)
+        let hasSeasonInfo = !seasonRanking.isEmpty || !(season?.isEmpty ?? true)
+        let hasUsageInfo = !(concentration?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+            && !(longevity?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+            && !(sillage?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+
+        return !(hasCompleteNotes && hasSeasonInfo && hasUsageInfo)
+    }
+
+    var canFetchRemoteDetail: Bool {
+        let syntheticID = "\(brand)-\(name)"
+        return id != syntheticID
     }
 }

@@ -20,46 +20,51 @@ enum SearchFilterEngine {
         var result = perfumes
 
         if !filter.scentFamilies.isEmpty {
-            let targetFamilies = Set(filter.scentFamilies.flatMap(\.matchingRawAccords))
             result = result.filter { perfume in
                 let accords = Set(perfume.rawMainAccords.map { normalizeString($0) })
-                return !accords.isDisjoint(with: targetFamilies)
+                return filter.scentFamilies.allSatisfy { family in
+                    let targetAccords = Set(family.matchingRawAccords.map(normalizeString))
+                    return !accords.isDisjoint(with: targetAccords)
+                }
             }
         }
 
         if !filter.moodTags.isEmpty {
-            let targetAccords = Set(
-                filter.moodTags
-                    .flatMap { $0.relatedScentFamilies }
-                    .flatMap { $0.matchingRawAccords }
-                    .map { normalizeString($0) }
-            )
             result = result.filter { perfume in
                 let accords = Set(perfume.rawMainAccords.map { normalizeString($0) })
-                return !accords.isDisjoint(with: targetAccords)
+                return filter.moodTags.allSatisfy { tag in
+                    let targetAccords = Set(
+                        tag.relatedScentFamilies
+                            .flatMap(\.matchingRawAccords)
+                            .map(normalizeString)
+                    )
+                    return !accords.isDisjoint(with: targetAccords)
+                }
             }
         }
 
         if !filter.concentrations.isEmpty {
-            let targetValues = Set(filter.concentrations.flatMap(\.fragellaValues))
             result = result.filter { perfume in
                 guard let concentration = normalizeOptionalString(perfume.concentration) else { return false }
-                return targetValues.contains(concentration)
+                return filter.concentrations.allSatisfy { concentrationFilter in
+                    let targetValues = Set(concentrationFilter.fragellaValues.map(normalizeString))
+                    return targetValues.contains(concentration)
+                }
             }
         }
 
         if !filter.seasons.isEmpty {
-            let targetSeasons = Set(
-                filter.seasons.flatMap { season in
-                    normalizedSeasonTokens(for: season)
-                }
-            )
-            if !targetSeasons.isEmpty {
-                result = result.filter { perfume in
-                    guard let seasons = perfume.season else { return false }
-                    return seasons.contains { seasonValue in
-                        normalizedSeasonTokens(for: seasonValue).contains { targetSeasons.contains($0) }
+            result = result.filter { perfume in
+                guard let seasons = perfume.season else { return false }
+                let perfumeSeasonTokens = Set(
+                    seasons.flatMap { seasonValue in
+                        normalizedSeasonTokens(for: seasonValue)
                     }
+                )
+
+                return filter.seasons.allSatisfy { season in
+                    let targetTokens = Set(normalizedSeasonTokens(for: season))
+                    return !perfumeSeasonTokens.isDisjoint(with: targetTokens)
                 }
             }
         }

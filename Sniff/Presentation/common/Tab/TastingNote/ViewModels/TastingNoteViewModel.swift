@@ -50,8 +50,8 @@ final class TastingNoteViewModel: ObservableObject {
 
     // MARK: - 필터 키 캐시 (보유/LIKE 향수 브랜드|이름 소문자 Set)
 
-    private var ownedKeys: Set<String> = []
-    private var likedKeys: Set<String> = []
+    @Published private var ownedKeys: Set<String> = []
+    @Published private var likedKeys: Set<String> = []
     let perfumeScope: TastingNotePerfumeScope?
 
     // MARK: - Computed
@@ -103,6 +103,7 @@ final class TastingNoteViewModel: ObservableObject {
         self.firestoreService = firestoreService
         self.perfumeScope = perfumeScope
         fetchNotes()
+        Task { await loadFilterKeys() }
     }
  
     deinit {
@@ -142,6 +143,7 @@ final class TastingNoteViewModel: ObservableObject {
                 .order(by: "createdAt", descending: true)
                 .getDocuments()
             notes = snapshot.documents.compactMap { try? $0.data(as: TastingNote.self) }
+            await loadFilterKeys()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -197,14 +199,10 @@ final class TastingNoteViewModel: ObservableObject {
 
     // MARK: - 필터 선택 / 해제
 
-    /// 동일 필터를 다시 탭하면 전체(.all)로 해제, 다른 필터 탭하면 해당 필터로 전환
+    /// 선택한 필터로 전환한다.
     func selectFilter(_ filter: TastingNoteFilter) {
-        if selectedFilter == filter {
-            selectedFilter = .all
-        } else {
-            selectedFilter = filter
-            Task { await loadFilterKeys() }
-        }
+        selectedFilter = filter
+        Task { await loadFilterKeys() }
     }
 
     // MARK: - 필터 키 로딩 (보유/LIKE 향수 → 브랜드|이름 소문자 Set)
@@ -214,8 +212,8 @@ final class TastingNoteViewModel: ObservableObject {
             async let ownedFetch = firestoreService.fetchCollection()
             async let likedFetch = firestoreService.fetchLikedPerfumes()
             let (owned, liked) = try await (ownedFetch, likedFetch)
-            ownedKeys = Set(owned.map { "\($0.brand.lowercased())|\($0.name.lowercased())" })
-            likedKeys = Set(liked.map { "\($0.brand.lowercased())|\($0.name.lowercased())" })
+            ownedKeys = Set(owned.map { perfumeKey(perfumeName: $0.name, brandName: $0.brand) })
+            likedKeys = Set(liked.map { perfumeKey(perfumeName: $0.name, brandName: $0.brand) })
         } catch {
             // 로딩 실패 시 빈 Set 유지 (필터 결과 없음으로 표시)
             ownedKeys = []
@@ -230,6 +228,12 @@ final class TastingNoteViewModel: ObservableObject {
     }
 
     func perfumeKey(perfumeName: String, brandName: String) -> String {
-        "\(brandName.lowercased())|\(perfumeName.lowercased())"
+        let normalizedBrand = brandName
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+        let normalizedPerfume = perfumeName
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+        return "\(normalizedBrand)|\(normalizedPerfume)"
     }
 }

@@ -100,19 +100,4 @@ final class AppDependencyContainer {
             authService: authService
         )
     }
-
-    @MainActor
-    func makeAccountInfoViewModel() -> AccountInfoViewModel {
-        AccountInfoViewModel(firestoreService: firestoreService)
-    }
-
-    @MainActor
-    func makeEmailChangeViewModel() -> EmailChangeViewModel {
-        EmailChangeViewModel(firestoreService: firestoreService)
-    }
-
-    @MainActor
-    func makeDeviceManageViewModel() -> DeviceManageViewModel {
-        DeviceManageViewModel()
-    }
 }

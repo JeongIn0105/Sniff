@@ -54,6 +54,6 @@ extension RecommendationEngine {
             return "\(fallbackFamily) 무드가 현재 취향과 잘 맞아요"
         }
 
-        return "\(profile.primaryProfileName) 취향 흐름을 반영한 추천이에요"
+        return "\(profile.displayTitle) 흐름을 반영한 추천이에요"
     }
 }

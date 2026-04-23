@@ -10,14 +10,21 @@ import RxSwift
 
 final class UserTasteRepository: UserTasteRepositoryType {
 
+    private enum CacheKey {
+        static let latestTasteAnalysis = "sniff.latestTasteAnalysis"
+    }
+
     private let geminiService: GeminiTasteAnalysisService?
     private let firestoreService: FirestoreService
+    private let defaults: UserDefaults
 
     init(
         geminiService: GeminiTasteAnalysisService? = nil,
-        firestoreService: FirestoreService? = nil
+        firestoreService: FirestoreService? = nil,
+        defaults: UserDefaults = .standard
     ) {
         self.firestoreService = firestoreService ?? .shared
+        self.defaults = defaults
 
         if let geminiService {
             self.geminiService = geminiService
@@ -38,9 +45,14 @@ final class UserTasteRepository: UserTasteRepositoryType {
             let task = Task {
                 do {
                     let result = try await self.firestoreService.fetchTasteAnalysis()
+                    self.cacheTasteAnalysis(result)
                     single(.success(result))
                 } catch {
-                    single(.failure(error))
+                    if let cached = self.cachedTasteAnalysis() {
+                        single(.success(cached))
+                    } else {
+                        single(.failure(error))
+                    }
                 }
             }
 
@@ -55,17 +67,35 @@ final class UserTasteRepository: UserTasteRepositoryType {
             throw AppSecretsError.missingValue("GEMINI_API_KEY")
         }
 
-        return try await geminiService.requestTasteAnalysis(input: input)
+        let result = try await geminiService.requestTasteAnalysis(input: input)
+        cacheTasteAnalysis(result)
+        return result
     }
 
     func checkNicknameAvailability(_ nickname: String) async throws -> Bool {
         try await firestoreService.isNicknameAvailable(nickname)
     }
 
-    func saveUserProfile(nickname: String, tasteAnalysis: TasteAnalysisResult) async throws {
+    func saveUserProfile(
+        nickname: String,
+        tasteAnalysis: TasteAnalysisResult,
+        experienceLevel: String? = nil
+    ) async throws {
         try await firestoreService.saveUserProfile(
             nickname: nickname,
-            tasteAnalysis: tasteAnalysis
+            tasteAnalysis: tasteAnalysis,
+            experienceLevel: experienceLevel
         )
+        cacheTasteAnalysis(tasteAnalysis)
+    }
+
+    private func cacheTasteAnalysis(_ result: TasteAnalysisResult) {
+        guard let data = try? JSONEncoder().encode(result) else { return }
+        defaults.set(data, forKey: CacheKey.latestTasteAnalysis)
+    }
+
+    private func cachedTasteAnalysis() -> TasteAnalysisResult? {
+        guard let data = defaults.data(forKey: CacheKey.latestTasteAnalysis) else { return nil }
+        return try? JSONDecoder().decode(TasteAnalysisResult.self, from: data)
     }
 }

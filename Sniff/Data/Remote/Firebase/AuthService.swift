@@ -50,14 +50,6 @@ final class AuthService: AuthServiceType {
         return result.user.uid
     }
 
-    func signInAnonymouslyForDebug() async throws {
-        if Auth.auth().currentUser != nil {
-            return
-        }
-
-        _ = try await Auth.auth().signInAnonymously()
-    }
-
     func signOut() throws {
         try Auth.auth().signOut()
     }

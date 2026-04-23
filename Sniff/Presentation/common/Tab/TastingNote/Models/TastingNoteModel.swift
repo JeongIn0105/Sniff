@@ -19,14 +19,90 @@ struct TastingNote: Identifiable, Codable {
     var mainAccords: [String]
     var concentration: String?
     var rating: Int
-    var longevity: Int           // 하위 호환성을 위해 유지 (UI에서는 미사용)
     var moodTags: [String]
     var revisitDesire: String?   // 다시 쓰고 싶은지 태그 (선택)
     var memo: String
     var perfumeImageURL: String?
-    var fragranceID: String?
     var createdAt: Date
     var updatedAt: Date
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case perfumeName
+        case brandName
+        case mainAccords
+        case concentration
+        case rating
+        case moodTags
+        case revisitDesire
+        case memo
+        case perfumeImageURL
+        case imageUrl
+        case createdAt
+        case updatedAt
+    }
+
+    init(
+        id: String? = nil,
+        perfumeName: String,
+        brandName: String,
+        mainAccords: [String],
+        concentration: String?,
+        rating: Int,
+        moodTags: [String],
+        revisitDesire: String?,
+        memo: String,
+        perfumeImageURL: String?,
+        createdAt: Date,
+        updatedAt: Date
+    ) {
+        self.id = id
+        self.perfumeName = perfumeName
+        self.brandName = brandName
+        self.mainAccords = mainAccords
+        self.concentration = concentration
+        self.rating = rating
+        self.moodTags = moodTags
+        self.revisitDesire = revisitDesire
+        self.memo = memo
+        self.perfumeImageURL = perfumeImageURL
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(String.self, forKey: .id)
+        perfumeName = try container.decode(String.self, forKey: .perfumeName)
+        brandName = try container.decode(String.self, forKey: .brandName)
+        mainAccords = try container.decodeIfPresent([String].self, forKey: .mainAccords) ?? []
+        concentration = try container.decodeIfPresent(String.self, forKey: .concentration)
+        rating = try container.decode(Int.self, forKey: .rating)
+        moodTags = try container.decodeIfPresent([String].self, forKey: .moodTags) ?? []
+        revisitDesire = try container.decodeIfPresent(String.self, forKey: .revisitDesire)
+        memo = try container.decodeIfPresent(String.self, forKey: .memo) ?? ""
+        perfumeImageURL =
+            try container.decodeIfPresent(String.self, forKey: .perfumeImageURL)
+            ?? container.decodeIfPresent(String.self, forKey: .imageUrl)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(id, forKey: .id)
+        try container.encode(perfumeName, forKey: .perfumeName)
+        try container.encode(brandName, forKey: .brandName)
+        try container.encode(mainAccords, forKey: .mainAccords)
+        try container.encodeIfPresent(concentration, forKey: .concentration)
+        try container.encode(rating, forKey: .rating)
+        try container.encode(moodTags, forKey: .moodTags)
+        try container.encodeIfPresent(revisitDesire, forKey: .revisitDesire)
+        try container.encode(memo, forKey: .memo)
+        try container.encodeIfPresent(perfumeImageURL, forKey: .perfumeImageURL)
+        try container.encode(createdAt, forKey: .createdAt)
+        try container.encode(updatedAt, forKey: .updatedAt)
+    }
 }
 
 // MARK: - 다시 쓰고 싶은지 태그 목록 (4개, 단일 선택)

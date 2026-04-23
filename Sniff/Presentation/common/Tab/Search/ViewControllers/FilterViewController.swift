@@ -4,8 +4,6 @@
 //
 //  Created by t2025-m0239 on 2026.04.17.
 //
-    // FilterViewController.swift
-    // 킁킁(Sniff) - 필터 바텀시트 ViewController
 
 import UIKit
 import SnapKit
@@ -15,10 +13,25 @@ import RxCocoa
 
 final class FilterViewController: UIViewController {
 
-        // MARK: - Properties
+    private enum Layout {
+        static let sectionHorizontalInset: CGFloat = 20
+        static let sectionHeaderToTagsSpacing: CGFloat = 10
+        static let sectionDividerSpacing: CGFloat = 18
+        static let chipSpacing: CGFloat = 12
+        static let chipLineSpacing: CGFloat = 10
+    }
+
+    private enum SelectionLimit {
+        static let scentFamilies = 3
+        static let moodTags = 5
+    }
+
+    // MARK: - Properties
+
     private let viewModel: FilterViewModel
     private let disposeBag = DisposeBag()
     private var currentFilter = SearchFilter()
+    private var tagButtons: [String: UIButton] = [:]
 
     private let scentFamilyToggleRelay = PublishRelay<ScentFamilyFilter>()
     private let moodTagToggleRelay = PublishRelay<MoodTag>()
@@ -29,7 +42,23 @@ final class FilterViewController: UIViewController {
 
     var onApply: ((SearchFilter) -> Void)?
 
-        // MARK: - UI Components
+    private enum TagType {
+        case scentFamily
+        case mood
+        case concentration
+        case season
+    }
+
+    private struct SectionSpec {
+        let title: String
+        let subtitle: String?
+        let tags: [String]
+        let type: TagType
+        let topInset: CGFloat
+        let bottomInset: CGFloat
+    }
+
+    // MARK: - UI Components
 
     private let handleView = UIView().then {
         $0.backgroundColor = .systemGray4
@@ -76,7 +105,7 @@ final class FilterViewController: UIViewController {
     }
 
     private let applyButton = UIButton(type: .system).then {
-        $0.setTitle("향수 58개 보기", for: .normal)
+        $0.setTitle("향수 보기", for: .normal)
         $0.titleLabel?.font = .systemFont(ofSize: 16, weight: .semibold)
         $0.setTitleColor(.white, for: .normal)
         $0.setTitleColor(.systemGray3, for: .disabled)
@@ -84,7 +113,7 @@ final class FilterViewController: UIViewController {
         $0.layer.cornerRadius = 12
     }
 
-        // MARK: - Init
+    // MARK: - Init
 
     init(viewModel: FilterViewModel) {
         self.viewModel = viewModel
@@ -93,7 +122,7 @@ final class FilterViewController: UIViewController {
 
     required init?(coder: NSCoder) { fatalError() }
 
-        // MARK: - Lifecycle
+    // MARK: - Lifecycle
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -101,7 +130,7 @@ final class FilterViewController: UIViewController {
         bindViewModel()
     }
 
-        // MARK: - Setup UI
+    // MARK: - Setup UI
 
     private func setupUI() {
         view.backgroundColor = .systemBackground
@@ -123,7 +152,7 @@ final class FilterViewController: UIViewController {
 
         titleLabel.snp.makeConstraints {
             $0.top.equalTo(handleView.snp.bottom).offset(12)
-            $0.leading.equalToSuperview().offset(20)
+            $0.leading.equalToSuperview().offset(Layout.sectionHorizontalInset)
         }
 
         activeFilterScrollView.snp.makeConstraints {
@@ -133,7 +162,12 @@ final class FilterViewController: UIViewController {
         }
 
         activeFilterStackView.snp.makeConstraints {
-            $0.edges.equalToSuperview().inset(UIEdgeInsets(top: 0, left: 20, bottom: 0, right: 20))
+            $0.edges.equalToSuperview().inset(UIEdgeInsets(
+                top: 0,
+                left: Layout.sectionHorizontalInset,
+                bottom: 0,
+                right: Layout.sectionHorizontalInset
+            ))
             $0.height.equalToSuperview()
         }
 
@@ -164,7 +198,7 @@ final class FilterViewController: UIViewController {
         [resetButton, applyButton].forEach { bottomView.addSubview($0) }
 
         resetButton.snp.makeConstraints {
-            $0.leading.equalToSuperview().offset(20)
+            $0.leading.equalToSuperview().offset(Layout.sectionHorizontalInset)
             $0.top.equalToSuperview().offset(12)
             $0.width.equalTo(100)
             $0.height.equalTo(48)
@@ -172,15 +206,16 @@ final class FilterViewController: UIViewController {
 
         applyButton.snp.makeConstraints {
             $0.leading.equalTo(resetButton.snp.trailing).offset(12)
-            $0.trailing.equalToSuperview().offset(-20)
+            $0.trailing.equalToSuperview().offset(-Layout.sectionHorizontalInset)
             $0.top.equalTo(resetButton)
             $0.height.equalTo(48)
         }
     }
 
-        // MARK: - Bind ViewModel
+    // MARK: - Bind ViewModel
 
     private func bindViewModel() {
+        // 각 필터 탭 이벤트를 ViewModel 입력으로 묶어 바텀시트 상태를 한 곳에서 관리한다.
         let input = FilterViewModel.Input(
             scentFamilyToggle: scentFamilyToggleRelay.asObservable(),
             moodTagToggle: moodTagToggleRelay.asObservable(),
@@ -243,11 +278,10 @@ final class FilterViewController: UIViewController {
             .disposed(by: disposeBag)
     }
 
-        // MARK: - Tag Button 상태 업데이트
-
-    private var tagButtons: [String: UIButton] = [:]
+    // MARK: - Tag Button State
 
     private func updateTagButtons(filter: SearchFilter) {
+        // 현재 필터 상태와 각 칩의 선택 상태를 동기화한다.
         ScentFamilyFilter.allCases.forEach { family in
             tagButtons[family.displayName]?.isSelected = filter.scentFamilies.contains(family)
         }
@@ -263,44 +297,25 @@ final class FilterViewController: UIViewController {
     }
 
     private func updateTagAvailability(filter: SearchFilter) {
-        let currentCount = SearchFilterEngine.filterPerfumes(viewModel.currentPerfumes, filter: filter).count
-
         ScentFamilyFilter.allCases.forEach { family in
             let isSelected = filter.scentFamilies.contains(family)
-            tagButtons[family.displayName]?.isEnabled = isSelected || isScentFamilyAvailable(family, filter: filter, currentCount: currentCount)
+            let isAtSelectionLimit = !isSelected && filter.scentFamilies.count >= SelectionLimit.scentFamilies
+            tagButtons[family.displayName]?.isEnabled = !isAtSelectionLimit
         }
 
         MoodTag.allCases.forEach { tag in
             let isSelected = filter.moodTags.contains(tag)
-            let isAtSelectionLimit = !isSelected && filter.moodTags.count >= 3
-            tagButtons[tag.displayName]?.isEnabled = isSelected || (!isAtSelectionLimit && isMoodTagAvailable(tag, filter: filter, currentCount: currentCount))
+            let isAtSelectionLimit = !isSelected && filter.moodTags.count >= SelectionLimit.moodTags
+            tagButtons[tag.displayName]?.isEnabled = !isAtSelectionLimit
+        }
+
+        Concentration.allCases.forEach { concentration in
+            tagButtons[concentration.displayName]?.isEnabled = true
         }
 
         Season.allCases.forEach { season in
-            let isSelected = filter.seasons.contains(season)
-            tagButtons[season.displayName]?.isEnabled = isSelected || isSeasonAvailable(season, filter: filter, currentCount: currentCount)
+            tagButtons[season.displayName]?.isEnabled = true
         }
-    }
-
-    private func isScentFamilyAvailable(_ family: ScentFamilyFilter, filter: SearchFilter, currentCount: Int) -> Bool {
-        var candidateFilter = filter
-        candidateFilter.scentFamilies.insert(family)
-        let candidateCount = SearchFilterEngine.filterPerfumes(viewModel.currentPerfumes, filter: candidateFilter).count
-        return candidateCount > 0 && candidateCount < currentCount
-    }
-
-    private func isMoodTagAvailable(_ tag: MoodTag, filter: SearchFilter, currentCount: Int) -> Bool {
-        var candidateFilter = filter
-        candidateFilter.moodTags.insert(tag)
-        let candidateCount = SearchFilterEngine.filterPerfumes(viewModel.currentPerfumes, filter: candidateFilter).count
-        return candidateCount > 0 && candidateCount < currentCount
-    }
-
-    private func isSeasonAvailable(_ season: Season, filter: SearchFilter, currentCount: Int) -> Bool {
-        var candidateFilter = filter
-        candidateFilter.seasons.insert(season)
-        let candidateCount = SearchFilterEngine.filterPerfumes(viewModel.currentPerfumes, filter: candidateFilter).count
-        return candidateCount > 0 && candidateCount < currentCount
     }
 
         // MARK: - 상단 활성 필터 바
@@ -308,6 +323,7 @@ final class FilterViewController: UIViewController {
     private func updateActiveFilterBar(filter: SearchFilter) {
         activeFilterStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
 
+        // 상단 바는 현재 적용 중인 필터만 요약해서 보여주고, 칩 탭으로 바로 해제할 수 있다.
         let allSelected: [String] = filter.scentFamilies.map { $0.displayName }
         + filter.moodTags.map { $0.displayName }
         + filter.concentrations.map { $0.displayName }
@@ -354,20 +370,10 @@ final class FilterViewController: UIViewController {
         }
     }
 
-        // MARK: - Section 생성
-
-    private enum TagType { case scentFamily, mood, concentration, season }
-
-    private struct SectionSpec {
-        let title: String
-        let subtitle: String?
-        let tags: [String]
-        let type: TagType
-        let topInset: CGFloat
-        let bottomInset: CGFloat
-    }
+    // MARK: - Section Layout
 
     private func addFilterSections() {
+        // 섹션 간격은 topInset / bottomInset으로 관리해서 화면에서 직접 조정하기 쉽게 둔다.
         let sections: [SectionSpec] = [
             .init(
                 title: "향 계열",
@@ -382,6 +388,14 @@ final class FilterViewController: UIViewController {
                 subtitle: nil,
                 tags: MoodTag.imageTags.map(\.displayName) + MoodTag.vibeTags.map(\.displayName),
                 type: .mood,
+                topInset: 15,
+                bottomInset: 25
+            ),
+            .init(
+                title: "농도",
+                subtitle: nil,
+                tags: Concentration.allCases.map(\.displayName),
+                type: .concentration,
                 topInset: 15,
                 bottomInset: 25
             ),
@@ -471,12 +485,17 @@ final class FilterViewController: UIViewController {
         container.addSubview(headerView)
         headerView.snp.makeConstraints {
             $0.top.equalToSuperview().offset(topInset)
-            $0.leading.equalToSuperview().offset(20)
-            $0.trailing.lessThanOrEqualToSuperview().offset(-20)
+            $0.leading.equalToSuperview().offset(Layout.sectionHorizontalInset)
+            $0.trailing.lessThanOrEqualToSuperview().offset(-Layout.sectionHorizontalInset)
         }
 
-        let wrapView = TagWrapView(tags: tags) { [weak self] selectedTag in
+        let wrapView = TagWrapView(
+            tags: tags,
+            spacing: Layout.chipSpacing,
+            lineSpacing: Layout.chipLineSpacing
+        ) { [weak self] selectedTag in
             guard let self else { return }
+            // 태그 문자열을 실제 필터 enum으로 다시 매핑해 토글 이벤트를 보낸다.
             switch type {
                 case .scentFamily:
                     if let family = ScentFamilyFilter(rawValue: selectedTag) {
@@ -506,9 +525,9 @@ final class FilterViewController: UIViewController {
 
         container.addSubview(wrapView)
         wrapView.snp.makeConstraints {
-            $0.top.equalTo(headerView.snp.bottom).offset(6)
-            $0.leading.equalToSuperview().offset(20)
-            $0.trailing.equalToSuperview().offset(-20)
+            $0.top.equalTo(headerView.snp.bottom).offset(Layout.sectionHeaderToTagsSpacing)
+            $0.leading.equalToSuperview().offset(Layout.sectionHorizontalInset)
+            $0.trailing.equalToSuperview().offset(-Layout.sectionHorizontalInset)
             $0.bottom.equalToSuperview().offset(-bottomInset)
         }
 
@@ -520,6 +539,7 @@ final class FilterViewController: UIViewController {
             $0.backgroundColor = .systemGray5
             $0.snp.makeConstraints { $0.height.equalTo(1) }
         }
+        contentStackView.setCustomSpacing(Layout.sectionDividerSpacing, after: view)
         return view
     }
 
@@ -556,11 +576,19 @@ final class TagWrapView: UIView {
     private let tags: [String]
     private let onSelect: (String) -> Void
     private(set) var buttons: [UIButton] = []
-    private let spacing: CGFloat = 8
-    private let lineSpacing: CGFloat = 8
+    private let spacing: CGFloat
+    private let lineSpacing: CGFloat
+    private var lastLaidOutWidth: CGFloat = 0
 
-    init(tags: [String], onSelect: @escaping (String) -> Void) {
+    init(
+        tags: [String],
+        spacing: CGFloat = 8,
+        lineSpacing: CGFloat = 8,
+        onSelect: @escaping (String) -> Void
+    ) {
         self.tags = tags
+        self.spacing = spacing
+        self.lineSpacing = lineSpacing
         self.onSelect = onSelect
         super.init(frame: .zero)
         setupButtons()
@@ -569,6 +597,7 @@ final class TagWrapView: UIView {
     required init?(coder: NSCoder) { fatalError() }
 
     private func setupButtons() {
+        // 버튼 너비가 제각각이어서 스택뷰 대신 직접 줄바꿈 레이아웃을 만든다.
         tags.forEach { tag in
             let button = FilterTagButton(type: .system)
             button.baseTitle = tag
@@ -595,6 +624,12 @@ final class TagWrapView: UIView {
     override func layoutSubviews() {
         super.layoutSubviews()
 
+        if lastLaidOutWidth != bounds.width {
+            lastLaidOutWidth = bounds.width
+            invalidateIntrinsicContentSize()
+        }
+
+        // 현재 폭 안에서 넘치면 다음 줄로 보내는 단순 flow layout 방식이다.
         var x: CGFloat = 0
         var y: CGFloat = 0
 
@@ -614,7 +649,10 @@ final class TagWrapView: UIView {
     }
 
     override var intrinsicContentSize: CGSize {
-        layoutSubviews()
+        guard bounds.width > 0 else {
+            return CGSize(width: UIView.noIntrinsicMetric, height: 0)
+        }
+
         let maxY = buttons.map { $0.frame.maxY }.max() ?? 0
         return CGSize(width: UIView.noIntrinsicMetric, height: maxY)
     }
@@ -745,7 +783,7 @@ private final class ScentFamilyInfoViewController: UIViewController {
     }
 
     private let descriptionLabel = UILabel().then {
-        $0.text = "필터의 향 계열 칩이 어떤 느낌인지 한눈에 볼 수 있어요."
+        $0.text = "Fragrance Wheel 기준 계열이에요. 각 계열이 어떤 향인지 빠르게 확인할 수 있어요."
         $0.font = .systemFont(ofSize: 13)
         $0.textColor = .secondaryLabel
         $0.numberOfLines = 0

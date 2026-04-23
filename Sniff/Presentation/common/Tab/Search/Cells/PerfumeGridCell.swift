@@ -23,8 +23,8 @@ final class PerfumeGridCell: UICollectionViewCell {
         // MARK: - UI Components
 
     private let imageContainerView = UIView().then {
-        $0.backgroundColor = .systemGray6
-        $0.layer.cornerRadius = 12
+        $0.backgroundColor = UIColor(red: 0.97, green: 0.95, blue: 0.92, alpha: 1)
+        $0.layer.cornerRadius = 16
         $0.clipsToBounds = true
     }
 
@@ -45,7 +45,8 @@ final class PerfumeGridCell: UICollectionViewCell {
         $0.setImage(UIImage(systemName: "heart")?.withRenderingMode(.alwaysTemplate), for: .normal)
         $0.setImage(UIImage(systemName: "heart.fill")?.withRenderingMode(.alwaysTemplate), for: .selected)
         $0.tintColor = .white
-        $0.backgroundColor = .clear
+        $0.backgroundColor = UIColor.black.withAlphaComponent(0.18)
+        $0.layer.cornerRadius = 14
     }
 
     private let brandLabel = UILabel().then {
@@ -105,7 +106,7 @@ final class PerfumeGridCell: UICollectionViewCell {
         }
 
         bottleImageView.snp.makeConstraints {
-            $0.edges.equalToSuperview().inset(12)
+            $0.edges.equalToSuperview().inset(10)
         }
 
         placeholderLabel.snp.makeConstraints {
