@@ -7,7 +7,6 @@
 
 // MARK: - 목록 화면 (data X / data O 상태)
 import SwiftUI
-import Kingfisher
 
 struct TastingNoteView: View {
 
@@ -44,13 +43,14 @@ struct TastingNoteView: View {
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
 
-                addButton
-                    .padding(.trailing, 20)
-                    .padding(.bottom, 24)
+                if !viewModel.isDeleteMode {
+                    addButton
+                        .padding(.trailing, 20)
+                        .padding(.bottom, 24)
+                }
             }
             .toolbar(.hidden, for: .navigationBar)
             .fullScreenCover(isPresented: $viewModel.showFormSheet, onDismiss: {
-                // 폼 닫힌 직후 강제 새로고침 (리스너 지연 대비)
                 Task { await viewModel.reload() }
             }) {
                 TastingNoteSceneFactory.makeFormView { perfumeName in
@@ -63,7 +63,7 @@ struct TastingNoteView: View {
                 }
                 Button("취소", role: .cancel) { }
             } message: {
-                Text("이 시향 기록을 삭제할까요?\n삭제 후 복구할 수 없어요.")
+                Text(deleteAlertMessage)
             }
             .alert("오류", isPresented: Binding(
                 get: { viewModel.errorMessage != nil },
@@ -73,40 +73,90 @@ struct TastingNoteView: View {
             } message: {
                 Text(viewModel.errorMessage ?? "")
             }
+            .onAppear {
+                Task { await viewModel.reloadFromLocal() }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .tastingNotesDidChange)) { _ in
+                Task { await viewModel.reloadFromLocal() }
+            }
         }
         .animation(.easeInOut(duration: 0.2), value: viewModel.toastMessage)
     }
 
+    @ViewBuilder
     private var headerView: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // 타이틀 + 삭제 버튼
+        if viewModel.isDeleteMode {
+            editHeaderView
+        } else {
+            normalHeaderView
+        }
+    }
+
+    private var normalHeaderView: some View {
+        VStack(alignment: .leading, spacing: 22) {
             HStack(alignment: .center) {
-                Text(viewModel.perfumeScope?.title ?? "시향 기록")
-                    .font(.system(size: 30, weight: .bold))
+                Text(viewModel.perfumeScope?.title ?? "시향기")
+                    .font(.system(size: 26, weight: .bold))
+                    .foregroundColor(.black)
 
                 Spacer()
 
-                Button(viewModel.isDeleteMode ? "완료" : "삭제") {
+                Button("편집") {
                     guard !viewModel.isEmpty else { return }
                     viewModel.toggleDeleteMode()
                 }
-                .font(.system(size: 17, weight: .medium))
-                .foregroundColor(.primary)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundColor(Color(.systemGray))
                 .disabled(viewModel.isEmpty)
                 .opacity(viewModel.isEmpty ? 0.35 : 1)
             }
 
-            // 전체 / 보유 향수 / 좋아요 향수 필터 칩
-            HStack(spacing: 10) {
+            HStack(spacing: 9) {
                 filterChip(title: "전체 시향기", filter: .all)
                 filterChip(title: "보유 향수", filter: .owned)
-                filterChip(title: "좋아요 향수", filter: .liked)
-                Spacer()
+                filterChip(title: "LIKE 향수", filter: .liked)
+                Spacer(minLength: 0)
             }
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 24)
         .padding(.top, 22)
-        .padding(.bottom, 16)
+        .padding(.bottom, 9)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(Color(.systemGray5))
+                .frame(height: 0.6)
+        }
+    }
+
+    private var editHeaderView: some View {
+        HStack(spacing: 10) {
+            Button {
+                viewModel.toggleDeleteMode()
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 26, weight: .medium))
+                    .foregroundColor(.black)
+                    .frame(width: 44, height: 44, alignment: .leading)
+            }
+
+            Text("시향 기록 편집")
+                .font(.system(size: 25, weight: .bold))
+                .foregroundColor(.black)
+
+            Spacer()
+
+            Button("삭제") {
+                viewModel.requestDeleteSelected()
+            }
+            .font(.system(size: 17, weight: .semibold))
+            .foregroundColor(Color(red: 0.92, green: 0.16, blue: 0.14))
+            .opacity(viewModel.hasSelectedNotes ? 1 : 0.35)
+            .disabled(!viewModel.hasSelectedNotes)
+        }
+        .padding(.leading, 20)
+        .padding(.trailing, 24)
+        .padding(.top, 22)
+        .padding(.bottom, 18)
     }
 
     private var emptyStateView: some View {
@@ -135,7 +185,7 @@ struct TastingNoteView: View {
         switch viewModel.selectedFilter {
         case .all:    return "아직 작성한 시향기가 없어요"
         case .owned:  return "보유 향수 시향기가 없어요"
-        case .liked:  return "좋아요 향수 시향기가 없어요"
+        case .liked:  return "LIKE 향수 시향기가 없어요"
         }
     }
 
@@ -146,33 +196,42 @@ struct TastingNoteView: View {
         switch viewModel.selectedFilter {
         case .all:    return "+ 버튼을 눌러 첫 시향기를 작성해 주세요"
         case .owned:  return "보유 향수에 등록된 향수의 시향기만 여기에 표시돼요"
-        case .liked:  return "좋아요를 누른 향수의 시향기만 여기에 표시돼요"
+        case .liked:  return "LIKE를 누른 향수의 시향기만 여기에 표시돼요"
         }
     }
 
     private var noteListView: some View {
         ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 0) {
+            VStack(spacing: 0) {
                 ForEach(viewModel.filteredNotes) { note in
-                    NavigationLink {
-                        TastingNoteDetailView(note: note, viewModel: viewModel)
-                    } label: {
-                        TastingNoteRowView(
-                            note: note,
-                            isDeleteMode: viewModel.isDeleteMode,
-                            onDelete: { viewModel.requestDelete(note) }
-                        )
+                    if viewModel.isDeleteMode {
+                        Button {
+                            viewModel.toggleNoteSelection(note)
+                        } label: {
+                            TastingNoteEditRowView(
+                                note: note,
+                                isSelected: viewModel.isSelected(note)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        NavigationLink {
+                            TastingNoteDetailView(note: note, viewModel: viewModel)
+                        } label: {
+                            TastingNoteTextRowView(note: note)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
 
                     Divider()
-                        .padding(.leading, viewModel.isDeleteMode ? 96 : 88)
+                        .padding(.leading, viewModel.isDeleteMode ? 86 : 24)
                         .opacity(0.55)
                 }
 
                 Spacer()
-                    .frame(height: 120)
+                    .frame(height: viewModel.isDeleteMode ? 110 : 140)
             }
+            .padding(.top, viewModel.isDeleteMode ? 0 : 10)
         }
     }
 
@@ -180,20 +239,26 @@ struct TastingNoteView: View {
         Button {
             viewModel.showFormSheet = true
         } label: {
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
                 Image(systemName: "plus")
-                    .font(.system(size: 16, weight: .bold))
+                    .font(.system(size: 22, weight: .regular))
 
                 Text("시향기 등록")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.system(size: 18, weight: .semibold))
             }
             .foregroundColor(.white)
-            .padding(.horizontal, 26)
-            .frame(height: 56)
+            .padding(.horizontal, 22)
+            .frame(height: 52)
             .background(Color.black)
             .clipShape(Capsule())
             .shadow(color: .black.opacity(0.12), radius: 10, x: 0, y: 4)
         }
+    }
+
+    private var deleteAlertMessage: String {
+        viewModel.hasSelectedNotes
+        ? "선택한 시향 기록을 삭제할까요?\n삭제 후 복구할 수 없어요."
+        : "이 시향 기록을 삭제할까요?\n삭제 후 복구할 수 없어요."
     }
 
     /// 시향기 필터 칩 버튼
@@ -203,13 +268,18 @@ struct TastingNoteView: View {
             viewModel.selectFilter(filter)
         } label: {
             Text(title)
-                .font(.system(size: 14, weight: .medium))
+                .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(isSelected ? .white : .primary)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+                .padding(.horizontal, 14)
+                .frame(height: 34)
                 .background(isSelected ? Color.black : Color(.systemBackground))
                 .clipShape(Capsule())
-                .overlay(Capsule().stroke(isSelected ? Color.clear : Color(.systemGray3), lineWidth: 1))
+                .overlay(
+                    Capsule()
+                        .stroke(isSelected ? Color.clear : Color(.systemGray), lineWidth: 1.5)
+                )
         }
     }
 
@@ -225,81 +295,84 @@ struct TastingNoteView: View {
     }
 }
 
-struct TastingNoteRowView: View {
+private struct TastingNoteTextRowView: View {
 
     let note: TastingNote
-    let isDeleteMode: Bool
-    let onDelete: () -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
-            if isDeleteMode {
-                Button(action: onDelete) {
-                    Image(systemName: "minus.circle.fill")
-                        .font(.system(size: 22))
-                        .foregroundColor(.red)
-                }
-                .padding(.leading, 20)
-            }
+        VStack(alignment: .leading, spacing: 6) {
+            Text(PerfumePresentationSupport.displayPerfumeName(note.perfumeName))
+                .font(.system(size: 17, weight: .regular))
+                .foregroundColor(.black)
+                .lineLimit(1)
 
-            perfumeThumbnail
+            Text(PerfumePresentationSupport.displayBrand(note.brandName))
+                .font(.system(size: 15, weight: .regular))
+                .foregroundColor(Color(.systemGray))
+                .lineLimit(1)
 
-            VStack(alignment: .leading, spacing: 4) {
+            Text(note.updatedAt.tastingNoteFormat)
+                .font(.system(size: 14, weight: .regular))
+                .foregroundColor(Color(.systemGray3))
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 24)
+        .padding(.vertical, 10)
+        .contentShape(Rectangle())
+    }
+}
+
+private struct TastingNoteEditRowView: View {
+
+    let note: TastingNote
+    let isSelected: Bool
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 14) {
+            checkbox
+                .padding(.top, 2)
+
+            VStack(alignment: .leading, spacing: 6) {
                 Text(PerfumePresentationSupport.displayPerfumeName(note.perfumeName))
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.primary)
+                    .font(.system(size: 17, weight: .regular))
+                    .foregroundColor(.black)
                     .lineLimit(1)
 
-                HStack(spacing: 4) {
-                    Text(PerfumePresentationSupport.displayBrand(note.brandName))
-                        .font(.system(size: 13))
-                        .foregroundColor(.secondary)
+                Text(PerfumePresentationSupport.displayBrand(note.brandName))
+                    .font(.system(size: 15, weight: .regular))
+                    .foregroundColor(Color(.systemGray))
+                    .lineLimit(1)
 
-                    if !note.mainAccords.isEmpty {
-                        Text("|")
-                            .font(.system(size: 13))
-                            .foregroundColor(Color(.systemGray4))
-
-                        ForEach(Array(PerfumePresentationSupport.displayAccords(Array(note.mainAccords.prefix(2))).enumerated()), id: \.offset) { _, accord in
-                            HStack(spacing: 3) {
-                                Circle()
-                                    .frame(width: 4, height: 4)
-                                    .foregroundColor(accord.accordColor)
-
-                                Text(accord)
-                                    .font(.system(size: 13))
-                                    .foregroundColor(Color(.systemGray4))
-                            }
-                        }
-                    }
-                }
                 Text(note.updatedAt.tastingNoteFormat)
-                    .font(.system(size: 12))
-                    .foregroundColor(Color(.tertiaryLabel))
+                    .font(.system(size: 14, weight: .regular))
+                    .foregroundColor(Color(.systemGray3))
+                    .lineLimit(1)
             }
 
-            Spacer()
+            Spacer(minLength: 0)
         }
-        .padding(.vertical, 14)
-        .padding(.leading, isDeleteMode ? 0 : 20)
-        .padding(.trailing, 20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.leading, 20)
+        .padding(.trailing, 24)
+        .padding(.vertical, 10)
         .contentShape(Rectangle())
     }
 
-    private var perfumeThumbnail: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color(.systemGray6))
-
-            if let urlString = note.perfumeImageURL,
-               let url = URL(string: urlString) {
-                KFImage(url)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .padding(6)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+    private var checkbox: some View {
+        RoundedRectangle(cornerRadius: 4)
+            .stroke(isSelected ? Color.black : Color(.systemGray), lineWidth: 1.5)
+            .frame(width: 25, height: 25)
+            .overlay {
+                if isSelected {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.black)
+                        .overlay {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(.white)
+                        }
+                }
             }
-        }
-        .frame(width: 56, height: 56)
     }
 }

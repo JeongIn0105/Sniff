@@ -1,4 +1,23 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="1" systemVersion="11A491" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithCloudKit="false" userDefinedModelVersionIdentifier="">
-    <elements/>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23605" systemVersion="24E248" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithCloudKit="false" userDefinedModelVersionIdentifier="">
+    <entity name="LocalTastingNoteEntity" representedClassName="LocalTastingNoteEntity" syncable="YES">
+        <attribute name="brandName" optional="NO" attributeType="String"/>
+        <attribute name="concentration" optional="YES" attributeType="String"/>
+        <attribute name="createdAt" optional="NO" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" optional="NO" attributeType="String"/>
+        <attribute name="isDeletedPending" optional="NO" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="mainAccordsJSON" optional="NO" attributeType="String" defaultValueString="[]"/>
+        <attribute name="memo" optional="NO" attributeType="String" defaultValueString=""/>
+        <attribute name="moodTagsJSON" optional="NO" attributeType="String" defaultValueString="[]"/>
+        <attribute name="perfumeImageURL" optional="YES" attributeType="String"/>
+        <attribute name="perfumeName" optional="NO" attributeType="String"/>
+        <attribute name="rating" optional="NO" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="remoteID" optional="YES" attributeType="String"/>
+        <attribute name="revisitDesire" optional="YES" attributeType="String"/>
+        <attribute name="syncStatus" optional="NO" attributeType="String" defaultValueString="pending"/>
+        <attribute name="updatedAt" optional="NO" attributeType="Date" usesScalarValueType="NO"/>
+    </entity>
+    <elements>
+        <element name="LocalTastingNoteEntity" positionX="-63" positionY="-18" width="128" height="254"/>
+    </elements>
 </model>
