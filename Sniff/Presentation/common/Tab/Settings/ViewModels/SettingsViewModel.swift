@@ -12,7 +12,7 @@ import FirebaseAuth
 @MainActor
 final class SettingsViewModel: ObservableObject {
 
-    @Published private(set) var nickname: String = "사용자"
+    @Published private(set) var nickname: String = AppStrings.ViewModelMessages.Settings.userFallback
     @Published private(set) var email: String?
     @Published private(set) var appVersion: String = "-"
     @Published var showLogoutAlert = false

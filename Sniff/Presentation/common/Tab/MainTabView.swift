@@ -14,25 +14,25 @@ struct MainTabView: View {
             HomeTabContainerView()
                 .tabItem {
                     Image(systemName: "house")
-                    Text("홈")
+                    Text(AppStrings.AppShell.MainTab.home)
                 }
 
             SearchTabContainerView()
                 .tabItem {
                     Image(systemName: "magnifyingglass")
-                    Text("검색")
+                    Text(AppStrings.AppShell.MainTab.search)
                 }
 
             TastingNoteSceneFactory.makeListView()
                 .tabItem {
                     Image(systemName: "book.closed")
-                    Text("시향 기록")
+                    Text(AppStrings.AppShell.MainTab.tastingNote)
                 }
 
             MyTabContainerView()
                 .tabItem {
                     Image(systemName: "person.circle")
-                    Text("MY")
+                    Text(AppStrings.AppShell.MainTab.my)
                 }
         }
         .tint(.black)
@@ -80,7 +80,7 @@ private struct PlaceholderTabView: View {
             VStack(spacing: 12) {
                 Image(systemName: "sparkles")
                     .font(.system(size: 28, weight: .semibold))
-                Text("\(title) 화면 준비 중")
+                Text(AppStrings.AppShell.MainTab.placeholder(title))
                     .font(.system(size: 18, weight: .semibold))
             }
             .foregroundStyle(.secondary)

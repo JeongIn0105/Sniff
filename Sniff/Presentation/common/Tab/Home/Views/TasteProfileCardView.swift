@@ -178,21 +178,21 @@ final class TasteProfileCardView: UIView {
         let hintIntro: String
         switch profile.stage {
             case .onboardingOnly:
-                hintIntro = "향수를 등록하거나 시향 기록을 남기면 취향이 더 선명해져요"
+                hintIntro = AppStrings.DomainDisplay.TasteProfile.needsCollectionOrRecord
                 hintDot.backgroundColor = UIColor(hex: "#E24B4A")
 
             case .onboardingCollection:
-                hintIntro = "시향 기록을 남기면 취향이 더 정확해져요"
+                hintIntro = AppStrings.DomainDisplay.TasteProfile.needsTastingRecord
                 hintDot.backgroundColor = UIColor(hex: "#EF9F27")
 
             case .earlyTasting, .heavyTasting:
                 let parts = [
-                    tastingCount > 0 ? "시향 기록 \(tastingCount)개" : nil,
-                    collectionCount > 0 ? "보유 향수 \(collectionCount)개" : nil
+                    tastingCount > 0 ? AppStrings.DomainDisplay.TasteProfile.tastingCount(tastingCount) : nil,
+                    collectionCount > 0 ? AppStrings.DomainDisplay.TasteProfile.collectionCount(collectionCount) : nil
                 ].compactMap { $0 }.joined(separator: " · ")
                 hintIntro = parts.isEmpty
-                ? "시향 기록 기반으로 업데이트됐어요"
-                : "\(parts) 기반으로 취향이 업데이트됐어요"
+                ? AppStrings.DomainDisplay.TasteProfile.updatedFromTasting
+                : AppStrings.DomainDisplay.TasteProfile.updatedFrom(parts)
                 hintDot.backgroundColor = UIColor(hex: "#5DCAA5")
         }
 
@@ -225,10 +225,10 @@ final class TasteProfileCardView: UIView {
         guard let first = trimmed.first else { return nil }
 
         if trimmed.count >= 2 {
-            return "사용자님은 \(first) 분위기와 \(trimmed[1]) 분위기를 선호해요"
+            return AppStrings.DomainDisplay.TasteProfile.prefersTwo(first, trimmed[1])
         }
 
-        return "사용자님은 \(first) 분위기를 선호해요"
+        return AppStrings.DomainDisplay.TasteProfile.prefersOne(first)
     }
 
     private func configureBars(from scentVector: [String: Double]) {

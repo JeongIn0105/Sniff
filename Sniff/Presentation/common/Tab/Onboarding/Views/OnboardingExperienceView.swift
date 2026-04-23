@@ -11,86 +11,96 @@ struct OnboardingExperienceView: View {
 
     @ObservedObject var viewModel: OnboardingViewModel
     private let options = OnboardingExperienceOption.all
+    private let contentWidth: CGFloat = 344
+    private let titleConfig = TitleLayoutConfig.default
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
+        GeometryReader { _ in
+            let resolvedContentWidth = contentWidth
 
-            ProgressView(value: 2, total: 4)
-                .padding(.horizontal)
-
-            Text(AppStrings.Onboarding.experienceTitle)
-                .font(.title2)
-                .bold()
-                .padding(.horizontal)
-
-            Text(AppStrings.Nickname.welcome(nickname: viewModel.nickname))
-                .font(.subheadline)
-                .foregroundColor(.gray)
-                .padding(.horizontal)
-
-            VStack(spacing: 12) {
-                ForEach(options) { option in
-                    Button {
-                        viewModel.selectedExperience = option.level
-                    } label: {
-                        HStack(spacing: 16) {
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color.gray.opacity(0.2))
-                                .frame(width: 44, height: 44)
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(option.title)
-                                    .font(.body)
-                                    .bold()
-                                    .foregroundColor(.black)
-
-                                Text(option.description)
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
-                            }
-
-                            Spacer()
-                        }
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color.white)
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(
-                                    viewModel.selectedExperience == option.level
-                                    ? Color.black
-                                    : Color.gray.opacity(0.3),
-                                    lineWidth: viewModel.selectedExperience == option.level ? 2 : 1
-                                )
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.horizontal)
+            VStack(alignment: .leading, spacing: 0) {
+                OnboardingStepHeader(step: 2, totalSteps: 4) {
+                    viewModel.currentStep = .nickname
                 }
-            }
+                .padding(.top, 8)
+                .padding(.horizontal, 20)
 
-            Spacer()
+                VStack(alignment: .leading, spacing: 0) {
+                    applyTitleConfig(AppStrings.Onboarding.experienceTitle, config: titleConfig)
+                        .padding(.top, 48)
 
-            Button {
-                viewModel.currentStep = .taste
-            } label: {
-                Text(AppStrings.Onboarding.next)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(
-                        viewModel.selectedExperience != nil
-                        ? Color.black
-                        : Color.gray.opacity(0.3)
-                    )
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
+                    VStack(spacing: 12) {
+                        ForEach(options) { option in
+                            Button {
+                                viewModel.selectedExperience = option.level
+                            } label: {
+                                HStack(spacing: 16) {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(option.title)
+                                            .font(.body)
+                                            .bold()
+                                            .foregroundColor(.black)
+
+                                        Text(option.description)
+                                            .font(.caption)
+                                            .foregroundColor(.gray)
+                                    }
+
+                                    Spacer()
+                                }
+                                .padding()
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color.white)
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(
+                                            viewModel.selectedExperience == option.level
+                                            ? Color.black
+                                            : Color(.systemGray4),
+                                            lineWidth: viewModel.selectedExperience == option.level ? 2 : 1
+                                        )
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.top, 24)
+                }
+                .frame(maxWidth: resolvedContentWidth, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .center)
+
+                Spacer()
+
+                Button {
+                    viewModel.currentStep = .vibe
+                } label: {
+                    Text(AppStrings.Onboarding.next)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
+                        .background(
+                            viewModel.selectedExperience != nil
+                            ? Color.black
+                            : Color.gray.opacity(0.3)
+                        )
+                        .foregroundColor(.white)
+                        .cornerRadius(14)
+                }
+                .disabled(viewModel.selectedExperience == nil)
+                .padding(.horizontal, 24)
+                .padding(.bottom)
             }
-            .disabled(viewModel.selectedExperience == nil)
-            .padding(.horizontal)
-            .padding(.bottom)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .padding(.top)
+        .background(Color.sniffBeige.ignoresSafeArea())
+    }
+
+    private func applyTitleConfig(_ text: String, config: TitleLayoutConfig = .default) -> some View {
+        Text(text)
+            .font(.system(size: config.fontSize, weight: config.resolvedFontWeight))
+            .foregroundColor(.black)
+            .lineSpacing(config.lineSpacing)
+            .multilineTextAlignment(.leading)
     }
 }

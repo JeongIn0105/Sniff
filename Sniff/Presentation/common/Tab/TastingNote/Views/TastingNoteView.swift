@@ -57,19 +57,19 @@ struct TastingNoteView: View {
                     viewModel.showToast(perfumeName: perfumeName)
                 }
             }
-            .alert("시향 기록 삭제", isPresented: $viewModel.showDeleteAlert) {
-                Button("삭제", role: .destructive) {
+            .alert(AppStrings.TastingNoteUI.List.deleteAlertTitle, isPresented: $viewModel.showDeleteAlert) {
+                Button(AppStrings.TastingNoteUI.List.delete, role: .destructive) {
                     Task { await viewModel.confirmDelete() }
                 }
-                Button("취소", role: .cancel) { }
+                Button(AppStrings.Settings.logoutCancel, role: .cancel) { }
             } message: {
-                Text("이 시향 기록을 삭제할까요?\n삭제 후 복구할 수 없어요.")
+                Text(AppStrings.TastingNoteUI.List.deleteAlertMessage)
             }
-            .alert("오류", isPresented: Binding(
+            .alert(AppStrings.TastingNoteUI.errorTitle, isPresented: Binding(
                 get: { viewModel.errorMessage != nil },
                 set: { if !$0 { viewModel.clearError() } }
             )) {
-                Button("확인") { viewModel.clearError() }
+                Button(AppStrings.TastingNoteUI.confirm) { viewModel.clearError() }
             } message: {
                 Text(viewModel.errorMessage ?? "")
             }
@@ -81,12 +81,12 @@ struct TastingNoteView: View {
         VStack(alignment: .leading, spacing: 16) {
             // 타이틀 + 삭제 버튼
             HStack(alignment: .center) {
-                Text(viewModel.perfumeScope?.title ?? "시향 기록")
+                Text(viewModel.perfumeScope?.title ?? AppStrings.TastingNoteUI.List.defaultTitle)
                     .font(.system(size: 30, weight: .bold))
 
                 Spacer()
 
-                Button(viewModel.isDeleteMode ? "완료" : "삭제") {
+                Button(viewModel.isDeleteMode ? AppStrings.TastingNoteUI.List.done : AppStrings.TastingNoteUI.List.delete) {
                     guard !viewModel.isEmpty else { return }
                     viewModel.toggleDeleteMode()
                 }
@@ -98,9 +98,9 @@ struct TastingNoteView: View {
 
             // 전체 / 보유 향수 / 좋아요 향수 필터 칩
             HStack(spacing: 10) {
-                filterChip(title: "전체 시향기", filter: .all)
-                filterChip(title: "보유 향수", filter: .owned)
-                filterChip(title: "좋아요 향수", filter: .liked)
+                filterChip(title: AppStrings.TastingNoteUI.List.filterAll, filter: .all)
+                filterChip(title: AppStrings.TastingNoteUI.List.filterOwned, filter: .owned)
+                filterChip(title: AppStrings.TastingNoteUI.List.filterLiked, filter: .liked)
                 Spacer()
             }
         }
@@ -130,23 +130,23 @@ struct TastingNoteView: View {
 
     private var emptyTitle: String {
         if let perfumeScope = viewModel.perfumeScope {
-            return "\(PerfumePresentationSupport.displayPerfumeName(perfumeScope.perfumeName)) 시향 기록이 없어요"
+            return AppStrings.TastingNoteUI.List.scopeEmptyTitle(PerfumePresentationSupport.displayPerfumeName(perfumeScope.perfumeName))
         }
         switch viewModel.selectedFilter {
-        case .all:    return "아직 작성한 시향기가 없어요"
-        case .owned:  return "보유 향수 시향기가 없어요"
-        case .liked:  return "좋아요 향수 시향기가 없어요"
+        case .all:    return AppStrings.TastingNoteUI.List.emptyAllTitle
+        case .owned:  return AppStrings.TastingNoteUI.List.emptyOwnedTitle
+        case .liked:  return AppStrings.TastingNoteUI.List.emptyLikedTitle
         }
     }
 
     private var emptyMessage: String {
         if viewModel.perfumeScope != nil {
-            return "+ 버튼을 눌러 이 향수의 시향 기록을 추가해 주세요"
+            return AppStrings.TastingNoteUI.List.scopeEmptyMessage
         }
         switch viewModel.selectedFilter {
-        case .all:    return "+ 버튼을 눌러 첫 시향기를 작성해 주세요"
-        case .owned:  return "보유 향수에 등록된 향수의 시향기만 여기에 표시돼요"
-        case .liked:  return "좋아요를 누른 향수의 시향기만 여기에 표시돼요"
+        case .all:    return AppStrings.TastingNoteUI.List.emptyAllMessage
+        case .owned:  return AppStrings.TastingNoteUI.List.emptyOwnedMessage
+        case .liked:  return AppStrings.TastingNoteUI.List.emptyLikedMessage
         }
     }
 
@@ -184,7 +184,7 @@ struct TastingNoteView: View {
                 Image(systemName: "plus")
                     .font(.system(size: 16, weight: .bold))
 
-                Text("시향기 등록")
+                Text(AppStrings.TastingNoteUI.List.add)
                     .font(.system(size: 17, weight: .semibold))
             }
             .foregroundColor(.white)

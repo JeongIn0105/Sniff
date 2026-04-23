@@ -12,75 +12,56 @@ struct OnboardingNicknameView: View {
     @ObservedObject var viewModel: OnboardingViewModel
     let onBack: () -> Void
     @FocusState private var isNicknameFieldFocused: Bool
+    private let contentWidth: CGFloat = 344
+    private let titleConfig = TitleLayoutConfig.default
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            onboardingHeader
-                .padding(.top, 12)
-                .padding(.horizontal, 20)
+        GeometryReader { geometry in
+            let resolvedContentWidth = min(contentWidth, geometry.size.width - (titleConfig.leadingInset * 2))
 
-            Text(AppStrings.Nickname.title)
-                .font(.system(size: 32, weight: .bold))
-                .foregroundColor(.black)
-                .lineSpacing(4)
-                .padding(.top, 34)
-                .padding(.horizontal, 20)
+            ZStack {
+                VStack(alignment: .leading, spacing: 0) {
+                    onboardingHeader
+                        .padding(.top, 8)
+                        .padding(.horizontal, 20)
 
-            nicknameInputSection
-                .padding(.top, 34)
-                .padding(.horizontal, 20)
+                    Spacer()
 
-            Spacer()
-
-            Button {
-                isNicknameFieldFocused = false
-                Task {
-                    await viewModel.confirmNicknameAndProceed()
+                    Button {
+                        isNicknameFieldFocused = false
+                        viewModel.proceedFromNickname()
+                    } label: {
+                        Text(AppStrings.Nickname.confirm)
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 56)
+                            .background(viewModel.canProceedFromNickname ? Color.black : Color(.systemGray4))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    .disabled(!viewModel.canProceedFromNickname)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 24)
                 }
-            } label: {
-                Text(AppStrings.Nickname.confirm)
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 56)
-                    .background(viewModel.canSubmitNickname ? Color.black : Color(.systemGray4))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                VStack(alignment: .leading, spacing: 32) {
+                    applyTitleConfig(AppStrings.Nickname.title, config: titleConfig)
+
+                    nicknameInputSection
+                }
+                .frame(maxWidth: resolvedContentWidth, alignment: .leading)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .padding(.top, geometry.size.height * 0.26)
             }
-            .disabled(!viewModel.canSubmitNickname)
-            .padding(.horizontal, 20)
-            .padding(.bottom, 24)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .background(Color.white)
+        .background(Color.sniffBeige.ignoresSafeArea())
     }
 
     private var onboardingHeader: some View {
-        HStack(spacing: 14) {
-            Button {
-                isNicknameFieldFocused = false
-                onBack()
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(.black)
-                    .frame(width: 28, height: 28)
-            }
-
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(Color(.systemGray5))
-                        .frame(height: 6)
-
-                    Capsule()
-                        .fill(Color(.systemGray))
-                        .frame(width: geometry.size.width * 0.25, height: 6)
-                }
-            }
-            .frame(height: 6)
-
-            Text("1/4")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(Color(.systemGray))
+        OnboardingStepHeader(step: 1, totalSteps: 4) {
+            isNicknameFieldFocused = false
+            onBack()
         }
     }
 
@@ -89,7 +70,7 @@ struct OnboardingNicknameView: View {
             HStack(spacing: 10) {
                 ZStack(alignment: .trailing) {
                     RoundedRectangle(cornerRadius: 10)
-                        .fill(Color(.systemGray6))
+                        .fill(Color.white.opacity(0.9))
                         .frame(height: 48)
 
                     TextField("", text: $viewModel.nickname, prompt: Text(AppStrings.Nickname.placeholder).foregroundColor(Color(.systemGray3)))
@@ -153,5 +134,13 @@ struct OnboardingNicknameView: View {
                     .padding(.top, 2)
             }
         }
+    }
+
+    private func applyTitleConfig(_ text: String, config: TitleLayoutConfig = .default) -> some View {
+        Text(text)
+            .font(.system(size: config.fontSize, weight: config.resolvedFontWeight))
+            .foregroundColor(.black)
+            .lineSpacing(config.lineSpacing)
+            .multilineTextAlignment(.leading)
     }
 }

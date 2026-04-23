@@ -72,7 +72,7 @@ enum SuggestionItem: Equatable {
 
     var subTitle: String? {
         switch self {
-            case .brand:                    return "브랜드"
+            case .brand:                    return AppStrings.DomainDisplay.Search.brandSubtitle
             case .perfume(_, let brand):    return brand
         }
     }

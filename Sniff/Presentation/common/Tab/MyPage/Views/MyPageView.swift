@@ -54,11 +54,11 @@ struct MyPageView: View {
             .task {
                 await viewModel.load()
             }
-            .alert("오류", isPresented: Binding(
+            .alert(AppStrings.Profile.errorTitle, isPresented: Binding(
                 get: { viewModel.errorMessage != nil },
                 set: { if !$0 { viewModel.clearError() } }
             )) {
-                Button("확인") { viewModel.clearError() }
+                Button(AppStrings.Profile.confirm) { viewModel.clearError() }
             } message: {
                 Text(viewModel.errorMessage ?? "")
             }
@@ -67,7 +67,7 @@ struct MyPageView: View {
 
     private var headerSection: some View {
         HStack(alignment: .center) {
-            Text("마이페이지")
+            Text(AppStrings.Profile.MyPage.title)
                 .font(.system(size: 25, weight: .bold))
                 .foregroundColor(.primary)
 
@@ -91,11 +91,11 @@ struct MyPageView: View {
                 .frame(width: Layout.profileImageSize, height: Layout.profileImageSize)
 
             VStack(alignment: .leading, spacing: Layout.profileTextSpacing) {
-                Text(viewModel.profileInfo?.nickname ?? "사용자")
+                Text(viewModel.profileInfo?.nickname ?? AppStrings.Profile.userFallback)
                     .font(.system(size: 21, weight: .bold))
                     .foregroundColor(.primary)
 
-                Text(viewModel.profileInfo?.email ?? "등록된 이메일이 없어요")
+                Text(viewModel.profileInfo?.email ?? AppStrings.Profile.missingEmail)
                     .font(.system(size: 16, weight: .regular))
                     .foregroundColor(Color(.systemGray))
                     .lineLimit(1)
@@ -108,15 +108,15 @@ struct MyPageView: View {
     private var ownedSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             sectionHeader(
-                title: "보유 향수",
+                title: AppStrings.Profile.MyPage.ownedTitle,
                 count: viewModel.ownedCount,
                 destination: TastingNoteSceneFactory.makeOwnedPerfumeListView()
             )
 
             if viewModel.ownedPerfumes.isEmpty {
                 emptySection(
-                    title: "등록된 보유 향수가 없어요",
-                    message: "향수 정보 페이지에서 보유 향수를 등록해주세요"
+                    title: AppStrings.Profile.MyPage.emptyOwnedTitle,
+                    message: AppStrings.Profile.MyPage.emptyOwnedMessage
                 )
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -144,15 +144,15 @@ struct MyPageView: View {
     private var likedSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             sectionHeader(
-                title: "LIKE 향수",
+                title: AppStrings.Profile.MyPage.likedTitle,
                 count: viewModel.likedCount,
                 destination: TastingNoteSceneFactory.makeLikedPerfumeListView()
             )
 
             if viewModel.likedPerfumes.isEmpty {
                 emptySection(
-                    title: "등록된 LIKE 향수가 없어요",
-                    message: "향수 카드의 하트 아이콘을 눌러 추가해주세요"
+                    title: AppStrings.Profile.MyPage.emptyLikedTitle,
+                    message: AppStrings.Profile.MyPage.emptyLikedMessage
                 )
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -188,7 +188,7 @@ struct MyPageView: View {
                 .font(.system(size: 22, weight: .bold))
                 .foregroundColor(.primary)
 
-            Text("\(count)개")
+            Text(AppStrings.Profile.MyPage.count(count))
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundColor(.secondary)
 

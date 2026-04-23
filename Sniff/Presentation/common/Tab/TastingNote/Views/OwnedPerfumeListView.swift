@@ -49,11 +49,11 @@ struct OwnedPerfumeListView: View {
         .task {
             await viewModel.load()
         }
-        .alert("오류", isPresented: Binding(
+        .alert(AppStrings.TastingNoteUI.errorTitle, isPresented: Binding(
             get: { viewModel.errorMessage != nil },
             set: { if !$0 { viewModel.clearError() } }
         )) {
-            Button("확인") { viewModel.clearError() }
+            Button(AppStrings.TastingNoteUI.confirm) { viewModel.clearError() }
         } message: {
             Text(viewModel.errorMessage ?? "")
         }
@@ -80,16 +80,16 @@ struct OwnedPerfumeListView: View {
 
             // 타이틀 (왼쪽 정렬)
             if viewModel.isEditMode {
-                Text("보유 향수 편집")
+                Text(AppStrings.TastingNoteUI.OwnedList.editTitle)
                     .font(.system(size: 24, weight: .bold))
                     .foregroundColor(.primary)
             } else {
                 HStack(spacing: 6) {
-                    Text("보유 향수")
+                    Text(AppStrings.TastingNoteUI.OwnedList.title)
                         .font(.system(size: 24, weight: .bold))
                         .foregroundColor(.primary)
 
-                    Text("\(viewModel.perfumeCount)개")
+                    Text(AppStrings.TastingNoteUI.OwnedList.count(viewModel.perfumeCount))
                         .font(.system(size: 22, weight: .medium))
                         .foregroundColor(Color(.systemGray2))
                 }
@@ -98,7 +98,7 @@ struct OwnedPerfumeListView: View {
             Spacer()
 
             // 편집 / 삭제 버튼
-            Button(viewModel.isEditMode ? "삭제" : "편집") {
+            Button(viewModel.isEditMode ? AppStrings.TastingNoteUI.OwnedList.delete : AppStrings.TastingNoteUI.OwnedList.edit) {
                 if viewModel.isEditMode {
                     Task { await viewModel.deleteSelectedPerfumes() }
                 } else {
@@ -120,10 +120,10 @@ struct OwnedPerfumeListView: View {
     private var emptyStateView: some View {
         VStack(spacing: 12) {
             Spacer()
-            Text("등록된 보유 향수가 없어요")
+            Text(AppStrings.TastingNoteUI.OwnedList.emptyTitle)
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundColor(Color(.systemGray2))
-            Text("향수 정보 페이지에서 보유 향수를 등록해주세요")
+            Text(AppStrings.TastingNoteUI.OwnedList.emptyMessage)
                 .font(.system(size: 16))
                 .foregroundColor(Color(.systemGray2))
             Spacer()

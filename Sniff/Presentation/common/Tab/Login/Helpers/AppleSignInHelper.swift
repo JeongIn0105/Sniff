@@ -114,7 +114,7 @@ enum AuthError: LocalizedError {
     case invalidCredential
     var errorDescription: String? {
         switch self {
-        case .invalidCredential: return "인증 정보를 처리할 수 없습니다."
+        case .invalidCredential: return AppStrings.AppShell.Login.invalidCredential
         }
     }
 }

@@ -286,7 +286,7 @@ struct PerfumeGridCardView: View {
             )
 
             if hasTastingRecord {
-                Text("시향 기록")
+                Text(AppStrings.TastingNoteUI.tastingRecordBadge)
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundColor(style == .listThumbnail ? Color(.systemGray) : .white)
                     .padding(.horizontal, 12)

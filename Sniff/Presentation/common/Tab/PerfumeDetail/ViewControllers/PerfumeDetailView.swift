@@ -57,10 +57,10 @@ final class PerfumeDetailViewController: UIViewController {
     private let topBarView = UIView()
     private let heroSectionView = UIView()
     private let infoSectionView = UIView()
-    private let usageSectionView = SectionContainerView(title: "사용감")
-    private let accordsSectionView = SectionContainerView(title: "향 계열")
-    private let notesSectionView = SectionContainerView(title: "노트 피라미드")
-    private let seasonSectionView = SectionContainerView(title: "계절")
+    private let usageSectionView = SectionContainerView(title: AppStrings.UIKitScreens.PerfumeDetail.usage)
+    private let accordsSectionView = SectionContainerView(title: AppStrings.UIKitScreens.PerfumeDetail.accords)
+    private let notesSectionView = SectionContainerView(title: AppStrings.UIKitScreens.PerfumeDetail.notes)
+    private let seasonSectionView = SectionContainerView(title: AppStrings.UIKitScreens.PerfumeDetail.season)
     private let bottomBarView = UIView()
 
     private let backButton = UIButton(type: .system).then {
@@ -79,7 +79,7 @@ final class PerfumeDetailViewController: UIViewController {
     }
 
     private let imagePlaceholderLabel = UILabel().then {
-        $0.text = "이미지 준비중입니다"
+        $0.text = AppStrings.UIKitScreens.PerfumeDetail.imagePlaceholder
         $0.font = .systemFont(ofSize: 14, weight: .medium)
         $0.textColor = Palette.textMuted
         $0.textAlignment = .center
@@ -118,7 +118,7 @@ final class PerfumeDetailViewController: UIViewController {
     private let seasonChipsView = SeasonSelectionView()
 
     private let addCollectionButton = UIButton(type: .system).then {
-        $0.setTitle("향수 등록", for: .normal)
+        $0.setTitle(AppStrings.UIKitScreens.PerfumeDetail.addCollection, for: .normal)
         $0.titleLabel?.font = .systemFont(ofSize: 15, weight: .medium)
         $0.setTitleColor(Palette.textPrimary, for: .normal)
         $0.backgroundColor = .clear
@@ -128,7 +128,7 @@ final class PerfumeDetailViewController: UIViewController {
     }
 
     private let addTastingButton = UIButton(type: .system).then {
-        $0.setTitle("시향기록 남기기", for: .normal)
+        $0.setTitle(AppStrings.UIKitScreens.PerfumeDetail.addTasting, for: .normal)
         $0.titleLabel?.font = .systemFont(ofSize: 15, weight: .semibold)
         $0.setTitleColor(Palette.background, for: .normal)
         $0.backgroundColor = UIColor(hex: "#F3F0EA")
@@ -444,8 +444,8 @@ final class PerfumeDetailViewController: UIViewController {
     private func navigateToTastingRecord(perfume: Perfume) {
         let formView = TastingNoteSceneFactory.makeFormView(initialPerfume: perfume) { [weak self] perfumeName in
             self?.showCompletionAlert(
-                title: "시향 기록 저장 완료",
-                message: "\(PerfumePresentationSupport.displayPerfumeName(perfumeName)) 시향 기록이 저장되었습니다."
+                title: AppStrings.UIKitScreens.PerfumeDetail.tastingSavedTitle,
+                message: AppStrings.UIKitScreens.PerfumeDetail.tastingSaved(PerfumePresentationSupport.displayPerfumeName(perfumeName))
             )
         }
         let hostingController = UIHostingController(rootView: formView)
@@ -455,8 +455,8 @@ final class PerfumeDetailViewController: UIViewController {
     }
 
     private func showErrorAlert(message: String) {
-        let alert = UIAlertController(title: "오류", message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "확인", style: .default))
+        let alert = UIAlertController(title: AppStrings.UIKitScreens.error, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: AppStrings.UIKitScreens.confirm, style: .default))
         present(alert, animated: true)
     }
 
@@ -467,7 +467,7 @@ final class PerfumeDetailViewController: UIViewController {
                 message: message,
                 preferredStyle: .alert
             )
-            alert.addAction(UIAlertAction(title: "확인", style: .default))
+            alert.addAction(UIAlertAction(title: AppStrings.UIKitScreens.confirm, style: .default))
             self?.present(alert, animated: true)
         }
 
@@ -568,7 +568,7 @@ final class PerfumeDetailViewController: UIViewController {
     }
 
     private func updateOwnedUI(isOwned: Bool) {
-        let title = isOwned ? "향수 등록됨" : "향수 등록"
+        let title = isOwned ? AppStrings.UIKitScreens.PerfumeDetail.addedCollection : AppStrings.UIKitScreens.PerfumeDetail.addCollection
         addCollectionButton.setTitle(title, for: .normal)
     }
 }

@@ -46,11 +46,11 @@ struct LikedPerfumeListView: View {
         .task {
             await viewModel.load()
         }
-        .alert("오류", isPresented: Binding(
+        .alert(AppStrings.TastingNoteUI.errorTitle, isPresented: Binding(
             get: { viewModel.errorMessage != nil },
             set: { if !$0 { viewModel.clearError() } }
         )) {
-            Button("확인") { viewModel.clearError() }
+            Button(AppStrings.TastingNoteUI.confirm) { viewModel.clearError() }
         } message: {
             Text(viewModel.errorMessage ?? "")
         }
@@ -69,11 +69,11 @@ struct LikedPerfumeListView: View {
                     .frame(width: 44, height: 44)
             }
 
-            Text("LIKE 향수")
+            Text(AppStrings.TastingNoteUI.LikedList.title)
                 .font(.system(size: 24, weight: .bold))
                 .foregroundColor(.primary)
 
-            Text("\(viewModel.perfumeCount)개")
+            Text(AppStrings.TastingNoteUI.LikedList.count(viewModel.perfumeCount))
                 .font(.system(size: 22, weight: .medium))
                 .foregroundColor(Color(.systemGray2))
 
@@ -89,10 +89,10 @@ struct LikedPerfumeListView: View {
     private var emptyStateView: some View {
         VStack(spacing: 12) {
             Spacer()
-            Text("등록된 LIKE 향수가 없어요")
+            Text(AppStrings.TastingNoteUI.LikedList.emptyTitle)
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundColor(Color(.systemGray2))
-            Text("향수 카드의 하트 아이콘을 눌러 추가해주세요")
+            Text(AppStrings.TastingNoteUI.LikedList.emptyMessage)
                 .font(.system(size: 16))
                 .foregroundColor(Color(.systemGray2))
             Spacer()
@@ -176,7 +176,7 @@ struct LikedPerfumeListView: View {
     }
 
     private var tastingRecordBadge: some View {
-        Text("시향 기록")
+        Text(AppStrings.TastingNoteUI.tastingRecordBadge)
             .font(.system(size: 11, weight: .semibold))
             .foregroundColor(Color(.systemGray))
             .padding(.horizontal, 12)

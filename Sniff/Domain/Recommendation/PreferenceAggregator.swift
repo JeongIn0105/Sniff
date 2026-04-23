@@ -301,13 +301,13 @@ private extension PreferenceAggregator {
         /// 반대로 "매일 뿌리고 싶어"는 별점보다 더 강한 소장 신호야.
     func revisitMultiplier(for tag: String?) -> Double {
         switch tag {
-            case "매일 뿌리고 싶어":
+            case AppStrings.DomainDisplay.TastingNoteData.revisitDesireList[0]:
                 return 1.4   // 소장 의향 최강 — 별점 이상의 신호
-            case "가끔 꺼내고 싶어":
+            case AppStrings.DomainDisplay.TastingNoteData.revisitDesireList[1]:
                 return 1.1   // 긍정이되 일상향은 아님
-            case "기억에 남아, 근데 내 향은 아니야":
+            case AppStrings.DomainDisplay.TastingNoteData.revisitDesireList[2]:
                 return 0.3   // 아름답지만 나의 향은 아님 — 약하게만 반영
-            case "다시 맡고 싶지 않아":
+            case AppStrings.DomainDisplay.TastingNoteData.revisitDesireList[3]:
                 return 0.0   // 별점 무관하게 취향 벡터 반영 차단
             default:
                 return 1.0   // 태그 없으면 기존 동작 그대로
@@ -316,14 +316,14 @@ private extension PreferenceAggregator {
 
     func mapMoodTagToFamilies(_ tag: String) -> [String] {
         switch tag {
-            case "상큼한":    return ["Citrus", "Fruity"]
-            case "시원한":    return ["Water", "Green"]
-            case "싱그러운":  return ["Green", "Aromatic"]
-            case "은은한":    return ["Soft Floral", "Floral"]
-            case "보송보송한": return ["Soft Floral", "Soft Amber"]
-            case "따뜻한":    return ["Soft Amber", "Amber", "Woody Amber"]
-            case "묵직한":    return ["Amber", "Mossy Woods", "Dry Woods"]
-            case "무거운":    return ["Woody Amber", "Dry Woods"]
+            case AppStrings.DomainDisplay.TastingNoteData.freshTag: return ["Citrus", "Fruity"]
+            case AppStrings.DomainDisplay.TastingNoteData.coolTag: return ["Water", "Green"]
+            case AppStrings.DomainDisplay.TastingNoteData.airyGreenTag: return ["Green", "Aromatic"]
+            case AppStrings.DomainDisplay.TastingNoteData.subtleTag: return ["Soft Floral", "Floral"]
+            case AppStrings.DomainDisplay.TastingNoteData.powderyTag: return ["Soft Floral", "Soft Amber"]
+            case AppStrings.DomainDisplay.TastingNoteData.warmTag: return ["Soft Amber", "Amber", "Woody Amber"]
+            case AppStrings.DomainDisplay.TastingNoteData.heavyTag: return ["Amber", "Mossy Woods", "Dry Woods"]
+            case AppStrings.DomainDisplay.TastingNoteData.heavierTag: return ["Woody Amber", "Dry Woods"]
             default:         return []
         }
     }

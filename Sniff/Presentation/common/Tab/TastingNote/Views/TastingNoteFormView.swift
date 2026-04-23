@@ -46,7 +46,7 @@ struct TastingNoteFormView: View {
                             }
                         }
 
-                        ratingSection(title: "향 선호도", value: $vm.rating, label: vm.rating.ratingLabel)
+                        ratingSection(title: AppStrings.TastingNoteFormUI.ratingTitle, value: $vm.rating, label: vm.rating.ratingLabel)
                         moodTagSection
                         memoSection
                         Spacer().frame(height: 8)
@@ -73,11 +73,11 @@ struct TastingNoteFormView: View {
         .onChange(of: vm.saveSuccess) { success in
             if success { onSaveSuccess(vm.savedPerfumeName); dismiss() }
         }
-        .alert("오류", isPresented: Binding(
+        .alert(AppStrings.TastingNoteFormUI.errorTitle, isPresented: Binding(
             get: { vm.errorMessage != nil },
             set: { if !$0 { vm.errorMessage = nil } }
         )) {
-            Button("확인") { vm.errorMessage = nil }
+            Button(AppStrings.TastingNoteFormUI.confirm) { vm.errorMessage = nil }
         } message: {
             Text(vm.errorMessage ?? "")
         }
@@ -111,7 +111,7 @@ struct TastingNoteFormView: View {
 
     private var searchSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("향수 명")
+            Text(AppStrings.TastingNoteFormUI.perfumeName)
                 .font(.system(size: 17, weight: .semibold))
 
             ZStack(alignment: .top) {
@@ -133,12 +133,12 @@ struct TastingNoteFormView: View {
 
     private var searchField: some View {
         HStack(spacing: 10) {
-            TextField("향수 명을 입력해주세요", text: $vm.searchText)
+            TextField(AppStrings.TastingNoteFormUI.perfumePlaceholder, text: $vm.searchText)
                 .font(.system(size: 15))
                 .submitLabel(.search)
                 .onSubmit { vm.searchButtonTapped() }
 
-            Button("검색") { vm.searchButtonTapped() }
+            Button(AppStrings.TastingNoteFormUI.search) { vm.searchButtonTapped() }
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundColor(.primary)
         }
@@ -157,7 +157,7 @@ struct TastingNoteFormView: View {
             if vm.isSearching {
                 HStack { Spacer(); ProgressView(); Spacer() }.padding(.vertical, 20)
             } else if vm.searchResults.isEmpty {
-                Text("검색 결과가 없어요")
+                Text(AppStrings.TastingNoteFormUI.noSearchResult)
                     .font(.system(size: 14)).foregroundColor(.secondary)
                     .frame(maxWidth: .infinity).padding(.vertical, 20)
             } else {
@@ -349,7 +349,7 @@ struct TastingNoteFormView: View {
 
     private var moodTagSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("분위기&이미지").font(.system(size: 17, weight: .semibold))
+            Text(AppStrings.TastingNoteFormUI.moodTitle).font(.system(size: 17, weight: .semibold))
 
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(moodTagRows.indices, id: \.self) { rowIndex in
@@ -370,12 +370,12 @@ struct TastingNoteFormView: View {
 
     private var memoSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("시향 메모").font(.system(size: 17, weight: .semibold))
+            Text(AppStrings.TastingNoteFormUI.memoTitle).font(.system(size: 17, weight: .semibold))
 
             ZStack(alignment: .bottomTrailing) {
                 ZStack(alignment: .topLeading) {
                     if vm.memo.isEmpty {
-                        Text("향수에 대한 느낌을 자유롭게 기록해주세요 (최소 20자)")
+                        Text(AppStrings.TastingNoteFormUI.memoPlaceholder)
                             .font(.system(size: 15))
                             .foregroundColor(Color(.placeholderText))
                             .padding(.top, 18).padding(.leading, 14)
@@ -405,7 +405,7 @@ struct TastingNoteFormView: View {
     private var bottomBar: some View {
         HStack(spacing: 12) {
             Button { vm.reset() } label: {
-                Text("초기화")
+                Text(AppStrings.TastingNoteFormUI.reset)
                     .font(.system(size: 16, weight: .semibold)).foregroundColor(.primary)
                     .frame(maxWidth: .infinity).frame(height: 56)
                     .background(Color(.systemGray6))
@@ -416,7 +416,7 @@ struct TastingNoteFormView: View {
                 ZStack {
                     if vm.isSaving { ProgressView().tint(.white) }
                     else {
-                        Text("작성 완료하기")
+                        Text(AppStrings.TastingNoteFormUI.save)
                             .font(.system(size: 16, weight: .semibold)).foregroundColor(.white)
                     }
                 }

@@ -11,26 +11,43 @@ struct TagButton: View {
     let title: String
     let isSelected: Bool
     let isDisabled: Bool
+    let selectionOrder: Int?
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            Text(title)
-                .font(.subheadline)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(
-                            isSelected ? Color.black : Color.gray.opacity(0.3),
-                            lineWidth: isSelected ? 2 : 1
-                        )
-                )
-                .foregroundColor(
-                    isDisabled && !isSelected
-                    ? Color.gray.opacity(0.4)
-                    : Color.black
-                )
+            ZStack(alignment: .topTrailing) {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.white)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(
+                                isSelected ? Color.black : Color(.systemGray4),
+                                lineWidth: isSelected ? 2 : 1.5
+                            )
+                    )
+
+                Text(title)
+                    .font(.system(size: 17, weight: .semibold))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .foregroundColor(
+                        isDisabled && !isSelected
+                        ? Color.gray.opacity(0.4)
+                        : Color.black
+                    )
+
+                if let selectionOrder {
+                    Text("\(selectionOrder)")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(width: 24, height: 24)
+                        .background(Color.black)
+                        .clipShape(Circle())
+                        .padding(10)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .aspectRatio(1, contentMode: .fit)
         }
         .disabled(isDisabled)
         .buttonStyle(.plain)

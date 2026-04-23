@@ -50,7 +50,7 @@ final class TastingNoteFormViewModel: ObservableObject {
 
     private var editingNote: TastingNote?
     var isEditMode: Bool { editingNote != nil }
-    var navigationTitle: String { isEditMode ? "시향기 수정" : "시향기 등록" }
+    var navigationTitle: String { isEditMode ? AppStrings.TastingNoteUI.List.edit : AppStrings.TastingNoteUI.List.add }
 
     var displayCardFragrance: FragellaFragrance? {
         guard !perfumeName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
@@ -183,7 +183,7 @@ final class TastingNoteFormViewModel: ObservableObject {
                     self.searchResults = []
                     self.isSearchResultVisible = false
                     self.isSearching = false
-                    self.searchGuideMessage = "2자 이상 입력해주세요"
+                    self.searchGuideMessage = AppStrings.ViewModelMessages.TastingNoteForm.minimumSearchLength
                     self.latestSearchQuery = ""
                     return
                 }
@@ -205,7 +205,7 @@ final class TastingNoteFormViewModel: ObservableObject {
         guard trimmed.count >= 2 else {
             searchResults = []
             isSearchResultVisible = false
-            searchGuideMessage = "2자 이상 입력해주세요"
+            searchGuideMessage = AppStrings.ViewModelMessages.TastingNoteForm.minimumSearchLength
             return
         }
         searchGuideMessage = nil
@@ -218,7 +218,7 @@ final class TastingNoteFormViewModel: ObservableObject {
             searchResults = []
             isSearchResultVisible = false
             isSearching = false
-            searchGuideMessage = "2자 이상 입력해주세요"
+            searchGuideMessage = AppStrings.ViewModelMessages.TastingNoteForm.minimumSearchLength
             return
         }
 
@@ -401,7 +401,7 @@ final class TastingNoteFormViewModel: ObservableObject {
             savedPerfumeName = perfumeName
             saveSuccess = true
         } catch {
-            errorMessage = "저장 중 오류가 발생했어요"
+            errorMessage = AppStrings.ViewModelMessages.TastingNoteForm.saveFailed
         }
         isSaving = false
     }
@@ -453,7 +453,7 @@ private enum TastingNoteFragellaAPI {
         }
 
         guard 200..<300 ~= http.statusCode else {
-            let msg = String(data: data, encoding: .utf8) ?? "알 수 없는 오류"
+            let msg = String(data: data, encoding: .utf8) ?? AppStrings.ViewModelMessages.TastingNoteForm.unknownError
             if http.statusCode == 400 && msg.localizedCaseInsensitiveContains("at least") {
                 throw FragellaAPIError.minimumSearchLength
             }
@@ -592,13 +592,13 @@ private enum FragellaAPIError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .missingAPIKey:         return "Fragella API 키를 먼저 설정해주세요"
-        case .minimumSearchLength:   return "2자 이상 입력해주세요"
-        case .invalidURL:            return "요청 URL 생성에 실패했어요"
-        case .invalidResponse:       return "응답을 확인할 수 없어요"
-        case .decodingFailed:        return "응답 해석에 실패했어요"
+        case .missingAPIKey:         return AppStrings.ViewModelMessages.TastingNoteForm.missingAPIKey
+        case .minimumSearchLength:   return AppStrings.ViewModelMessages.TastingNoteForm.minimumSearchLength
+        case .invalidURL:            return AppStrings.ViewModelMessages.TastingNoteForm.invalidURL
+        case .invalidResponse:       return AppStrings.ViewModelMessages.TastingNoteForm.invalidResponse
+        case .decodingFailed:        return AppStrings.ViewModelMessages.TastingNoteForm.decodingFailed
         case .noResults:             return nil
-        case let .serverError(code, msg): return "검색 실패 (\(code))\n\(msg)"
+        case let .serverError(code, msg): return AppStrings.ViewModelMessages.TastingNoteForm.serverError(code, msg)
         }
     }
 }

@@ -9,7 +9,7 @@ import Foundation
 
 enum ScentFamilyNormalizer {
 
-    static func canonicalName(for value: String?) -> String? {
+    nonisolated static func canonicalName(for value: String?) -> String? {
         guard let value else { return nil }
 
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -54,7 +54,7 @@ enum ScentFamilyNormalizer {
         }
     }
 
-    static func canonicalNames(for values: [String]) -> [String] {
+    nonisolated static func canonicalNames(for values: [String]) -> [String] {
         var seen = Set<String>()
 
         return values

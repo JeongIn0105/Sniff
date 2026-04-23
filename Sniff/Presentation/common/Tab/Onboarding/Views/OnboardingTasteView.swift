@@ -8,127 +8,135 @@
 import SwiftUI
 
 struct OnboardingTasteView: View {
+    enum Mode {
+        case vibe
+        case image
+    }
 
     @ObservedObject var viewModel: OnboardingViewModel
+    let mode: Mode
+    private let contentWidth: CGFloat = 344
+    private let titleConfig = TitleLayoutConfig.default
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
+        GeometryReader { geometry in
+            let resolvedContentWidth = min(contentWidth, geometry.size.width - (titleConfig.leadingInset * 2))
 
-            ProgressView(value: 3, total: 4)
-                .padding(.horizontal)
+            VStack(alignment: .leading, spacing: 0) {
+                OnboardingStepHeader(
+                    step: mode == .vibe ? 3 : 4,
+                    totalSteps: 4,
+                    onBack: {
+                        viewModel.currentStep = mode == .vibe ? .experience : .vibe
+                    }
+                )
+                .padding(.top, 8)
+                .padding(.horizontal, 20)
 
-            Text(AppStrings.Onboarding.tasteTitle)
-                .font(.title2)
-                .bold()
-                .padding(.horizontal)
+                Spacer()
+                    .frame(height: 48)
 
-            ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        applyTitleConfig(mode == .vibe ? AppStrings.Onboarding.vibeTitle : AppStrings.Onboarding.imageTitle, config: titleConfig)
 
-                    // 분위기 섹션
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text(AppStrings.Onboarding.vibeSection)
-                                .font(.headline)
-                            Spacer()
-                            Text("\(viewModel.selectedVibes.count)/3")
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                        }
-                        .padding(.horizontal)
-
-                        LazyVGrid(
-                            columns: [
-                                GridItem(.flexible()),
-                                GridItem(.flexible()),
-                                GridItem(.flexible())
-                            ],
-                            spacing: 12
-                        ) {
-                            ForEach(viewModel.vibeTags, id: \.self) { tag in
-                                TagButton(
-                                    title: tag,
-                                    isSelected: viewModel.selectedVibes.contains(tag),
-                                    isDisabled: !viewModel.selectedVibes.contains(tag) && viewModel.selectedVibes.count >= 3
-                                ) {
-                                    viewModel.toggleVibe(tag)
-                                }
-                            }
-                        }
-                        .padding(.horizontal)
+                        Text(mode == .vibe ? AppStrings.Onboarding.vibeSubtitle : AppStrings.Onboarding.imageSubtitle)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(Color(.systemGray))
                     }
 
-                    Divider()
-                        .padding(.horizontal)
-
-                    // 향의 느낌 섹션
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text(AppStrings.Onboarding.imageSection)
-                                .font(.headline)
-                            Spacer()
-                            Text("\(viewModel.selectedImages.count)/3")
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                        }
-                        .padding(.horizontal)
-
-                        LazyVGrid(
-                            columns: [
-                                GridItem(.flexible()),
-                                GridItem(.flexible()),
-                                GridItem(.flexible())
-                            ],
-                            spacing: 12
-                        ) {
-                            ForEach(viewModel.imageTags, id: \.self) { tag in
-                                TagButton(
-                                    title: tag,
-                                    isSelected: viewModel.selectedImages.contains(tag),
-                                    isDisabled: !viewModel.selectedImages.contains(tag) && viewModel.selectedImages.count >= 3
-                                ) {
-                                    viewModel.toggleImage(tag)
-                                }
+                    LazyVGrid(
+                        columns: [
+                            GridItem(.flexible(), spacing: 8),
+                            GridItem(.flexible(), spacing: 8),
+                            GridItem(.flexible(), spacing: 8)
+                        ],
+                        spacing: 8
+                    ) {
+                        ForEach(currentTags, id: \.self) { tag in
+                            TagButton(
+                                title: tag,
+                                isSelected: currentSelections.contains(tag),
+                                isDisabled: !currentSelections.contains(tag) && currentSelections.count >= 3,
+                                selectionOrder: viewModel.selectionOrder(for: tag, in: currentSelections)
+                            ) {
+                                toggle(tag)
                             }
                         }
-                        .padding(.horizontal)
                     }
                 }
+                .frame(maxWidth: resolvedContentWidth, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .center)
+
+                if let errorMessage = viewModel.errorMessage, !errorMessage.isEmpty {
+                    Text(errorMessage)
+                        .font(.footnote)
+                        .foregroundColor(.red)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 24)
+                        .padding(.top, 16)
+                }
+
+                Spacer()
+
+                Button {
+                    if mode == .vibe {
+                        viewModel.currentStep = .image
+                    } else {
+                        Task {
+                            await viewModel.analyzeTaste()
+                        }
+                    }
+                } label: {
+                    HStack {
+                        if mode == .image && viewModel.isLoading {
+                            ProgressView()
+                                .tint(.white)
+                            Text(AppStrings.Onboarding.analyzing)
+                        } else {
+                            Text(mode == .vibe ? AppStrings.Onboarding.next : AppStrings.Onboarding.complete)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+                    .background(isActionEnabled ? Color.black : Color.gray.opacity(0.3))
+                    .foregroundColor(.white)
+                    .cornerRadius(14)
+                }
+                .disabled(!isActionEnabled || viewModel.isLoading)
+                .padding(.horizontal, 24)
                 .padding(.bottom)
             }
-
-            if let errorMessage = viewModel.errorMessage, !errorMessage.isEmpty {
-                Text(errorMessage)
-                    .font(.footnote)
-                    .foregroundColor(.red)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-            }
-
-            Button {
-                Task {
-                    await viewModel.analyzeTaste()
-                }
-            } label: {
-                HStack {
-                    if viewModel.isLoading {
-                        ProgressView()
-                            .tint(.white)
-                        Text(AppStrings.Onboarding.analyzing)
-                    } else {
-                        Text(AppStrings.Onboarding.complete)
-                    }
-                }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(viewModel.canProceed ? Color.black : Color.gray.opacity(0.3))
-                .foregroundColor(.white)
-                .cornerRadius(12)
-            }
-            .disabled(!viewModel.canProceed || viewModel.isLoading)
-            .padding(.horizontal)
-            .padding(.bottom)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .padding(.top)
+        .background(Color.sniffBeige.ignoresSafeArea())
+    }
+
+    private var currentTags: [String] {
+        mode == .vibe ? viewModel.vibeTags : viewModel.imageTags
+    }
+
+    private var currentSelections: [String] {
+        mode == .vibe ? viewModel.selectedVibes : viewModel.selectedImages
+    }
+
+    private var isActionEnabled: Bool {
+        mode == .vibe ? viewModel.canProceedFromVibe : viewModel.canProceedFromImage
+    }
+
+    private func toggle(_ tag: String) {
+        if mode == .vibe {
+            viewModel.toggleVibe(tag)
+        } else {
+            viewModel.toggleImage(tag)
+        }
+    }
+
+    private func applyTitleConfig(_ text: String, config: TitleLayoutConfig = .default) -> some View {
+        Text(text)
+            .font(.system(size: config.fontSize, weight: config.resolvedFontWeight))
+            .foregroundColor(.black)
+            .lineSpacing(config.lineSpacing)
+            .multilineTextAlignment(.leading)
     }
 }

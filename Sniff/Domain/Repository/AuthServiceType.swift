@@ -7,7 +7,12 @@
 
 import Foundation
 
+struct AuthSession {
+    let userID: String
+    let isNewUser: Bool
+}
+
 protocol AuthServiceType {
-    func signInWithApple(identityToken: Data?, rawNonce: String) async throws -> String
+    func signInWithApple(identityToken: Data?, rawNonce: String) async throws -> AuthSession
     func signOut() throws
 }
