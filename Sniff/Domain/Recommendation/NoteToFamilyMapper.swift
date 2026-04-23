@@ -76,7 +76,15 @@ enum NoteToFamilyMapper {
         accumulate(middleNotes, position: .middle)
         accumulate(baseNotes,   position: .base)
 
-        return normalize(vector)
+        let canonicalized = Dictionary(grouping: vector.compactMap { key, value -> (String, Double)? in
+            guard let family = ScentFamilyNormalizer.canonicalName(for: key) else { return nil }
+            return (family, value)
+        }, by: \.0)
+        .mapValues { pairs in
+            pairs.reduce(0) { $0 + $1.1 }
+        }
+
+        return normalize(canonicalized)
     }
 
         // MARK: - 노트 → 계열 매핑

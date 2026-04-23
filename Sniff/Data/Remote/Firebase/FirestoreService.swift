@@ -63,18 +63,32 @@ final class FirestoreService {
 
     func saveUserProfile(
         nickname: String,
-        tasteAnalysis: TasteAnalysisResult
+        tasteAnalysis: TasteAnalysisResult,
+        experienceLevel: String? = nil
     ) async throws {
         let now = FieldValue.serverTimestamp()
         let ref = try userDocumentRef()
+        let snapshot = try await ref.getDocument()
 
-        let data: [String: Any] = [
+        var data: [String: Any] = [
             "nickname": nickname,
             "nicknameLowercased": normalizedNickname(nickname),
             "tasteAnalysis": Self.tasteAnalysisDictionary(from: tasteAnalysis),
-            "updatedAt": now,
-            "createdAt": now
+            "onboardingCompleted": true,
+            "updatedAt": now
         ]
+
+        if let experienceLevel, !experienceLevel.isEmpty {
+            data["experienceLevel"] = experienceLevel
+        }
+
+        if snapshot.exists {
+            if let createdAt = snapshot.data()?["createdAt"] {
+                data["createdAt"] = createdAt
+            }
+        } else {
+            data["createdAt"] = now
+        }
 
         do {
             try await ref.setData(data, merge: true)
@@ -111,22 +125,6 @@ final class FirestoreService {
             onboardingCompleted: data["onboardingCompleted"] as? Bool,
             experienceLevel: data["experienceLevel"] as? String
         )
-    }
-
-    /// Firestore에 연락 이메일을 저장한다.
-    func updateContactEmail(_ email: String) async throws {
-        let ref = try userDocumentRef()
-        try await ref.setData(["contactEmail": email], merge: true)
-    }
-
-    /// Firestore에서 연락 이메일을 읽어온다. 없으면 Firebase Auth 이메일로 폴백한다.
-    func fetchContactEmail() async throws -> String? {
-        let snapshot = try await userDocumentRef().getDocument()
-        let data = snapshot.data() ?? [:]
-        let stored = (data["contactEmail"] as? String)?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        if let stored, !stored.isEmpty { return stored }
-        return Auth.auth().currentUser?.email
     }
 
     func fetchTasteAnalysis() async throws -> TasteAnalysisResult {
@@ -251,44 +249,6 @@ final class FirestoreService {
             .delete()
     }
 
-    func saveTastingRecord(
-        id: String? = nil,
-        fragellaPerfume: Perfume,
-        rating: Int,
-        moodTags: [String],
-        memo: String?,
-        wantToRevisit: String? = nil
-    ) async throws {
-        let now = FieldValue.serverTimestamp()
-        let ref = try userDocumentRef()
-            .collection("tastingRecords")
-            .document(id ?? UUID().uuidString)
-
-        var data: [String: Any] = [
-            "perfumeName": fragellaPerfume.name,
-            "brandName": fragellaPerfume.brand,
-            "imageUrl": fragellaPerfume.imageUrl as Any,
-            "mainAccords": fragellaPerfume.mainAccords,
-            "accordStrengths": Self.accordStrengthsForStorage(from: fragellaPerfume),
-            "rating": rating,
-            "moodTags": moodTags,
-            "updatedAt": now
-        ]
-
-        if let memo, !memo.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            data["memo"] = memo
-        }
-
-        if let wantToRevisit, !wantToRevisit.isEmpty {
-            data["wantToRevisit"] = wantToRevisit
-        }
-
-        if id == nil {
-            data["createdAt"] = now
-        }
-
-        try await ref.setData(data, merge: true)
-    }
 }
 
 private extension FirestoreService {
@@ -340,10 +300,6 @@ private extension FirestoreService {
 
     static func tasteAnalysisDictionary(from result: TasteAnalysisResult) -> [String: Any] {
         [
-            "primary_profile_code": result.primaryProfileCode,
-            "primary_profile_name": result.primaryProfileName,
-            "secondary_profile_code": result.secondaryProfileCode,
-            "secondary_profile_name": result.secondaryProfileName,
             "analysis_summary": result.analysisSummary,
             "evidence_tags": [
                 "experience": result.evidenceTags.experience,
@@ -362,24 +318,6 @@ private extension FirestoreService {
     static func decodeTasteAnalysis(from dictionary: [String: Any]) throws -> TasteAnalysisResult {
         let data = try JSONSerialization.data(withJSONObject: dictionary)
         return try JSONDecoder().decode(TasteAnalysisResult.self, from: data)
-    }
-
-private static func makeCollectedPerfume(from document: QueryDocumentSnapshot) -> CollectedPerfume? {
-        let data = document.data()
-        guard
-            let name = data["name"] as? String,
-            let brand = data["brand"] as? String
-        else { return nil }
-        let timestamp = data["addedAt"] as? Timestamp
-        return CollectedPerfume(
-            id: document.documentID,
-            name: name,
-            brand: brand,
-            scentFamily: data["scentFamily"] as? String,
-            scentFamily2: data["scentFamily2"] as? String,
-            imageURL: data["imageURL"] as? String,
-            createdAt: timestamp?.dateValue()
-        )
     }
 
     private static func makeLikedPerfume(from document: QueryDocumentSnapshot) -> LikedPerfume? {
@@ -410,30 +348,11 @@ private static func makeCollectedPerfume(from document: QueryDocumentSnapshot) -
         )
     }
 
-    private static func makeTastingRecord(from document: QueryDocumentSnapshot) -> TastingRecord? {
-        let data = document.data()
-        guard
-            let perfumeName = data["perfumeName"] as? String,
-            let brandName = data["brandName"] as? String,
-            let rating = data["rating"] as? Int,
-            let updatedAt = (data["updatedAt"] as? Timestamp)?.dateValue()
-        else { return nil }
-        let createdAt = (data["createdAt"] as? Timestamp)?.dateValue() ?? updatedAt
-        return TastingRecord(
-            id: document.documentID,
-            perfumeName: perfumeName,
-            brandName: brandName,
-            mainAccords: data["mainAccords"] as? [String] ?? [],
-            rating: rating,
-            moodTags: data["moodTags"] as? [String] ?? [],
-            revisitDesire: data["revisitDesire"] as? String,
-            createdAt: createdAt,
-            updatedAt: updatedAt
-        )
-    }
-
     static func looksLikeTasteAnalysisPayload(_ dictionary: [String: Any]) -> Bool {
         dictionary["primary_profile_code"] != nil
+        || dictionary["primary_profile_name"] != nil
+        || dictionary["secondary_profile_code"] != nil
+        || dictionary["secondary_profile_name"] != nil
         || dictionary["recommendation_direction"] != nil
         || dictionary["analysis_summary"] != nil
     }

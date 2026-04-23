@@ -164,12 +164,18 @@ final class OnboardingViewModel: ObservableObject {
         do {
             nicknameValidationState = .available
             let result = try await userTasteRepository.analyzeTaste(input: makeTasteAnalysisInput(for: experience))
-            try await userTasteRepository.saveUserProfile(
-                nickname: trimmedNickname,
-                tasteAnalysis: result
-            )
             tasteResult = result
             currentStep = .result
+
+            do {
+                try await userTasteRepository.saveUserProfile(
+                    nickname: trimmedNickname,
+                    tasteAnalysis: result,
+                    experienceLevel: experience.rawValue
+                )
+            } catch {
+                errorMessage = error.localizedDescription
+            }
         } catch {
             currentStep = .taste
             errorMessage = error.localizedDescription
