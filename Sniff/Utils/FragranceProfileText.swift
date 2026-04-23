@@ -2,7 +2,7 @@ import Foundation
 
 enum FragranceProfileText {
 
-    static func displayTitle(for families: [String]) -> String {
+    nonisolated static func displayTitle(for families: [String]) -> String {
         guard let firstFamily = normalizedFamilies(from: families).first else {
             return "취향을 분석하는 중이에요"
         }
@@ -23,7 +23,7 @@ enum FragranceProfileText {
         }
     }
 
-    static func familySummary(for families: [String]) -> String {
+    nonisolated static func familySummary(for families: [String]) -> String {
         let topFamilies = Array(normalizedFamilies(from: families).prefix(2))
 
         switch topFamilies.count {
@@ -36,7 +36,7 @@ enum FragranceProfileText {
         }
     }
 
-    static func majorFamilySummary(for families: [String]) -> String {
+    nonisolated static func majorFamilySummary(for families: [String]) -> String {
         let groups = normalizedFamilies(from: families)
             .compactMap(majorGroup(for:))
             .reduce(into: [String]()) { result, group in
@@ -57,11 +57,11 @@ enum FragranceProfileText {
         }
     }
 
-    static func leadingFamily(from families: [String]) -> String? {
+    nonisolated static func leadingFamily(from families: [String]) -> String? {
         normalizedFamilies(from: families).first
     }
 
-    static func normalizedFamilies(from families: [String]) -> [String] {
+    nonisolated static func normalizedFamilies(from families: [String]) -> [String] {
         var seen = Set<String>()
 
         return families
@@ -69,7 +69,7 @@ enum FragranceProfileText {
             .filter { seen.insert($0).inserted }
     }
 
-    private static func majorGroup(for family: String) -> String? {
+    nonisolated private static func majorGroup(for family: String) -> String? {
         switch family {
         case "Citrus", "Fruity", "Green", "Water", "Aromatic":
             return "Fresh"

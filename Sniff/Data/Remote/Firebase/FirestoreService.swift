@@ -193,13 +193,16 @@ final class FirestoreService {
             .collection("likes")
             .document(perfume.id)
 
-        let data: [String: Any] = [
+        // nil 옵셔널은 Firestore에 null로 전송되면 보안 규칙의
+        // (!('imageUrl' in data) || data.imageUrl is string) 검증 실패 → PERMISSION_DENIED
+        var data: [String: Any] = [
             "name": perfume.name,
             "brand": perfume.brand,
-            "imageUrl": perfume.imageUrl as Any,
             "mainAccords": perfume.mainAccords,
             "likedAt": now
         ]
+
+        if let imageUrl = perfume.imageUrl { data["imageUrl"] = imageUrl }
 
         try await ref.setData(data, merge: true)
     }
@@ -223,18 +226,21 @@ final class FirestoreService {
             .collection("collection")
             .document(perfume.id)
 
+        // nil 옵셔널은 Firestore에 null로 전송되면 보안 규칙의
+        // (!('field' in data) || data.field is string) 검증 실패 → PERMISSION_DENIED
+        // 따라서 nil인 옵셔널 필드는 딕셔너리에 포함하지 않음
         var data: [String: Any] = [
             "name": perfume.name,
             "brand": perfume.brand,
-            "imageUrl": perfume.imageUrl as Any,
             "mainAccords": perfume.mainAccords,
             "accordStrengths": Self.accordStrengthsForStorage(from: perfume),
-            "concentration": perfume.concentration as Any,
-            "gender": perfume.gender as Any,
             "addedAt": now,
             "updatedAt": now
         ]
 
+        if let imageUrl = perfume.imageUrl { data["imageUrl"] = imageUrl }
+        if let concentration = perfume.concentration { data["concentration"] = concentration }
+        if let gender = perfume.gender { data["gender"] = gender }
         if let memo, !memo.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             data["memo"] = memo
         }
