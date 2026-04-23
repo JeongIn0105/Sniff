@@ -10,7 +10,8 @@ import Foundation
 enum OnboardingStep {
     case nickname
     case experience
-    case taste
+    case vibe
+    case image
     case loadingResult
     case result
 }

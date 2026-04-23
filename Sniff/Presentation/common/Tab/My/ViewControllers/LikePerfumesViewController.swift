@@ -23,7 +23,7 @@ final class LikePerfumesViewController: UIViewController {
     }
 
     private let titleLabel = UILabel().then {
-        $0.text = "LIKE 향수"
+        $0.text = AppStrings.DomainDisplay.LikePerfumes.title
         $0.font = .systemFont(ofSize: 24, weight: .bold)
         $0.textColor = .label
     }
@@ -48,7 +48,7 @@ final class LikePerfumesViewController: UIViewController {
     }()
 
     private let emptyLabel = UILabel().then {
-        $0.text = "등록된 LIKE 향수가 없어요"
+        $0.text = AppStrings.DomainDisplay.LikePerfumes.empty
         $0.font = .systemFont(ofSize: 15)
         $0.textColor = .secondaryLabel
         $0.textAlignment = .center
@@ -124,12 +124,12 @@ final class LikePerfumesViewController: UIViewController {
                 self?.items = items.sorted {
                     ($0.likedAt ?? .distantPast) > ($1.likedAt ?? .distantPast)
                 }
-                self?.countLabel.text = "LIKE 향수 \(items.count)개"
+                self?.countLabel.text = AppStrings.DomainDisplay.LikePerfumes.count(items.count)
                 self?.emptyLabel.isHidden = !items.isEmpty
                 self?.collectionView.reloadData()
             }, onFailure: { [weak self] _ in
                 self?.items = []
-                self?.countLabel.text = "LIKE 향수 0개"
+                self?.countLabel.text = AppStrings.DomainDisplay.LikePerfumes.count(0)
                 self?.emptyLabel.isHidden = false
                 self?.collectionView.reloadData()
             })
@@ -168,7 +168,7 @@ extension LikePerfumesViewController: UICollectionViewDataSource, UICollectionVi
             .observe(on: MainScheduler.instance)
             .subscribe(onCompleted: { [weak self] in
                 self?.items.removeAll { $0.id == id }
-                self?.countLabel.text = "LIKE 향수 \(self?.items.count ?? 0)개"
+                self?.countLabel.text = AppStrings.DomainDisplay.LikePerfumes.count(self?.items.count ?? 0)
                 self?.emptyLabel.isHidden = !(self?.items.isEmpty ?? true)
                 self?.collectionView.reloadData()
             }, onError: { _ in })

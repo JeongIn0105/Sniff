@@ -40,8 +40,8 @@ final class OnboardingViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
 
     // MARK: - 태그 목록
-    let vibeTags: [String] = PreferenceTag.vibeTags.map(\.displayName)
-    let imageTags: [String] = PreferenceTag.imageTags.map(\.displayName)
+    let vibeTags: [String] = AppStrings.Onboarding.vibeTags
+    let imageTags: [String] = AppStrings.Onboarding.imageTags
 
     init(userTasteRepository: UserTasteRepositoryType) {
         self.userTasteRepository = userTasteRepository
@@ -56,6 +56,7 @@ final class OnboardingViewModel: ObservableObject {
     func clearNickname() {
         nickname = ""
         nicknameValidationState = .idle
+        errorMessage = nil
     }
 
     func checkNicknameDuplication() async {
@@ -69,14 +70,24 @@ final class OnboardingViewModel: ObservableObject {
         }
 
         nicknameValidationState = .checking
+        errorMessage = nil
 
         do {
             let isAvailable = try await userTasteRepository.checkNicknameAvailability(trimmedNickname)
             nicknameValidationState = isAvailable ? .available : .unavailable
+            if isAvailable {
+                errorMessage = nil
+            }
         } catch {
             nicknameValidationState = .idle
             errorMessage = error.localizedDescription
         }
+    }
+
+    func proceedFromNickname() {
+        guard nicknameValidationState == .available else { return }
+        errorMessage = nil
+        currentStep = .experience
     }
 
     func toggleVibe(_ vibe: String) {
@@ -95,8 +106,21 @@ final class OnboardingViewModel: ObservableObject {
         }
     }
 
+    func selectionOrder(for tag: String, in tags: [String]) -> Int? {
+        guard let index = tags.firstIndex(of: tag) else { return nil }
+        return index + 1
+    }
+
     var canProceed: Bool {
         !selectedVibes.isEmpty && !selectedImages.isEmpty
+    }
+
+    var canProceedFromVibe: Bool {
+        !selectedVibes.isEmpty
+    }
+
+    var canProceedFromImage: Bool {
+        !selectedImages.isEmpty
     }
 
     var canCheckNicknameDuplication: Bool {
@@ -116,7 +140,7 @@ final class OnboardingViewModel: ObservableObject {
         case .idle:
             return nil
         case .checking:
-            return "중복 여부를 확인하고 있어요..."
+            return AppStrings.ViewModelMessages.Onboarding.nicknameChecking
         case .invalid:
             return AppStrings.Nickname.invalid
         case .available:
@@ -147,7 +171,7 @@ final class OnboardingViewModel: ObservableObject {
     // MARK: - Gemini API 호출
     func analyzeTaste() async {
         guard let experience = selectedExperience else {
-            errorMessage = "향수 경험을 먼저 선택해주세요."
+            errorMessage = AppStrings.ViewModelMessages.Onboarding.missingExperience
             return
         }
 
@@ -177,7 +201,7 @@ final class OnboardingViewModel: ObservableObject {
                 errorMessage = error.localizedDescription
             }
         } catch {
-            currentStep = .taste
+            currentStep = .image
             errorMessage = error.localizedDescription
         }
 
@@ -230,9 +254,9 @@ final class OnboardingViewModel: ObservableObject {
 
     private func experienceText(for experience: ExperienceLevel) -> String {
         switch experience {
-        case .beginner: return "향수를 처음 시작했어요"
-        case .casual: return "향수를 가끔씩 뿌려요"
-        case .expert: return "향수를 꽤 알고 있어요"
+        case .beginner: return AppStrings.ViewModelMessages.Onboarding.beginnerExperience
+        case .casual: return AppStrings.ViewModelMessages.Onboarding.casualExperience
+        case .expert: return AppStrings.ViewModelMessages.Onboarding.expertExperience
         }
     }
 
@@ -254,5 +278,6 @@ final class OnboardingViewModel: ObservableObject {
         }
 
         nicknameValidationState = .idle
+        errorMessage = nil
     }
 }

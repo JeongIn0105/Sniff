@@ -20,7 +20,7 @@ final class TasteProfileViewController: UIViewController {
     }
 
     private let titleLabel = UILabel().then {
-        $0.text = "취향 프로필"
+        $0.text = AppStrings.Home.tasteProfileTitle
         $0.font = .systemFont(ofSize: 18, weight: .semibold)
         $0.textColor = .label
     }

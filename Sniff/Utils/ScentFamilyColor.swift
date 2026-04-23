@@ -57,31 +57,6 @@ enum ScentFamilyColor {
     }
 
     static func iconEmoji(for family: String?) -> String {
-        guard let family else { return "✨" }
-
-        switch family {
-        case "Citrus":
-            return "🍋"
-        case "Fruity":
-            return "🍑"
-        case "Green", "Aromatic":
-            return "🌿"
-        case "Water":
-            return "💧"
-        case "Floral":
-            return "🌹"
-        case "Soft Floral":
-            return "🌸"
-        case "Floral Amber":
-            return "🌺"
-        case "Soft Amber":
-            return "🧡"
-        case "Amber", "Woody Amber":
-            return "✨"
-        case "Woods", "Mossy Woods", "Dry Woods":
-            return "🪵"
-        default:
-            return "✨"
-        }
+        ""
     }
 }

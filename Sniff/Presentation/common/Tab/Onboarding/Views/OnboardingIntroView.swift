@@ -9,39 +9,54 @@ import SwiftUI
 
 struct OnboardingIntroView: View {
     let onStart: () -> Void
+    private let contentWidth: CGFloat = 344
+    private let titleConfig = TitleLayoutConfig.default
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Spacer()
-                .frame(height: 60)
+        GeometryReader { geometry in
+            let resolvedContentWidth = min(contentWidth, geometry.size.width - (titleConfig.leadingInset * 2))
 
-            Text("당신의 향수 취향을\n킁킁과 함께 발견해가요")
-                .font(.system(size: 28, weight: .bold))
-                .foregroundColor(.black)
-                .padding(.horizontal)
+            ZStack {
+                VStack(alignment: .leading, spacing: 16) {
+                    applyTitleConfig(AppStrings.AppShell.Intro.title, config: titleConfig)
 
-            Spacer().frame(height: 16)
+                    Text(AppStrings.AppShell.Intro.subtitle)
+                        .font(.system(size: 14, weight: .regular))
+                        .foregroundColor(.gray)
+                        .lineSpacing(3)
+                }
+                .frame(maxWidth: resolvedContentWidth, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .frame(maxHeight: .infinity, alignment: .top)
+                .padding(.top, geometry.size.height * 0.26)
 
-            Text("보유하고 있는 향수, 관심있는 향수를 등록하고\n나만의 향수를 추천받아 보세요")
-                .font(.subheadline)
-                .foregroundColor(.gray)
-                .padding(.horizontal)
+                VStack(spacing: 0) {
+                    Spacer()
 
-            Spacer()
-
-            Button(action: onStart) {
-                Text("킁킁 시작하기")
-                    .font(.body)
-                    .bold()
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.black)
-                    .cornerRadius(12)
+                    Button(action: onStart) {
+                        Text(AppStrings.AppShell.Intro.start)
+                            .font(.body)
+                            .bold()
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.black)
+                            .cornerRadius(12)
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 32)
+                }
             }
-            .padding(.horizontal)
-            .padding(.bottom, 32)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .background(Color.white)
+        .background(Color.sniffBeige.ignoresSafeArea())
+    }
+
+    private func applyTitleConfig(_ text: String, config: TitleLayoutConfig = .default) -> some View {
+        Text(text)
+            .font(.system(size: config.fontSize, weight: config.resolvedFontWeight))
+            .foregroundColor(.black)
+            .multilineTextAlignment(.leading)
+            .lineSpacing(config.lineSpacing)
     }
 }

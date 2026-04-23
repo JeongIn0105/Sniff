@@ -33,11 +33,11 @@ struct WithdrawView: View {
 
                     // 닉네임 + 안내 문구
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("\(viewModel.nickname)님")
+                        Text(AppStrings.Profile.Withdraw.nickname(viewModel.nickname))
                             .font(.system(size: 18, weight: .bold))
                             .foregroundColor(.primary)
 
-                        Text("탈퇴하기 전 유의사항을 확인해주세요")
+                        Text(AppStrings.Profile.Withdraw.guide)
                             .font(.system(size: 18, weight: .bold))
                             .foregroundColor(.primary)
                     }
@@ -72,20 +72,20 @@ struct WithdrawView: View {
             appStateManager.state = .login
         }
         // 탈퇴 최종 확인 Alert
-        .alert("정말 탈퇴하시겠습니까?", isPresented: $showConfirmAlert) {
-            Button("탈퇴", role: .destructive) {
+        .alert(AppStrings.Profile.Withdraw.confirmTitle, isPresented: $showConfirmAlert) {
+            Button(AppStrings.Profile.Withdraw.confirmDestructive, role: .destructive) {
                 Task { await viewModel.withdrawAccount() }
             }
-            Button("취소", role: .cancel) { }
+            Button(AppStrings.Profile.Withdraw.cancel, role: .cancel) { }
         } message: {
-            Text("탈퇴 시 모든 데이터가 영구적으로 삭제되며\n복구할 수 없습니다.")
+            Text(AppStrings.Profile.Withdraw.confirmMessage)
         }
         // 오류 Alert
-        .alert("오류", isPresented: Binding(
+        .alert(AppStrings.Profile.errorTitle, isPresented: Binding(
             get: { viewModel.errorMessage != nil },
             set: { if !$0 { viewModel.clearError() } }
         )) {
-            Button("확인") { viewModel.clearError() }
+            Button(AppStrings.Profile.confirm) { viewModel.clearError() }
         } message: {
             Text(viewModel.errorMessage ?? "")
         }
@@ -104,7 +104,7 @@ struct WithdrawView: View {
                     .frame(width: 44, height: 44)
             }
 
-            Text("회원 탈퇴")
+            Text(AppStrings.Profile.Withdraw.title)
                 .font(.system(size: 24, weight: .bold))
                 .foregroundColor(.primary)
 
@@ -118,7 +118,7 @@ struct WithdrawView: View {
     // MARK: - 킁킁 로고
 
     private var sniffLogo: some View {
-        Text("킁킁")
+        Text(AppStrings.Profile.Withdraw.appName)
             .font(.system(size: 32, weight: .heavy))
             .foregroundColor(.primary)
             .tracking(-1)
@@ -128,11 +128,11 @@ struct WithdrawView: View {
 
     private var noticeBox: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("계정 탈퇴 유의사항")
+            Text(AppStrings.Profile.Withdraw.noticeTitle)
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundColor(.primary)
 
-            Text("계정 탈퇴 시 서비스에 등록된 개인정보와 서비스 이용 중 작성하신 모든 글이 영구적으로 삭제되며, 다시는 복구할 수 없습니다.")
+            Text(AppStrings.Profile.Withdraw.noticeBody)
                 .font(.system(size: 14))
                 .foregroundColor(Color(.systemGray))
                 .lineSpacing(4)
@@ -160,7 +160,7 @@ struct WithdrawView: View {
                             .font(.system(size: 20))
                             .foregroundColor(viewModel.isAgreed ? Color(.systemGray) : Color(.systemGray3))
 
-                        Text("계정 탈퇴 유의사항을 확인했습니다.")
+                        Text(AppStrings.Profile.Withdraw.agreement)
                             .font(.system(size: 14))
                             .foregroundColor(.primary)
 
@@ -176,7 +176,7 @@ struct WithdrawView: View {
                 Button {
                     showConfirmAlert = true
                 } label: {
-                    Text("계정 탈퇴")
+                    Text(AppStrings.Profile.Withdraw.action)
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(viewModel.isAgreed ? .primary : Color(.systemGray2))
                         .frame(maxWidth: .infinity)

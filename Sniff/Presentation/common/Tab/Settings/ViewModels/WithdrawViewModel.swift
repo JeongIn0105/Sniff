@@ -47,9 +47,9 @@ final class WithdrawViewModel: ObservableObject {
             let code = (error as NSError).code
             // 17014: requiresRecentLogin — Apple 로그인 재인증 필요
             if code == 17014 {
-                errorMessage = "보안을 위해 로그아웃 후 다시 로그인한 뒤 탈퇴를 진행해주세요."
+                errorMessage = AppStrings.ViewModelMessages.Withdraw.requiresRecentLogin
             } else {
-                errorMessage = "탈퇴 처리 중 오류가 발생했어요. 다시 시도해주세요."
+                errorMessage = AppStrings.ViewModelMessages.Withdraw.failed
             }
         }
     }

@@ -110,16 +110,20 @@ enum SearchFilterEngine {
 
     nonisolated private static func normalizedSeasonTokens(for rawValue: String) -> [String] {
         let normalized = normalizeString(rawValue)
+        let spring = normalizeString(Season.spring.displayName)
+        let summer = normalizeString(Season.summer.displayName)
+        let fall = normalizeString(Season.fall.displayName)
+        let winter = normalizeString(Season.winter.displayName)
 
         switch normalized {
-        case "봄", "spring":
-            return ["봄", "spring"]
-        case "여름", "summer":
-            return ["여름", "summer"]
-        case "가을", "fall", "autumn":
-            return ["가을", "fall", "autumn"]
-        case "겨울", "winter":
-            return ["겨울", "winter"]
+        case let value where value == spring || value == "spring":
+            return [spring, "spring"]
+        case let value where value == summer || value == "summer":
+            return [summer, "summer"]
+        case let value where value == fall || value == "fall" || value == "autumn":
+            return [fall, "fall", "autumn"]
+        case let value where value == winter || value == "winter":
+            return [winter, "winter"]
         default:
             return [normalized]
         }

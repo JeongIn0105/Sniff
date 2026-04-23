@@ -47,11 +47,11 @@ struct TastingNoteFormView: View {
         .onChange(of: vm.saveSuccess) { success in
             if success { onSaveSuccess(vm.savedPerfumeName); dismiss() }
         }
-        .alert("오류", isPresented: Binding(
+        .alert(AppStrings.TastingNoteFormUI.errorTitle, isPresented: Binding(
             get: { vm.errorMessage != nil },
             set: { if !$0 { vm.errorMessage = nil } }
         )) {
-            Button("확인") { vm.errorMessage = nil }
+            Button(AppStrings.TastingNoteFormUI.confirm) { vm.errorMessage = nil }
         } message: {
             Text(vm.errorMessage ?? "")
         }
@@ -193,7 +193,7 @@ struct TastingNoteFormView: View {
             ZStack(alignment: .bottomTrailing) {
                 ZStack(alignment: .topLeading) {
                     if vm.memo.isEmpty {
-                        Text("향수에 대한 느낌을 자유롭게 기록해주세요 (최소 20자)")
+                        Text(AppStrings.TastingNoteFormUI.memoPlaceholder)
                             .font(.system(size: 15))
                             .foregroundColor(Color(.placeholderText))
                             .padding(.top, 18).padding(.leading, 14)
@@ -223,7 +223,7 @@ struct TastingNoteFormView: View {
     private var bottomBar: some View {
         HStack(spacing: 12) {
             Button { vm.reset() } label: {
-                Text("초기화")
+                Text(AppStrings.TastingNoteFormUI.reset)
                     .font(.system(size: 16, weight: .semibold)).foregroundColor(.primary)
                     .frame(maxWidth: .infinity).frame(height: 52)
                     .background(Color(.systemGray6))
@@ -234,7 +234,7 @@ struct TastingNoteFormView: View {
                 ZStack {
                     if vm.isSaving { ProgressView().tint(.white) }
                     else {
-                        Text("작성 완료하기")
+                        Text(AppStrings.TastingNoteFormUI.save)
                             .font(.system(size: 16, weight: .semibold)).foregroundColor(.white)
                     }
                 }

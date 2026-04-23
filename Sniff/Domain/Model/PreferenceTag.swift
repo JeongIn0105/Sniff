@@ -32,7 +32,28 @@ enum PreferenceTag: String, CaseIterable, Codable {
     case neutral = "중성적인"
     case relaxed = "여유로운"
 
-    nonisolated var displayName: String { rawValue }
+    nonisolated var displayName: String {
+        switch self {
+        case .warm: return AppStrings.DomainDisplay.TastingNoteData.moodTagList[0]
+        case .cool: return AppStrings.DomainDisplay.TastingNoteData.moodTagList[1]
+        case .subtle: return AppStrings.DomainDisplay.TastingNoteData.moodTagList[2]
+        case .intense: return AppStrings.DomainDisplay.TastingNoteData.moodTagList[3]
+        case .fresh: return AppStrings.DomainDisplay.TastingNoteData.moodTagList[4]
+        case .sweet: return AppStrings.DomainDisplay.TastingNoteData.moodTagList[5]
+        case .powdery: return AppStrings.DomainDisplay.TastingNoteData.moodTagList[6]
+        case .heavy: return AppStrings.DomainDisplay.TastingNoteData.moodTagList[7]
+        case .light: return AppStrings.DomainDisplay.TastingNoteData.moodTagList[8]
+        case .clean: return AppStrings.DomainDisplay.TastingNoteData.moodTagList[9]
+        case .cozy: return AppStrings.DomainDisplay.TastingNoteData.moodTagList[10]
+        case .sophisticated: return AppStrings.DomainDisplay.TastingNoteData.moodTagList[11]
+        case .luxurious: return AppStrings.DomainDisplay.TastingNoteData.moodTagList[12]
+        case .natural: return AppStrings.DomainDisplay.TastingNoteData.moodTagList[13]
+        case .mysterious: return AppStrings.DomainDisplay.TastingNoteData.moodTagList[14]
+        case .vibrant: return AppStrings.DomainDisplay.TastingNoteData.moodTagList[15]
+        case .neutral: return AppStrings.DomainDisplay.TastingNoteData.moodTagList[16]
+        case .relaxed: return AppStrings.DomainDisplay.TastingNoteData.moodTagList[17]
+        }
+    }
 
     var category: PreferenceTagCategory {
         switch self {

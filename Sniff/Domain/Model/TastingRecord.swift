@@ -101,10 +101,5 @@ extension TastingRecord {
 }
 
 extension TastingRecord {
-    static let revisitOptions: [String] = [
-        "매일 뿌리고 싶어",
-        "가끔 꺼내고 싶어",
-        "기억에 남아, 근데 내 향은 아니야",
-        "다시 맡고 싶지 않아"
-    ]
+    static let revisitOptions: [String] = AppStrings.DomainDisplay.TastingNoteData.revisitDesireList
 }

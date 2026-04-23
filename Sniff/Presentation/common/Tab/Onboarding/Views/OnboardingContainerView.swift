@@ -33,8 +33,11 @@ struct OnboardingContainerView: View {
             case .experience:
                 OnboardingExperienceView(viewModel: viewModel)
 
-            case .taste:
-                OnboardingTasteView(viewModel: viewModel)
+            case .vibe:
+                OnboardingTasteView(viewModel: viewModel, mode: .vibe)
+
+            case .image:
+                OnboardingTasteView(viewModel: viewModel, mode: .image)
 
             case .loadingResult:
                 OnboardingLoadingView()
@@ -51,7 +54,7 @@ private struct OnboardingLoadingView: View {
         VStack(spacing: 20) {
             Spacer()
 
-            Text("킁!킁! 취향 분석 중")
+            Text(AppStrings.Onboarding.loadingTitle)
                 .font(.title3.weight(.semibold))
 
             AnimatedDotsView()

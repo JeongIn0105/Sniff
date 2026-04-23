@@ -57,19 +57,19 @@ struct TastingNoteView: View {
                     viewModel.showToast(perfumeName: perfumeName)
                 }
             }
-            .alert("시향 기록 삭제", isPresented: $viewModel.showDeleteAlert) {
-                Button("삭제", role: .destructive) {
+            .alert(AppStrings.TastingNoteUI.List.deleteAlertTitle, isPresented: $viewModel.showDeleteAlert) {
+                Button(AppStrings.TastingNoteUI.List.delete, role: .destructive) {
                     Task { await viewModel.confirmDelete() }
                 }
-                Button("취소", role: .cancel) { }
+                Button(AppStrings.Settings.logoutCancel, role: .cancel) { }
             } message: {
                 Text(deleteAlertMessage)
             }
-            .alert("오류", isPresented: Binding(
+            .alert(AppStrings.TastingNoteUI.errorTitle, isPresented: Binding(
                 get: { viewModel.errorMessage != nil },
                 set: { if !$0 { viewModel.clearError() } }
             )) {
-                Button("확인") { viewModel.clearError() }
+                Button(AppStrings.TastingNoteUI.confirm) { viewModel.clearError() }
             } message: {
                 Text(viewModel.errorMessage ?? "")
             }
@@ -180,7 +180,7 @@ struct TastingNoteView: View {
 
     private var emptyTitle: String {
         if let perfumeScope = viewModel.perfumeScope {
-            return "\(PerfumePresentationSupport.displayPerfumeName(perfumeScope.perfumeName)) 시향 기록이 없어요"
+            return AppStrings.TastingNoteUI.List.scopeEmptyTitle(PerfumePresentationSupport.displayPerfumeName(perfumeScope.perfumeName))
         }
         switch viewModel.selectedFilter {
         case .all:    return "아직 작성한 시향기가 없어요"
@@ -191,7 +191,7 @@ struct TastingNoteView: View {
 
     private var emptyMessage: String {
         if viewModel.perfumeScope != nil {
-            return "+ 버튼을 눌러 이 향수의 시향 기록을 추가해 주세요"
+            return AppStrings.TastingNoteUI.List.scopeEmptyMessage
         }
         switch viewModel.selectedFilter {
         case .all:    return "+ 버튼을 눌러 첫 시향기를 작성해 주세요"

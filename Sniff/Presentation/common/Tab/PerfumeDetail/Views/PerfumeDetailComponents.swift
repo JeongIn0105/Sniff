@@ -66,8 +66,8 @@ final class UsageInfoView: UIView {
 
     func configure(longevity: String, sillage: String) {
         stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        stackView.addArrangedSubview(makeRow(title: "지속력", value: longevity))
-        stackView.addArrangedSubview(makeRow(title: "확산력", value: sillage))
+        stackView.addArrangedSubview(makeRow(title: AppStrings.UIKitScreens.PerfumeDetail.longevity, value: longevity))
+        stackView.addArrangedSubview(makeRow(title: AppStrings.UIKitScreens.PerfumeDetail.sillage, value: sillage))
     }
 
     private func makeRow(title: String, value: String) -> UIView {
@@ -114,9 +114,9 @@ final class DetailNotesView: UIView {
 
     func configure(topNotes: [String], middleNotes: [String], baseNotes: [String]) {
         stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        stackView.addArrangedSubview(NoteLineView(title: "탑", notes: topNotes))
-        stackView.addArrangedSubview(NoteLineView(title: "미들", notes: middleNotes))
-        stackView.addArrangedSubview(NoteLineView(title: "베이스", notes: baseNotes))
+        stackView.addArrangedSubview(NoteLineView(title: AppStrings.UIKitScreens.PerfumeDetail.topNotes, notes: topNotes))
+        stackView.addArrangedSubview(NoteLineView(title: AppStrings.UIKitScreens.PerfumeDetail.middleNotes, notes: middleNotes))
+        stackView.addArrangedSubview(NoteLineView(title: AppStrings.UIKitScreens.PerfumeDetail.baseNotes, notes: baseNotes))
     }
 }
 
@@ -158,10 +158,10 @@ final class NoteLineView: UIView {
 
 final class SeasonSelectionView: UIView {
     private let displayMap: [String: String] = [
-        "spring": "봄",
-        "summer": "여름",
-        "fall": "가을",
-        "winter": "겨울"
+        "spring": AppStrings.DomainDisplay.SearchFilters.spring,
+        "summer": AppStrings.DomainDisplay.SearchFilters.summer,
+        "fall": AppStrings.DomainDisplay.SearchFilters.fall,
+        "winter": AppStrings.DomainDisplay.SearchFilters.winter
     ]
     private var visibleTexts: [String] = []
 

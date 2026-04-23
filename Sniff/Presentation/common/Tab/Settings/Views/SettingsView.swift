@@ -32,27 +32,27 @@ struct SettingsView: View {
                         NavigationLink {
                             PrivacyPolicyView()
                         } label: {
-                            settingsRow(title: "개인정보처리방침")
+                            settingsRow(title: AppStrings.Profile.SettingsScreen.privacyPolicy)
                         }
                         .buttonStyle(.plain)
 
                         settingsRow(
-                            title: "앱 버전",
-                            trailing: "현재 버전 \(viewModel.appVersion)",
+                            title: AppStrings.Profile.SettingsScreen.appVersion,
+                            trailing: AppStrings.Profile.SettingsScreen.currentVersion(viewModel.appVersion),
                             showsChevron: false
                         )
 
                         Button {
                             viewModel.showLogoutAlert = true
                         } label: {
-                            settingsRow(title: "로그아웃", tint: .red, showsChevron: false)
+                            settingsRow(title: AppStrings.Profile.SettingsScreen.logout, tint: .red, showsChevron: false)
                         }
                         .buttonStyle(.plain)
 
                         NavigationLink {
                             SettingsSceneFactory.makeWithdrawView(nickname: viewModel.nickname)
                         } label: {
-                            settingsRow(title: "회원 탈퇴", tint: Color(.systemGray), showsChevron: false)
+                            settingsRow(title: AppStrings.Profile.SettingsScreen.withdraw, tint: Color(.systemGray), showsChevron: false)
                         }
                         .buttonStyle(.plain)
                     }
@@ -75,11 +75,11 @@ struct SettingsView: View {
             }
             Button(AppStrings.Settings.logoutCancel, role: .cancel) { }
         }
-        .alert("오류", isPresented: Binding(
+        .alert(AppStrings.Profile.errorTitle, isPresented: Binding(
             get: { viewModel.errorMessage != nil },
             set: { if !$0 { viewModel.clearError() } }
         )) {
-            Button("확인") { viewModel.clearError() }
+            Button(AppStrings.Profile.confirm) { viewModel.clearError() }
         } message: {
             Text(viewModel.errorMessage ?? "")
         }
@@ -96,7 +96,7 @@ struct SettingsView: View {
                     .frame(width: 44, height: 44)
             }
 
-            Text("환경설정")
+            Text(AppStrings.Profile.SettingsScreen.title)
                 .font(.system(size: 24, weight: .bold))
                 .foregroundColor(.primary)
 

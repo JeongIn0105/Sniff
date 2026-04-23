@@ -31,7 +31,7 @@ final class AuthService: AuthServiceType {
     func signInWithApple(
         identityToken: Data?,
         rawNonce: String
-    ) async throws -> String {
+    ) async throws -> AuthSession {
         guard let identityToken else {
             throw AuthServiceError.missingIdentityToken
         }
@@ -47,7 +47,10 @@ final class AuthService: AuthServiceType {
         )
 
         let result = try await Auth.auth().signIn(with: credential)
-        return result.user.uid
+        return AuthSession(
+            userID: result.user.uid,
+            isNewUser: result.additionalUserInfo?.isNewUser ?? false
+        )
     }
 
     func signOut() throws {

@@ -34,7 +34,7 @@ final class PerfumeGridCell: UICollectionViewCell {
     }
 
     private let placeholderLabel = UILabel().then {
-        $0.text = "이미지 준비중입니다"
+        $0.text = AppStrings.UIKitScreens.PerfumeDetail.imagePlaceholder
         $0.font = .systemFont(ofSize: 12, weight: .medium)
         $0.textColor = .secondaryLabel
         $0.textAlignment = .center
