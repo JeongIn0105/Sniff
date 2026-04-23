@@ -145,19 +145,14 @@ struct TastingNoteDetailView: View {
 
     private var perfumeInfoCard: some View {
         HStack(spacing: 14) {
-            Group {
-                if let urlString = currentNote.perfumeImageURL,
-                   let url = URL(string: urlString) {
-                    KFImage(url)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } else {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color(.systemGray6))
-                }
+            if let urlString = currentNote.perfumeImageURL,
+               let url = URL(string: urlString) {
+                KFImage(url)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 110, height: 110)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
             }
-            .frame(width: 110, height: 110)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
 
             VStack(alignment: .leading, spacing: 8) {
                 Text(PerfumePresentationSupport.displayBrand(currentNote.brandName))

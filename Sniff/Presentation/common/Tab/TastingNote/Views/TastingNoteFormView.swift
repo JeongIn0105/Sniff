@@ -7,7 +7,6 @@
 
 // MARK: - 등록 / 수정 화면
 import SwiftUI
-import Kingfisher
 
 struct TastingNoteFormView: View {
 
@@ -28,41 +27,16 @@ struct TastingNoteFormView: View {
             headerView
 
             ScrollView(showsIndicators: false) {
-                ScrollViewReader { proxy in
-                    VStack(alignment: .leading, spacing: 32) {
-                        // 수정 모드: 검색창 숨기고 읽기 전용 향수 카드 표시
-                        if vm.isEditMode {
-                            if let fragrance = vm.displayCardFragrance {
-                                editModeFragranceCard(fragrance)
-                            }
-                        } else {
-                            // 등록 모드: 기존 검색 섹션 유지
-                            searchSection
-                                .zIndex(10)
-                                .id("formTop")
-
-                            if let fragrance = vm.displayCardFragrance {
-                                selectedCard(fragrance)
-                            }
-                        }
-
-                        ratingSection(title: AppStrings.TastingNoteFormUI.ratingTitle, value: $vm.rating, label: vm.rating.ratingLabel)
-                        moodTagSection
-                        memoSection
-                        Spacer().frame(height: 8)
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.top, vm.isEditMode ? 24 : 8)
-                    .padding(.bottom, 16)
-                    // 향수 선택 시 상단으로 스크롤 (등록 모드에서만)
-                    .onChange(of: vm.selectedFragrance?.id) { _ in
-                        if !vm.isEditMode {
-                            withAnimation(.easeOut(duration: 0.3)) {
-                                proxy.scrollTo("formTop", anchor: .top)
-                            }
-                        }
-                    }
+                VStack(alignment: .leading, spacing: 28) {
+                    perfumeInputSection
+                    ratingSection(title: "향 선호도", value: $vm.rating, label: vm.rating.ratingLabel)
+                    moodTagSection
+                    memoSection
+                    Spacer().frame(height: 8)
                 }
+                .padding(.horizontal, 20)
+                .padding(.top, 4)
+                .padding(.bottom, 16)
             }
 
             // 하단 버튼 바 — VStack 안에 배치해 스크롤 콘텐츠가 뒤로 보이지 않도록
@@ -103,222 +77,66 @@ struct TastingNoteFormView: View {
             }
         }
         .padding(.horizontal, 20)
-        .padding(.top, 14)
-        .padding(.bottom, 20)
+        .padding(.top, 12)
+        .padding(.bottom, 16)
     }
 
-    // MARK: - 검색 섹션
+    // MARK: - 시향 향수 입력
 
-    private var searchSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(AppStrings.TastingNoteFormUI.perfumeName)
+    private var perfumeInputSection: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            Text("시향 향수")
                 .font(.system(size: 17, weight: .semibold))
 
-            ZStack(alignment: .top) {
-                searchField
+            formTextField(
+                title: "향수 명",
+                placeholder: "향수 명을 입력하세요",
+                text: $vm.perfumeName
+            )
 
-                if vm.isSearchResultVisible {
-                    searchDropdown.padding(.top, 74).zIndex(20)
-                }
-            }
-
-            if let guide = vm.searchGuideMessage, !guide.isEmpty {
-                Text(guide)
-                    .font(.system(size: 13))
-                    .foregroundColor(.secondary)
-                    .padding(.top, 2)
-            }
+            formTextField(
+                title: "브랜드",
+                placeholder: "향수 브랜드를 입력하세요",
+                text: $vm.brandName
+            )
         }
     }
 
-    private var searchField: some View {
-        HStack(spacing: 10) {
-            TextField(AppStrings.TastingNoteFormUI.perfumePlaceholder, text: $vm.searchText)
-                .font(.system(size: 15))
-                .submitLabel(.search)
-                .onSubmit { vm.searchButtonTapped() }
-
-            Button(AppStrings.TastingNoteFormUI.search) { vm.searchButtonTapped() }
-                .font(.system(size: 15, weight: .semibold))
+    private func formTextField(
+        title: String,
+        placeholder: String,
+        text: Binding<String>
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 9) {
+            Text(title)
+                .font(.system(size: 14, weight: .regular))
                 .foregroundColor(.primary)
-        }
-        .padding(.horizontal, 16)
-        .frame(height: 60)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color(.systemGray4), lineWidth: 1)
-        )
-    }
 
-    // MARK: - 검색 결과 드롭다운
-
-    private var searchDropdown: some View {
-        VStack(spacing: 0) {
-            if vm.isSearching {
-                HStack { Spacer(); ProgressView(); Spacer() }.padding(.vertical, 20)
-            } else if vm.searchResults.isEmpty {
-                Text(AppStrings.TastingNoteFormUI.noSearchResult)
-                    .font(.system(size: 14)).foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity).padding(.vertical, 20)
-            } else {
-                ForEach(Array(vm.searchResults.enumerated()), id: \.element.id) { idx, fragrance in
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.15)) { vm.selectFragrance(fragrance) }
-                    } label: {
-                        searchResultRow(fragrance)
-                    }
-                    .buttonStyle(.plain)
-
-                    if idx < vm.searchResults.count - 1 {
-                        Divider().padding(.leading, 72)
-                    }
-                }
-            }
-        }
-        .background(Color(.systemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(.systemGray5), lineWidth: 1))
-        .shadow(color: .black.opacity(0.08), radius: 12, x: 0, y: 4)
-    }
-
-    /// 검색 결과 행 — 한국어 이름/브랜드 우선 표시
-    private func searchResultRow(_ fragrance: FragellaFragrance) -> some View {
-        HStack(spacing: 12) {
-            // 썸네일 (이미지 없는 결과는 API에서 이미 필터됨)
-            KFImage(URL(string: fragrance.imageURL ?? ""))
-                .placeholder {
-                    RoundedRectangle(cornerRadius: 8).fill(Color(.systemGray6))
-                }
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(width: 48, height: 48)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-
-            VStack(alignment: .leading, spacing: 4) {
-                // 한국어 이름 우선, 없으면 영문
-                Text(fragrance.displayName)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.primary)
-
-                HStack(spacing: 4) {
-                    // 한국어 브랜드 우선
-                    Text(fragrance.displayBrand)
-                        .font(.system(size: 13)).foregroundColor(.secondary)
-
-                    if !fragrance.mainAccords.isEmpty {
-                        Text("|").font(.system(size: 13)).foregroundColor(Color(.systemGray4))
-
-                        ForEach(fragrance.mainAccords.prefix(2), id: \.self) { accord in
-                            HStack(spacing: 3) {
-                                Circle().frame(width: 4, height: 4).foregroundColor(accord.accordColor)
-                                Text(accord).font(.system(size: 13)).foregroundColor(.secondary)
-                            }
-                        }
-                    }
-                }
-            }
-            Spacer()
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-    }
-
-    // MARK: - 선택된 향수 카드
-
-    private func selectedCard(_ fragrance: FragellaFragrance) -> some View {
-        HStack(spacing: 14) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 10).fill(Color(.systemGray6))
-                if let url = fragrance.imageURL.flatMap(URL.init) {
-                    KFImage(url).resizable().aspectRatio(contentMode: .fill)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                }
-            }
-            .frame(width: 80, height: 80)
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text(fragrance.displayBrand)
-                    .font(.system(size: 12)).foregroundColor(.secondary)
-                Text(fragrance.displayName)
-                    .font(.system(size: 16, weight: .semibold)).foregroundColor(.primary)
-                HStack(spacing: 6) {
-                    ForEach(fragrance.mainAccords.prefix(3), id: \.self) { a in
-                        HStack(spacing: 3) {
-                            Circle().frame(width: 5, height: 5).foregroundColor(a.accordColor)
-                            Text(a).font(.system(size: 13)).foregroundColor(.secondary)
-                        }
-                    }
-                }
-            }
-            Spacer()
-
-            Button { withAnimation { vm.clearSelectedFragrance() } } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.primary)
-                    .frame(width: 32, height: 32)
-            }
-        }
-        .padding(14)
-        .background(Color(.systemGray6).opacity(0.5))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-    }
-
-    // MARK: - 수정 모드 전용 향수 카드 (읽기 전용, x버튼 없음)
-
-    private func editModeFragranceCard(_ fragrance: FragellaFragrance) -> some View {
-        HStack(spacing: 14) {
-            // 향수 이미지
-            ZStack {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(.systemGray6))
-                if let url = fragrance.imageURL.flatMap(URL.init) {
-                    KFImage(url)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-            }
-            .frame(width: 110, height: 110)
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text(fragrance.displayBrand)
-                    .font(.system(size: 14))
-                    .foregroundColor(.secondary)
-
-                Text(fragrance.displayName)
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(.primary)
-
-                if !fragrance.mainAccords.isEmpty {
-                    HStack(spacing: 6) {
-                        ForEach(fragrance.mainAccords.prefix(3), id: \.self) { accord in
-                            HStack(spacing: 4) {
-                                Circle()
-                                    .frame(width: 5, height: 5)
-                                    .foregroundColor(accord.accordColor)
-                                Text(accord)
-                                    .font(.system(size: 13))
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                    }
-                }
-            }
-            Spacer()
+            TextField(placeholder, text: text)
+                .font(.system(size: 16))
+                .submitLabel(.next)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .padding(.horizontal, 16)
+                .frame(height: 50)
+                .background(Color(.systemBackground))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color(.systemGray4), lineWidth: 1)
+                )
         }
     }
 
     // MARK: - 별점 섹션
 
     private func ratingSection(title: String, value: Binding<Int>, label: String) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 11) {
             Text(title).font(.system(size: 17, weight: .semibold))
 
             HStack(spacing: 4) {
                 ForEach(1...5, id: \.self) { star in
                     Image(systemName: star <= value.wrappedValue ? "star.fill" : "star")
-                        .font(.system(size: 32))
+                        .font(.system(size: 31))
                         .foregroundColor(star <= value.wrappedValue ? .primary : Color(.systemGray4))
                         .onTapGesture { value.wrappedValue = star }
                 }
@@ -348,12 +166,12 @@ struct TastingNoteFormView: View {
     }
 
     private var moodTagSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(AppStrings.TastingNoteFormUI.moodTitle).font(.system(size: 17, weight: .semibold))
+        VStack(alignment: .leading, spacing: 11) {
+            Text("분위기&이미지").font(.system(size: 17, weight: .semibold))
 
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 7) {
                 ForEach(moodTagRows.indices, id: \.self) { rowIndex in
-                    HStack(spacing: 8) {
+                    HStack(spacing: 7) {
                         ForEach(moodTagRows[rowIndex], id: \.self) { tag in
                             MoodChip(title: tag, isSelected: vm.selectedMoodTags.contains(tag)) {
                                 vm.toggleMoodTag(tag)
@@ -369,8 +187,8 @@ struct TastingNoteFormView: View {
     // MARK: - 시향 메모
 
     private var memoSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(AppStrings.TastingNoteFormUI.memoTitle).font(.system(size: 17, weight: .semibold))
+        VStack(alignment: .leading, spacing: 11) {
+            Text("시향 메모").font(.system(size: 17, weight: .semibold))
 
             ZStack(alignment: .bottomTrailing) {
                 ZStack(alignment: .topLeading) {
@@ -383,7 +201,7 @@ struct TastingNoteFormView: View {
                     }
                     TextEditor(text: $vm.memo)
                         .font(.system(size: 15))
-                        .frame(minHeight: 140)
+                        .frame(minHeight: 138)
                         .padding(.horizontal, 8).padding(.top, 8)
                         .onChange(of: vm.memo) { v in
                             if v.count > 2000 { vm.memo = String(v.prefix(2000)) }
@@ -407,7 +225,7 @@ struct TastingNoteFormView: View {
             Button { vm.reset() } label: {
                 Text(AppStrings.TastingNoteFormUI.reset)
                     .font(.system(size: 16, weight: .semibold)).foregroundColor(.primary)
-                    .frame(maxWidth: .infinity).frame(height: 56)
+                    .frame(maxWidth: .infinity).frame(height: 52)
                     .background(Color(.systemGray6))
                     .clipShape(RoundedRectangle(cornerRadius: 12))
             }
@@ -420,15 +238,15 @@ struct TastingNoteFormView: View {
                             .font(.system(size: 16, weight: .semibold)).foregroundColor(.white)
                     }
                 }
-                .frame(maxWidth: .infinity).frame(height: 56)
+                .frame(maxWidth: .infinity).frame(height: 52)
                 .background(vm.canSave ? Color.black : Color(.systemGray4))
                 .clipShape(RoundedRectangle(cornerRadius: 12))
             }
             .disabled(!vm.canSave || vm.isSaving)
         }
         .padding(.horizontal, 20)
-        .padding(.top, 12)
-        .padding(.bottom, 20)
+        .padding(.top, 10)
+        .padding(.bottom, 18)
         .background(
             Color(.systemBackground)
                 .overlay(alignment: .top) {
@@ -451,9 +269,9 @@ struct MoodChip: View {
     var body: some View {
         Button(action: onTap) {
             Text(title)
-                .font(.system(size: 14))
+                .font(.system(size: 13))
                 .foregroundColor(isSelected ? .white : Color(.label))
-                .padding(.horizontal, 14).padding(.vertical, 8)
+                .padding(.horizontal, 13).padding(.vertical, 7)
                 .background(isSelected ? Color.black : Color.clear)
                 .clipShape(Capsule())
                 .overlay(Capsule().stroke(isSelected ? Color.clear : Color(.systemGray4), lineWidth: 1))

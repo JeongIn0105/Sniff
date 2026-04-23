@@ -508,18 +508,30 @@ final class PerfumeDetailViewController: UIViewController {
     private func toggleLike() {
         guard let perfume = currentPerfume else { return }
 
-        if likedPerfumeIDs.contains(perfume.id) {
+        let wasLiked = likedPerfumeIDs.contains(perfume.id)
+        updateLikeState(for: perfume.id, isLiked: !wasLiked)
+        likeButton.isEnabled = false
+
+        if wasLiked {
             collectionRepository.deleteLikedPerfume(id: perfume.id)
                 .observe(on: MainScheduler.instance)
                 .subscribe(onCompleted: { [weak self] in
-                    self?.updateLikeState(for: perfume.id, isLiked: false)
+                    self?.likeButton.isEnabled = true
+                }, onError: { [weak self] error in
+                    self?.likeButton.isEnabled = true
+                    self?.updateLikeState(for: perfume.id, isLiked: wasLiked)
+                    self?.showErrorAlert(message: error.localizedDescription)
                 })
                 .disposed(by: disposeBag)
         } else {
             collectionRepository.saveLikedPerfume(perfume)
                 .observe(on: MainScheduler.instance)
                 .subscribe(onCompleted: { [weak self] in
-                    self?.updateLikeState(for: perfume.id, isLiked: true)
+                    self?.likeButton.isEnabled = true
+                }, onError: { [weak self] error in
+                    self?.likeButton.isEnabled = true
+                    self?.updateLikeState(for: perfume.id, isLiked: wasLiked)
+                    self?.showErrorAlert(message: error.localizedDescription)
                 })
                 .disposed(by: disposeBag)
         }
@@ -537,18 +549,30 @@ final class PerfumeDetailViewController: UIViewController {
     private func toggleOwnedCollection() {
         guard let perfume = currentPerfume else { return }
 
-        if ownedPerfumeIDs.contains(perfume.id) {
+        let wasOwned = ownedPerfumeIDs.contains(perfume.id)
+        updateOwnedState(for: perfume.id, isOwned: !wasOwned)
+        addCollectionButton.isEnabled = false
+
+        if wasOwned {
             collectionRepository.deleteCollectedPerfume(id: perfume.id)
                 .observe(on: MainScheduler.instance)
                 .subscribe(onCompleted: { [weak self] in
-                    self?.updateOwnedState(for: perfume.id, isOwned: false)
+                    self?.addCollectionButton.isEnabled = true
+                }, onError: { [weak self] error in
+                    self?.addCollectionButton.isEnabled = true
+                    self?.updateOwnedState(for: perfume.id, isOwned: wasOwned)
+                    self?.showErrorAlert(message: error.localizedDescription)
                 })
                 .disposed(by: disposeBag)
         } else {
             collectionRepository.saveCollectedPerfume(perfume, memo: nil)
                 .observe(on: MainScheduler.instance)
                 .subscribe(onCompleted: { [weak self] in
-                    self?.updateOwnedState(for: perfume.id, isOwned: true)
+                    self?.addCollectionButton.isEnabled = true
+                }, onError: { [weak self] error in
+                    self?.addCollectionButton.isEnabled = true
+                    self?.updateOwnedState(for: perfume.id, isOwned: wasOwned)
+                    self?.showErrorAlert(message: error.localizedDescription)
                 })
                 .disposed(by: disposeBag)
         }

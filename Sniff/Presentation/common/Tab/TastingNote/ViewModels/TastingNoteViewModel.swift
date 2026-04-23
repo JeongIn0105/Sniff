@@ -8,7 +8,6 @@
 // MARK: - 목록 로직 + Firestore 연동
 import Foundation
 import FirebaseAuth
-import FirebaseFirestore
 import Combine
 
 // MARK: - 시향 기록 필터 타입
@@ -44,6 +43,7 @@ final class TastingNoteViewModel: ObservableObject {
     @Published var isDeleteMode: Bool = false
     @Published var showFormSheet: Bool = false
     @Published var toastMessage: String?
+    @Published private(set) var selectedNoteIDs: Set<String> = []
 
     /// 현재 선택된 필터
     @Published private(set) var selectedFilter: TastingNoteFilter = .all
@@ -60,17 +60,24 @@ final class TastingNoteViewModel: ObservableObject {
     var filteredNotes: [TastingNote] {
         let scopedNotes = notes.filter { note in
             guard let perfumeScope else { return true }
-            return noteKey(note) == perfumeKey(perfumeName: perfumeScope.perfumeName, brandName: perfumeScope.brandName)
+            return !noteKeys(note).isDisjoint(with: perfumeKeys(
+                perfumeName: perfumeScope.perfumeName,
+                brandName: perfumeScope.brandName
+            ))
         }
+
+        let filtered: [TastingNote]
 
         switch selectedFilter {
         case .all:
-            return scopedNotes
+            filtered = scopedNotes
         case .owned:
-            return scopedNotes.filter { ownedKeys.contains(noteKey($0)) }
+            filtered = scopedNotes.filter { !noteKeys($0).isDisjoint(with: ownedKeys) }
         case .liked:
-            return scopedNotes.filter { likedKeys.contains(noteKey($0)) }
+            filtered = scopedNotes.filter { !noteKeys($0).isDisjoint(with: likedKeys) }
         }
+
+        return uniqueLatestNotes(from: filtered)
     }
 
     /// 전체 목록이 비어있는지 (삭제 버튼 활성화 기준)
@@ -79,70 +86,60 @@ final class TastingNoteViewModel: ObservableObject {
     /// 필터 적용 후 결과가 없는지 (빈 상태 뷰 표시 기준)
     var isFilteredEmpty: Bool { filteredNotes.isEmpty }
 
+    var hasSelectedNotes: Bool { !selectedNoteIDs.isEmpty }
+
     private var uid: String? { Auth.auth().currentUser?.uid }
- 
-    private var collectionRef: CollectionReference? {
-        guard let uid else { return nil }
-        return Firestore.firestore()
-            .collection("users").document(uid)
-            .collection("tastingRecords")
-    }
  
     // MARK: - Private
  
-    private var listenerRegistration: ListenerRegistration?
     private var toastTask: Task<Void, Never>?
     private let firestoreService: FirestoreService
+    private let localRepository: LocalTastingNoteRepository
+    private let collectionCacheStore = CollectedPerfumeCacheStore()
  
     // MARK: - Init / Deinit
  
     init(
         firestoreService: FirestoreService,
+        localRepository: LocalTastingNoteRepository,
         perfumeScope: TastingNotePerfumeScope? = nil
     ) {
         self.firestoreService = firestoreService
+        self.localRepository = localRepository
         self.perfumeScope = perfumeScope
         fetchNotes()
         Task { await loadFilterKeys() }
     }
  
     deinit {
-        listenerRegistration?.remove()
         toastTask?.cancel()
     }
  
     // MARK: - 목록 실시간 조회
 
     func fetchNotes() {
-        guard let ref = collectionRef else { return }
-        isLoading = true
-
-        listenerRegistration = ref
-            .order(by: "createdAt", descending: true)
-            .addSnapshotListener { [weak self] snapshot, error in
-                guard let self else { return }
-                self.isLoading = false
-                if error != nil {
-                    // 권한 오류 등 리스너 에러는 조용히 무시하고 단발성 조회로 대체
-                    Task { await self.reload() }
-                    return
-                }
-                let decoded = snapshot?.documents.compactMap {
-                    try? $0.data(as: TastingNote.self)
-                } ?? []
-                self.notes = decoded
-            }
+        Task { await reload() }
     }
 
     // MARK: - 단발성 새로고침 (폼 닫힐 때, 리스너 실패 시 fallback)
 
     func reload() async {
-        guard let ref = collectionRef else { return }
+        isLoading = true
         do {
-            let snapshot = try await ref
-                .order(by: "createdAt", descending: true)
-                .getDocuments()
-            notes = snapshot.documents.compactMap { try? $0.data(as: TastingNote.self) }
+            notes = try localRepository.loadNotes()
+            await localRepository.syncPendingChanges()
+            await localRepository.refreshFromRemote()
+            notes = try localRepository.loadNotes()
+            await loadFilterKeys()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isLoading = false
+    }
+
+    func reloadFromLocal() async {
+        do {
+            notes = try localRepository.loadNotes()
             await loadFilterKeys()
         } catch {
             errorMessage = error.localizedDescription
@@ -155,12 +152,23 @@ final class TastingNoteViewModel: ObservableObject {
         noteToDelete = note
         showDeleteAlert = true
     }
+
+    func requestDeleteSelected() {
+        guard hasSelectedNotes else { return }
+        noteToDelete = nil
+        showDeleteAlert = true
+    }
  
     func confirmDelete() async {
-        guard let note = noteToDelete, let id = note.id,
-              let ref = collectionRef else { return }
+        if noteToDelete == nil {
+            await deleteSelectedNotes()
+            return
+        }
+
+        guard let note = noteToDelete else { return }
         do {
-            try await ref.document(id).delete()
+            try await localRepository.delete(note)
+            notes = try localRepository.loadNotes()
             noteToDelete = nil
             isDeleteMode = false
         } catch {
@@ -171,9 +179,9 @@ final class TastingNoteViewModel: ObservableObject {
     // MARK: - 삭제 (상세 화면에서 직접)
  
     func deleteNote(_ note: TastingNote) async {
-        guard let id = note.id, let ref = collectionRef else { return }
         do {
-            try await ref.document(id).delete()
+            try await localRepository.delete(note)
+            notes = try localRepository.loadNotes()
         } catch {
             errorMessage = AppStrings.ViewModelMessages.TastingNote.deleteFailed
         }
@@ -181,7 +189,27 @@ final class TastingNoteViewModel: ObservableObject {
  
     // MARK: - 삭제 모드 토글
  
-    func toggleDeleteMode() { isDeleteMode.toggle() }
+    func toggleDeleteMode() {
+        isDeleteMode.toggle()
+        if !isDeleteMode {
+            selectedNoteIDs.removeAll()
+            noteToDelete = nil
+        }
+    }
+
+    func toggleNoteSelection(_ note: TastingNote) {
+        guard let id = note.id else { return }
+        if selectedNoteIDs.contains(id) {
+            selectedNoteIDs.remove(id)
+        } else {
+            selectedNoteIDs.insert(id)
+        }
+    }
+
+    func isSelected(_ note: TastingNote) -> Bool {
+        guard let id = note.id else { return false }
+        return selectedNoteIDs.contains(id)
+    }
  
     // MARK: - 저장 완료 토스트
  
@@ -197,6 +225,20 @@ final class TastingNoteViewModel: ObservableObject {
  
     func clearError() { errorMessage = nil }
 
+    private func deleteSelectedNotes() async {
+        guard !selectedNoteIDs.isEmpty else { return }
+
+        do {
+            try await localRepository.delete(ids: selectedNoteIDs)
+            notes = try localRepository.loadNotes()
+            selectedNoteIDs.removeAll()
+            isDeleteMode = false
+            showDeleteAlert = false
+        } catch {
+            errorMessage = "삭제 중 오류가 발생했어요"
+        }
+    }
+
     // MARK: - 필터 선택 / 해제
 
     /// 선택한 필터로 전환한다.
@@ -208,26 +250,56 @@ final class TastingNoteViewModel: ObservableObject {
     // MARK: - 필터 키 로딩 (보유/LIKE 향수 → 브랜드|이름 소문자 Set)
 
     private func loadFilterKeys() async {
+        let cachedOwned = collectionCacheStore.load()
         do {
             async let ownedFetch = firestoreService.fetchCollection()
             async let likedFetch = firestoreService.fetchLikedPerfumes()
             let (owned, liked) = try await (ownedFetch, likedFetch)
-            ownedKeys = Set(owned.map { perfumeKey(perfumeName: $0.name, brandName: $0.brand) })
-            likedKeys = Set(liked.map { perfumeKey(perfumeName: $0.name, brandName: $0.brand) })
+            let mergedOwned = mergeCollection(remote: owned, cached: cachedOwned)
+            ownedKeys = Set(mergedOwned.flatMap { perfumeKeys(perfumeName: $0.name, brandName: $0.brand) })
+            likedKeys = Set(liked.flatMap { perfumeKeys(perfumeName: $0.name, brandName: $0.brand) })
         } catch {
-            // 로딩 실패 시 빈 Set 유지 (필터 결과 없음으로 표시)
-            ownedKeys = []
+            // 보유 향수는 상세 화면에서 등록 직후 UserDefaults 캐시에 먼저 반영될 수 있다.
+            ownedKeys = Set(cachedOwned.flatMap { perfumeKeys(perfumeName: $0.name, brandName: $0.brand) })
             likedKeys = []
+        }
+    }
+
+    private func mergeCollection(
+        remote: [CollectedPerfume],
+        cached: [CollectedPerfume]
+    ) -> [CollectedPerfume] {
+        var seenIDs = Set<String>()
+        return (remote + cached).filter { perfume in
+            seenIDs.insert(perfume.id).inserted
         }
     }
 
     // MARK: - 시향 기록 키 생성 (브랜드|이름 소문자)
 
-    private func noteKey(_ note: TastingNote) -> String {
-        perfumeKey(perfumeName: note.perfumeName, brandName: note.brandName)
+    private func noteKeys(_ note: TastingNote) -> Set<String> {
+        perfumeKeys(perfumeName: note.perfumeName, brandName: note.brandName)
     }
 
-    func perfumeKey(perfumeName: String, brandName: String) -> String {
+    private func uniqueLatestNotes(from notes: [TastingNote]) -> [TastingNote] {
+        var seenKeys = Set<String>()
+        return notes.filter { note in
+            let key = primaryPerfumeKey(perfumeName: note.perfumeName, brandName: note.brandName)
+            return seenKeys.insert(key).inserted
+        }
+    }
+
+    private func perfumeKeys(perfumeName: String, brandName: String) -> Set<String> {
+        [
+            primaryPerfumeKey(perfumeName: perfumeName, brandName: brandName),
+            primaryPerfumeKey(
+                perfumeName: PerfumePresentationSupport.displayPerfumeName(perfumeName),
+                brandName: PerfumePresentationSupport.displayBrand(brandName)
+            )
+        ]
+    }
+
+    private func primaryPerfumeKey(perfumeName: String, brandName: String) -> String {
         let normalizedBrand = brandName
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .lowercased()
