@@ -16,6 +16,7 @@ final class SearchViewModel {
 
         // MARK: - Input (View → ViewModel)
     struct Input {
+        let beginEditing: Observable<Void>
         let searchText: Observable<String>
         let searchTrigger: Observable<String>    // 검색 실행 (키보드 Return / 연관어 탭)
         let clearTrigger: Observable<Void>       // X 버튼
@@ -45,9 +46,10 @@ final class SearchViewModel {
     private let perfumeCatalogRepository: PerfumeCatalogRepositoryType
     private let recentSearchStore: RecentSearchStoreType
     private let disposeBag = DisposeBag()
+    private let initialState: SearchState
 
         // MARK: - State
-    private let stateRelay = BehaviorRelay<SearchState>(value: .initial)
+    private let stateRelay: BehaviorRelay<SearchState>
     private let isLoadingRelay = BehaviorRelay<Bool>(value: false)
     private let brandResultsRelay = BehaviorRelay<[Perfume]>(value: [])
     private let perfumeResultsRelay = BehaviorRelay<[Perfume]>(value: [])
@@ -58,10 +60,13 @@ final class SearchViewModel {
         // MARK: - Init
     init(
         perfumeCatalogRepository: PerfumeCatalogRepositoryType,
-        recentSearchStore: RecentSearchStoreType
+        recentSearchStore: RecentSearchStoreType,
+        initialState: SearchState = .landing
     ) {
         self.perfumeCatalogRepository = perfumeCatalogRepository
         self.recentSearchStore = recentSearchStore
+        self.initialState = initialState
+        self.stateRelay = BehaviorRelay<SearchState>(value: initialState)
     }
 
         // MARK: - Transform
@@ -74,11 +79,22 @@ final class SearchViewModel {
             .subscribe(onNext: { [weak self] text in
                 guard let self else { return }
                 if text.isEmpty {
-                    self.stateRelay.accept(.initial)
+                    if case .suggesting = self.stateRelay.value {
+                        self.stateRelay.accept(.initial)
+                    }
                     self.suggestionsRelay.accept([])
                 } else {
                     self.stateRelay.accept(.suggesting(query: text))
                     self.fetchSuggestions(query: text)
+                }
+            })
+            .disposed(by: disposeBag)
+
+        input.beginEditing
+            .subscribe(onNext: { [weak self] in
+                guard let self else { return }
+                if self.stateRelay.value.query == nil, self.stateRelay.value != .initial {
+                    self.stateRelay.accept(.initial)
                 }
             })
             .disposed(by: disposeBag)
@@ -101,7 +117,7 @@ final class SearchViewModel {
             // X 버튼 → 초기화
         input.clearTrigger
             .subscribe(onNext: { [weak self] in
-                self?.stateRelay.accept(.initial)
+                self?.stateRelay.accept(.landing)
                 self?.brandResultsRelay.accept([])
                 self?.perfumeResultsRelay.accept([])
                 self?.suggestionsRelay.accept([])

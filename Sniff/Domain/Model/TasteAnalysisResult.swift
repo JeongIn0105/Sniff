@@ -8,11 +8,13 @@
 import Foundation
 
 struct TasteAnalysisResult: Codable {
+    let tasteTitle: String?
     let analysisSummary: String
     let evidenceTags: EvidenceTags
     let recommendationDirection: RecommendationDirection
 
     enum CodingKeys: String, CodingKey {
+        case tasteTitle = "taste_title"
         case analysisSummary = "analysis_summary"
         case evidenceTags = "evidence_tags"
         case recommendationDirection = "recommendation_direction"
@@ -26,10 +28,12 @@ struct TasteAnalysisResult: Codable {
     }
 
     init(
+        tasteTitle: String? = nil,
         analysisSummary: String,
         evidenceTags: EvidenceTags,
         recommendationDirection: RecommendationDirection
     ) {
+        self.tasteTitle = FragranceProfileText.validatedTasteTitle(tasteTitle)
         self.analysisSummary = analysisSummary
         self.evidenceTags = evidenceTags
         self.recommendationDirection = recommendationDirection
@@ -39,6 +43,9 @@ struct TasteAnalysisResult: Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         _ = try? decoder.container(keyedBy: LegacyCodingKeys.self)
 
+        tasteTitle = FragranceProfileText.validatedTasteTitle(
+            try container.decodeIfPresent(String.self, forKey: .tasteTitle)
+        )
         analysisSummary = try container.decode(String.self, forKey: .analysisSummary)
         evidenceTags = try container.decode(EvidenceTags.self, forKey: .evidenceTags)
         recommendationDirection = try container.decode(
@@ -49,6 +56,7 @@ struct TasteAnalysisResult: Codable {
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(tasteTitle, forKey: .tasteTitle)
         try container.encode(analysisSummary, forKey: .analysisSummary)
         try container.encode(evidenceTags, forKey: .evidenceTags)
         try container.encode(recommendationDirection, forKey: .recommendationDirection)

@@ -25,7 +25,7 @@ struct MainTabView: View {
 
             TastingNoteSceneFactory.makeListView()
                 .tabItem {
-                    Image(systemName: "book.closed")
+                    Image(systemName: "book.closed.fill")
                     Text(AppStrings.AppShell.MainTab.tastingNote)
                 }
 

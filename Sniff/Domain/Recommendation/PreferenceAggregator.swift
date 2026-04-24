@@ -53,6 +53,7 @@ struct PreferenceAggregator {
             .map(\.key)
 
         return UserTasteProfile(
+            tasteTitle: onboarding.tasteTitle,
             analysisSummary: onboarding.analysisSummary,
             preferredImpressions: onboarding.recommendationDirection.preferredImpression,
             preferredFamilies: Array(sortedFamilies.prefix(5)),
@@ -73,8 +74,8 @@ private extension PreferenceAggregator {
         collectionCount: Int,
         tastingCount: Int
     ) -> RecommendationStage {
-        if tastingCount >= 3 { return .heavyTasting }
-        if tastingCount >= 1 { return .earlyTasting }
+        if tastingCount >= 5 { return .heavyTasting }
+        if tastingCount >= 3 { return .earlyTasting }
         if collectionCount >= 1 { return .onboardingCollection }
         return .onboardingOnly
     }

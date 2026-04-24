@@ -15,6 +15,7 @@ struct HomePerfumeItem {
     let accordsText: String
     let recommendationReason: String
     let imageURL: String?
+    let hasTastingRecord: Bool
 
     var parsedAccords: [String] {
         accordsText

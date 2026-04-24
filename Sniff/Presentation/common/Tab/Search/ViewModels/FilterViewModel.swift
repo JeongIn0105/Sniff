@@ -16,7 +16,6 @@ final class FilterViewModel {
 
     private enum SelectionLimit {
         static let scentFamilies = 3
-        static let moodTags = 5
     }
 
         // MARK: - Input
@@ -46,7 +45,9 @@ final class FilterViewModel {
     var currentPerfumes: [Perfume] = []
 
     init(initialFilter: SearchFilter = SearchFilter()) {
-        self.filterRelay = BehaviorRelay(value: initialFilter)
+        var sanitizedFilter = initialFilter
+        sanitizedFilter.moodTags = []
+        self.filterRelay = BehaviorRelay(value: sanitizedFilter)
     }
 
     func transform(input: Input) -> Output {
@@ -60,23 +61,6 @@ final class FilterViewModel {
                     filter.scentFamilies.remove(family)
                 } else if filter.scentFamilies.count < SelectionLimit.scentFamilies {
                     filter.scentFamilies.insert(family)
-                } else {
-                    return
-                }
-                self.filterRelay.accept(filter)
-                self.updateResultCount(filter: filter)
-            })
-            .disposed(by: disposeBag)
-
-            // 무드 태그 토글
-        input.moodTagToggle
-            .subscribe(onNext: { [weak self] tag in
-                guard let self else { return }
-                var filter = self.filterRelay.value
-                if filter.moodTags.contains(tag) {
-                    filter.moodTags.remove(tag)
-                } else if filter.moodTags.count < SelectionLimit.moodTags {
-                    filter.moodTags.insert(tag)
                 } else {
                     return
                 }

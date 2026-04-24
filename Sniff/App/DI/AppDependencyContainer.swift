@@ -16,8 +16,12 @@ final class AppDependencyContainer {
     lazy var authService: AuthServiceType = AuthService.shared
     lazy var firestoreService: FirestoreService = .shared
     lazy var coreDataStack: CoreDataStack = .shared
+    lazy var userTasteRepository: UserTasteRepositoryType = UserTasteRepository(
+        firestoreService: firestoreService
+    )
     @MainActor lazy var localTastingNoteRepository = LocalTastingNoteRepository(
-        coreDataStack: coreDataStack
+        coreDataStack: coreDataStack,
+        userTasteRepository: userTasteRepository
     )
 
     func makePerfumeCatalogRepository() -> PerfumeCatalogRepositoryType {
@@ -33,7 +37,7 @@ final class AppDependencyContainer {
     }
 
     func makeUserTasteRepository() -> UserTasteRepositoryType {
-        UserTasteRepository(firestoreService: firestoreService)
+        userTasteRepository
     }
 
     func makeUserProfileStatusRepository() -> UserProfileStatusRepositoryType {

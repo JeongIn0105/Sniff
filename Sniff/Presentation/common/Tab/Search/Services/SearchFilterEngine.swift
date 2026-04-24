@@ -22,7 +22,7 @@ enum SearchFilterEngine {
         if !filter.scentFamilies.isEmpty {
             result = result.filter { perfume in
                 let accords = Set(perfume.rawMainAccords.map { normalizeString($0) })
-                return filter.scentFamilies.allSatisfy { family in
+                return filter.scentFamilies.contains { family in
                     let targetAccords = Set(family.matchingRawAccords.map(normalizeString))
                     return !accords.isDisjoint(with: targetAccords)
                 }
@@ -62,7 +62,7 @@ enum SearchFilterEngine {
                     }
                 )
 
-                return filter.seasons.allSatisfy { season in
+                return filter.seasons.contains { season in
                     let targetTokens = Set(normalizedSeasonTokens(for: season))
                     return !perfumeSeasonTokens.isDisjoint(with: targetTokens)
                 }
@@ -78,17 +78,17 @@ enum SearchFilterEngine {
             return perfumes
         case .nameAsc:
             return perfumes.sorted {
-                let lhsKey = englishSortKey(for: $0.name)
-                let rhsKey = englishSortKey(for: $1.name)
+                let lhsKey = normalizedSortKey($0.name)
+                let rhsKey = normalizedSortKey($1.name)
                 if lhsKey != rhsKey { return lhsKey < rhsKey }
-                return $0.brand.localizedCaseInsensitiveCompare($1.brand) == .orderedAscending
+                return normalizedSortKey($0.brand) < normalizedSortKey($1.brand)
             }
         case .nameDesc:
             return perfumes.sorted {
-                let lhsKey = englishSortKey(for: $0.name)
-                let rhsKey = englishSortKey(for: $1.name)
+                let lhsKey = normalizedSortKey($0.name)
+                let rhsKey = normalizedSortKey($1.name)
                 if lhsKey != rhsKey { return lhsKey > rhsKey }
-                return $0.brand.localizedCaseInsensitiveCompare($1.brand) == .orderedDescending
+                return normalizedSortKey($0.brand) > normalizedSortKey($1.brand)
             }
         }
     }
@@ -129,7 +129,7 @@ enum SearchFilterEngine {
         }
     }
 
-    nonisolated private static func englishSortKey(for value: String) -> String {
+    nonisolated private static func normalizedSortKey(_ value: String) -> String {
         value
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "en_US_POSIX"))

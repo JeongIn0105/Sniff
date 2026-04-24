@@ -26,7 +26,7 @@ extension AppStrings {
         enum MainTab {
             static let home = "홈"
             static let search = "검색"
-            static let tastingNote = "시향 기록"
+            static let tastingNote = "시향기"
             static let my = "MY"
 
             static func placeholder(_ title: String) -> String {

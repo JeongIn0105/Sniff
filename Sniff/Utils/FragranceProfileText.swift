@@ -1,6 +1,26 @@
 import Foundation
 
 enum FragranceProfileText {
+    nonisolated static let allowedTasteTitles: Set<String> = [
+        "상큼하고 활기찬 취향",
+        "맑고 세련된 취향",
+        "시원하고 신비로운 취향",
+        "부드럽고 청순한 취향",
+        "포근하고 여유로운 취향",
+        "달콤하고 신비로운 취향",
+        "깨끗하고 자연스러운 취향",
+        "짙고 시크한 취향",
+        "짙고 강렬한 취향"
+    ]
+
+    nonisolated static func validatedTasteTitle(_ title: String?) -> String? {
+        guard let normalized = title?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !normalized.isEmpty,
+              allowedTasteTitles.contains(normalized) else {
+            return nil
+        }
+        return normalized
+    }
 
     nonisolated static func displayTitle(for families: [String]) -> String {
         guard let firstFamily = normalizedFamilies(from: families).first else {
@@ -95,7 +115,10 @@ extension UserTasteProfile {
     }
 
     var displayTitle: String {
-        FragranceProfileText.displayTitle(for: displayFamilies)
+        if let tasteTitle = FragranceProfileText.validatedTasteTitle(tasteTitle) {
+            return tasteTitle
+        }
+        return FragranceProfileText.displayTitle(for: displayFamilies)
     }
 
     var displayFamilySummary: String {
@@ -113,7 +136,10 @@ extension UserTasteProfile {
 
 extension TasteAnalysisResult {
     var displayTitle: String {
-        FragranceProfileText.displayTitle(for: recommendationDirection.preferredFamilies)
+        if let tasteTitle = FragranceProfileText.validatedTasteTitle(tasteTitle) {
+            return tasteTitle
+        }
+        return FragranceProfileText.displayTitle(for: recommendationDirection.preferredFamilies)
     }
 
     var displayFamilySummary: String {

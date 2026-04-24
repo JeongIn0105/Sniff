@@ -30,7 +30,42 @@ enum ScentFamilyFilter: String, CaseIterable, Codable {
     case mossyWoods = "Mossy Woods"
     case dryWoods = "Dry Woods"
 
-    nonisolated var displayName: String { rawValue }
+    nonisolated var displayName: String {
+        switch self {
+        case .citrus:
+            return "시트러스"
+        case .fruity:
+            return "프루티"
+        case .green:
+            return "그린"
+        case .water:
+            return "워터"
+        case .aromatic:
+            return "아로마틱"
+        case .floral:
+            return "플로럴"
+        case .softFloral:
+            return "소프트 플로럴"
+        case .floralAmber:
+            return "플로럴 앰버"
+        case .softAmber:
+            return "소프트 앰버"
+        case .amber:
+            return "앰버"
+        case .woods:
+            return "우디"
+        case .woodyAmber:
+            return "우디 앰버"
+        case .mossyWoods:
+            return "모시 우즈"
+        case .dryWoods:
+            return "드라이 우즈"
+        }
+    }
+
+    static func fromDisplayName(_ name: String) -> ScentFamilyFilter? {
+        allCases.first { $0.displayName == name || $0.rawValue == name }
+    }
 
     nonisolated var descriptionText: String {
         switch self {
@@ -129,10 +164,10 @@ enum ScentFamilyFilter: String, CaseIterable, Codable {
 
 enum Concentration: String, CaseIterable, Codable {
     case parfum    = "퍼퓸"
-    case edp       = "오드퍼퓸(EDP)"
-    case edt       = "오드뚜왈렛(EDT)"
-    case edc       = "오드콜로뉴(EDC)"
-    case eauFraiche = "오프레시"
+    case edp       = "오 드 퍼퓸"
+    case edt       = "오 드 뚜왈렛"
+    case edc       = "오 드 코롱"
+    case eauFraiche = "오 프레쉬"
 
     nonisolated var displayName: String {
         switch self {
@@ -147,6 +182,10 @@ enum Concentration: String, CaseIterable, Codable {
         case .eauFraiche:
             return AppStrings.DomainDisplay.SearchFilters.eauFraiche
         }
+    }
+
+    static func fromDisplayName(_ name: String) -> Concentration? {
+        allCases.first { $0.displayName == name || $0.rawValue == name }
     }
 
         // Fragella API 값 매핑
@@ -180,6 +219,10 @@ enum Season: String, CaseIterable, Codable {
         case .winter:
             return AppStrings.DomainDisplay.SearchFilters.winter
         }
+    }
+
+    static func fromDisplayName(_ name: String) -> Season? {
+        allCases.first { $0.displayName == name || $0.rawValue == name }
     }
 
     nonisolated var fragellaValue: String? {
@@ -232,8 +275,8 @@ struct SearchFilter: Equatable {
 
 enum SortOption: String, CaseIterable {
     case recommended = "추천순"
-    case nameAsc     = "이름순 (A-Z)"
-    case nameDesc    = "이름역순 (Z-A)"
+    case nameAsc     = "이름 순 (ㄱ~ㅎ)"
+    case nameDesc    = "이름 역순 (ㅎ~ㄱ)"
 
     var displayName: String {
         switch self {

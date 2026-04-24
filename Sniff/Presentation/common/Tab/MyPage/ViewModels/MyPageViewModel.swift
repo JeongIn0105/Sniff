@@ -35,6 +35,7 @@ final class MyPageViewModel: ObservableObject {
         let brand: String
         let imageURL: String?
         let accordTags: [String]
+        let hasTastingRecord: Bool
         let sourcePerfume: Perfume
     }
 
@@ -97,7 +98,8 @@ final class MyPageViewModel: ObservableObject {
 
             do {
                 let liked = try await collectionRepository.fetchLikedPerfumes().async()
-                allLikedPerfumes = liked.map(makeLikedPreviewItem)
+                let tastingKeys = await fetchTastingKeys()
+                allLikedPerfumes = liked.map { makeLikedPreviewItem(from: $0.toPerfume(), tastingKeys: tastingKeys) }
                 likedCount = allLikedPerfumes.count
                 likedPerfumes = Array(allLikedPerfumes.prefix(DisplayLimit.likedPreview))
             } catch {
@@ -139,7 +141,19 @@ final class MyPageViewModel: ObservableObject {
 
         if willLike {
             if !allLikedPerfumes.contains(where: { $0.id == ownedItem.id }) {
-                allLikedPerfumes.insert(makeLikedPreviewItem(from: ownedItem.sourcePerfume), at: 0)
+                let hasTastingRecord = ownedItem.hasTastingRecord
+                allLikedPerfumes.insert(
+                    LikedPreviewItem(
+                        id: ownedItem.id,
+                        name: ownedItem.name,
+                        brand: ownedItem.brand,
+                        imageURL: ownedItem.imageURL,
+                        accordTags: ownedItem.accordTags,
+                        hasTastingRecord: hasTastingRecord,
+                        sourcePerfume: ownedItem.sourcePerfume
+                    ),
+                    at: 0
+                )
             }
             likedCount += 1
         } else {
@@ -254,10 +268,10 @@ private extension MyPageViewModel {
     }
 
     func makeLikedPreviewItem(from perfume: LikedPerfume) -> LikedPreviewItem {
-        makeLikedPreviewItem(from: perfume.toPerfume())
+        makeLikedPreviewItem(from: perfume.toPerfume(), tastingKeys: [])
     }
 
-    func makeLikedPreviewItem(from perfume: Perfume) -> LikedPreviewItem {
+    func makeLikedPreviewItem(from perfume: Perfume, tastingKeys: Set<String>) -> LikedPreviewItem {
         return LikedPreviewItem(
             id: perfume.id,
             name: perfume.name,
@@ -266,6 +280,12 @@ private extension MyPageViewModel {
             accordTags: PerfumePresentationSupport.previewAccords(
                 mainAccords: perfume.mainAccords,
                 fallback: perfume.mainAccords
+            ),
+            hasTastingRecord: tastingKeys.contains(
+                PerfumePresentationSupport.recordKey(
+                    perfumeName: perfume.name,
+                    brandName: perfume.brand
+                )
             ),
             sourcePerfume: perfume
         )
@@ -370,6 +390,7 @@ extension MyPageViewModel {
                 id: "1", name: "어나더 13 오 드 퍼퓸", brand: "르 라보",
                 imageURL: "https://fimgs.net/mdimg/perfume/375x500.25186.jpg",
                 accordTags: ["Floral", "Musky"],
+                hasTastingRecord: true,
                 sourcePerfume: Perfume(
                     id: "1", name: "Another 13 Eau de Parfum", brand: "Le Labo",
                     imageUrl: "https://fimgs.net/mdimg/perfume/375x500.25186.jpg",
@@ -383,6 +404,7 @@ extension MyPageViewModel {
                 id: "2", name: "블랑쉬 오 드 퍼퓸", brand: "바이레도",
                 imageURL: "https://fimgs.net/mdimg/perfume/375x500.17770.jpg",
                 accordTags: ["Musky", "Powdery"],
+                hasTastingRecord: false,
                 sourcePerfume: Perfume(
                     id: "2", name: "Blanche Eau de Parfum", brand: "Byredo",
                     imageUrl: "https://fimgs.net/mdimg/perfume/375x500.17770.jpg",
@@ -396,6 +418,7 @@ extension MyPageViewModel {
                 id: "3", name: "포 허 오드 퍼퓸", brand: "나르시소 로드리게스",
                 imageURL: "https://fimgs.net/mdimg/perfume/375x500.4880.jpg",
                 accordTags: ["Musky", "Woody"],
+                hasTastingRecord: true,
                 sourcePerfume: Perfume(
                     id: "3", name: "For Her Eau de Parfum", brand: "Narciso Rodriguez",
                     imageUrl: "https://fimgs.net/mdimg/perfume/375x500.4880.jpg",

@@ -19,6 +19,7 @@ enum RecommendationStage {
 }
 
 struct UserTasteProfile {
+    let tasteTitle: String?
     let analysisSummary: String
     let preferredImpressions: [String]
     let preferredFamilies: [String]       // 상위 5개 계열 이름 (display용)

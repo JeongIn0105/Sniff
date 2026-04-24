@@ -18,6 +18,7 @@ final class SearchViewController: UIViewController {
         // MARK: - Properties
     private let viewModel: SearchViewModel
     private let collectionRepository: CollectionRepositoryType
+    private let showsRecentOnAppear: Bool
     private let disposeBag = DisposeBag()
 
     private let searchTextRelay = BehaviorRelay<String>(value: "")
@@ -30,7 +31,7 @@ final class SearchViewController: UIViewController {
     private let filterChangedRelay = PublishRelay<SearchFilter>()
     private let sortChangedRelay = PublishRelay<SortOption>()
 
-    private var currentState: SearchState = .initial
+    private var currentState: SearchState
     private var currentFilter: SearchFilter = SearchFilter()
     private var currentSort: SortOption = .recommended
     private var brandResults: [Perfume] = []
@@ -42,6 +43,7 @@ final class SearchViewController: UIViewController {
     private var suggestions: [SuggestionItem] = []
     private var keyboardInset: CGFloat = 0
     private var likedPerfumeIDs = Set<String>()
+    private var hasHandledRecentOnAppear = false
 
         // MARK: - UI Components
 
@@ -56,6 +58,23 @@ final class SearchViewController: UIViewController {
         $0.placeholder = AppStrings.UIKitScreens.Search.placeholder
         $0.searchBarStyle = .minimal
         $0.returnKeyType = .search
+        $0.searchTextField.font = .systemFont(ofSize: 15, weight: .regular)
+        $0.searchTextField.clearButtonMode = .whileEditing
+        $0.searchTextField.attributedPlaceholder = NSAttributedString(
+            string: AppStrings.UIKitScreens.Search.placeholder,
+            attributes: [
+                .font: UIFont.systemFont(ofSize: 14, weight: .regular),
+                .foregroundColor: UIColor.secondaryLabel
+            ]
+        )
+    }
+
+    private let landingGuideLabel = UILabel().then {
+        $0.font = .systemFont(ofSize: 14)
+        $0.textColor = .secondaryLabel
+        $0.numberOfLines = 0
+        $0.text = AppStrings.UIKitScreens.Search.landingGuideMessage
+        $0.isHidden = true
     }
 
         // 결과 카운트 + 필터 버튼 + 정렬 버튼
@@ -64,7 +83,7 @@ final class SearchViewController: UIViewController {
     }
 
     private let resultCountLabel = UILabel().then {
-        $0.font = .systemFont(ofSize: 14, weight: .medium)
+        $0.font = .systemFont(ofSize: 16, weight: .bold)
         $0.textColor = .label
     }
 
@@ -83,13 +102,20 @@ final class SearchViewController: UIViewController {
 
     private let sortButton = UIButton(type: .system).then {
         $0.setTitle(AppStrings.UIKitScreens.Search.sortRecommended, for: .normal)
-        $0.titleLabel?.font = .systemFont(ofSize: 13)
+        $0.titleLabel?.font = .systemFont(ofSize: 15, weight: .medium)
         $0.setTitleColor(.label, for: .normal)
     }
 
         // 브랜드 섹션 (결과 화면)
     private let brandSectionLabel = UILabel().then {
-        $0.font = .systemFont(ofSize: 15, weight: .semibold)
+        $0.font = .systemFont(ofSize: 16, weight: .bold)
+        $0.isHidden = true
+    }
+
+    private let brandEmptyLabel = UILabel().then {
+        $0.font = .systemFont(ofSize: 14)
+        $0.textColor = .secondaryLabel
+        $0.numberOfLines = 0
         $0.isHidden = true
     }
 
@@ -98,7 +124,8 @@ final class SearchViewController: UIViewController {
         $0.register(RecentSearchCell.self, forCellReuseIdentifier: RecentSearchCell.identifier)
         $0.register(SuggestionCell.self, forCellReuseIdentifier: SuggestionCell.identifier)
         $0.separatorStyle = .none
-        $0.rowHeight = 52
+        $0.rowHeight = UITableView.automaticDimension
+        $0.estimatedRowHeight = 68
         $0.backgroundColor = .systemBackground
         $0.keyboardDismissMode = .onDrag
     }
@@ -107,7 +134,7 @@ final class SearchViewController: UIViewController {
     private lazy var brandTableView = UITableView().then {
         $0.register(SuggestionCell.self, forCellReuseIdentifier: SuggestionCell.identifier)
         $0.separatorStyle = .none
-        $0.rowHeight = 56
+        $0.rowHeight = 64
         $0.isHidden = true
         $0.isScrollEnabled = false
         $0.keyboardDismissMode = .onDrag
@@ -147,15 +174,31 @@ final class SearchViewController: UIViewController {
         $0.titleLabel?.font = .systemFont(ofSize: 13)
         $0.isHidden = true
     }
+    private let recentFooterView = UIView()
+    private let footerClearAllButton = UIButton(type: .system).then {
+        $0.setTitle(AppStrings.UIKitScreens.Search.clearAll, for: .normal)
+        $0.setTitleColor(.systemRed, for: .normal)
+        $0.titleLabel?.font = .systemFont(ofSize: 14, weight: .medium)
+        $0.contentHorizontalAlignment = .left
+    }
+
+    private var resultHeaderTopToGuideConstraint: Constraint?
+    private var resultHeaderTopToBrandConstraint: Constraint?
+    private var resultHeaderTopToBrandEmptyConstraint: Constraint?
+    private var searchBarLeadingToBackConstraint: Constraint?
+    private var searchBarLeadingToSuperviewConstraint: Constraint?
 
         // MARK: - Init
 
     init(
         viewModel: SearchViewModel,
-        collectionRepository: CollectionRepositoryType
+        collectionRepository: CollectionRepositoryType,
+        showsRecentOnAppear: Bool = false
     ) {
         self.viewModel = viewModel
         self.collectionRepository = collectionRepository
+        self.showsRecentOnAppear = showsRecentOnAppear
+        self.currentState = showsRecentOnAppear ? .initial : .landing
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -180,7 +223,16 @@ final class SearchViewController: UIViewController {
         super.viewWillAppear(animated)
         navigationController?.setNavigationBarHidden(true, animated: false)
         backButton.isHidden = (navigationController?.viewControllers.count ?? 0) <= 1
+        updateSearchBarLeadingConstraint()
         loadLikedPerfumes()
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+
+        guard showsRecentOnAppear, !hasHandledRecentOnAppear else { return }
+        hasHandledRecentOnAppear = true
+        searchBar.becomeFirstResponder()
     }
 }
 
@@ -194,24 +246,27 @@ private extension SearchViewController {
         setupRecentHeader()
         addSubviews()
         makeConstraints()
+        updateSearchBarLeadingConstraint()
+        resultHeaderTopToBrandConstraint?.deactivate()
+        resultHeaderTopToBrandEmptyConstraint?.deactivate()
     }
 
     func setupRecentHeader() {
-        [recentTitleLabel, clearAllButton].forEach { recentHeaderView.addSubview($0) }
-        recentTitleLabel.snp.makeConstraints {
-            $0.leading.equalToSuperview().offset(20)
-            $0.centerY.equalToSuperview()
-        }
-        clearAllButton.snp.makeConstraints {
-            $0.trailing.equalToSuperview().offset(-20)
-            $0.centerY.equalToSuperview()
-        }
-        recentHeaderView.snp.makeConstraints { $0.height.equalTo(44) }
+        recentHeaderView.addSubview(recentTitleLabel)
+        recentTitleLabel.frame = CGRect(x: 20, y: 6, width: 200, height: 32)
+        recentTitleLabel.autoresizingMask = [.flexibleRightMargin, .flexibleBottomMargin]
+        recentHeaderView.frame = CGRect(x: 0, y: 0, width: view.bounds.width, height: 44)
+
+        recentFooterView.addSubview(footerClearAllButton)
+        footerClearAllButton.frame = CGRect(x: 20, y: 0, width: 120, height: 44)
+        footerClearAllButton.autoresizingMask = [.flexibleRightMargin, .flexibleBottomMargin]
+        recentFooterView.frame = CGRect(x: 0, y: 0, width: view.bounds.width, height: 44)
     }
 
     func addSubviews() {
         [backButton, searchBar, resultHeaderView,
-         brandSectionLabel, brandTableView,
+         landingGuideLabel,
+         brandSectionLabel, brandEmptyLabel, brandTableView,
          tableView, perfumeCollectionView, emptyView].forEach {
             view.addSubview($0)
         }
@@ -227,13 +282,21 @@ private extension SearchViewController {
         }
 
         searchBar.snp.makeConstraints {
-            $0.top.equalTo(view.safeAreaLayoutGuide).offset(4)
-            $0.leading.equalTo(backButton.snp.trailing).offset(4)
+            $0.top.equalTo(view.safeAreaLayoutGuide).offset(10)
+            searchBarLeadingToBackConstraint = $0.leading.equalTo(backButton.snp.trailing).offset(4).constraint
+            searchBarLeadingToSuperviewConstraint = $0.leading.equalToSuperview().offset(16).constraint
             $0.trailing.equalToSuperview().offset(-8)
         }
 
+        landingGuideLabel.snp.makeConstraints {
+            $0.top.equalTo(searchBar.snp.bottom).offset(10)
+            $0.leading.trailing.equalToSuperview().inset(20)
+        }
+
         resultHeaderView.snp.makeConstraints {
-            $0.top.equalTo(brandTableView.snp.bottom).offset(4)
+            resultHeaderTopToGuideConstraint = $0.top.equalTo(landingGuideLabel.snp.bottom).offset(8).constraint
+            resultHeaderTopToBrandConstraint = $0.top.equalTo(brandTableView.snp.bottom).offset(20).constraint
+            resultHeaderTopToBrandEmptyConstraint = $0.top.equalTo(brandEmptyLabel.snp.bottom).offset(20).constraint
             $0.leading.trailing.equalToSuperview()
             $0.height.equalTo(40)
         }
@@ -253,15 +316,19 @@ private extension SearchViewController {
         }
 
         brandSectionLabel.snp.makeConstraints {
-            $0.top.equalTo(searchBar.snp.bottom).offset(4)
+            $0.top.equalTo(searchBar.snp.bottom).offset(18)
             $0.leading.equalToSuperview().offset(20)
-            $0.height.equalTo(0)
         }
 
         brandTableView.snp.makeConstraints {
-            $0.top.equalTo(brandSectionLabel.snp.bottom).offset(2)
+            $0.top.equalTo(brandSectionLabel.snp.bottom).offset(12)
             $0.leading.trailing.equalToSuperview()
             $0.height.equalTo(0)
+        }
+
+        brandEmptyLabel.snp.makeConstraints {
+            $0.top.equalTo(brandSectionLabel.snp.bottom).offset(28)
+            $0.leading.trailing.equalToSuperview().inset(20)
         }
 
         tableView.snp.makeConstraints {
@@ -275,7 +342,8 @@ private extension SearchViewController {
         }
 
         emptyView.snp.makeConstraints {
-            $0.center.equalToSuperview()
+            $0.top.equalTo(resultHeaderView.snp.bottom).offset(72)
+            $0.leading.trailing.equalToSuperview().inset(20)
         }
     }
 }
@@ -292,6 +360,7 @@ private extension SearchViewController {
 
         tableView.tableHeaderView = recentHeaderView
         recentHeaderView.frame = CGRect(x: 0, y: 0, width: view.bounds.width, height: 44)
+        recentFooterView.frame = CGRect(x: 0, y: 0, width: view.bounds.width, height: 44)
     }
 
     func setupCollectionView() {
@@ -306,6 +375,7 @@ private extension SearchViewController {
 
     func bindViewModel() {
         let input = SearchViewModel.Input(
+            beginEditing: searchBar.rx.textDidBeginEditing.asObservable(),
             searchText: searchTextRelay.asObservable(),
             searchTrigger: searchTriggerRelay.asObservable(),
             clearTrigger: clearTriggerRelay.asObservable(),
@@ -349,7 +419,7 @@ private extension SearchViewController {
                 guard let self else { return }
                 self.recentSearches = searches
                 if case .initial = self.currentState {
-                    self.clearAllButton.isHidden = searches.isEmpty
+                    self.updateRecentTableChrome()
                     self.reloadTableView()
                 }
             })
@@ -376,9 +446,6 @@ private extension SearchViewController {
                 guard let self else { return }
                 self.brandResults = brands
                 self.brandSectionLabel.text = AppStrings.UIKitScreens.Search.brandCount(brands.count)
-                self.brandSectionLabel.snp.updateConstraints {
-                    $0.height.equalTo(brands.isEmpty ? 0 : 22)
-                }
                 self.brandTableView.snp.updateConstraints {
                     $0.height.equalTo(brands.isEmpty ? 0 : brands.count * 56)
                 }
@@ -487,6 +554,10 @@ private extension SearchViewController {
             .bind(to: clearAllRecentSearchesRelay)
             .disposed(by: disposeBag)
 
+        footerClearAllButton.rx.tap
+            .bind(to: clearAllRecentSearchesRelay)
+            .disposed(by: disposeBag)
+
         backButton.rx.tap
             .subscribe(onNext: { [weak self] in
                 self?.navigationController?.popViewController(animated: true)
@@ -501,6 +572,8 @@ private extension SearchViewController {
 
     func updateLayout(for state: SearchState) {
         switch state {
+        case .landing:
+            showLandingLayout()
         case .initial:
             showInitialLayout()
         case .suggesting:
@@ -513,39 +586,74 @@ private extension SearchViewController {
     func showInitialLayout() {
         tableView.isHidden = false
         resultHeaderView.isHidden = true
+        landingGuideLabel.isHidden = true
         brandSectionLabel.isHidden = true
+        brandEmptyLabel.isHidden = true
         brandTableView.isHidden = true
         perfumeCollectionView.isHidden = true
         emptyView.isHidden = true
         searchBar.showsCancelButton = false
-        recentTitleLabel.isHidden = false
-        clearAllButton.isHidden = recentSearches.isEmpty
-        tableView.tableHeaderView = recentHeaderView
+        updateRecentTableChrome()
         reloadTableView()
     }
 
     func showSuggestingLayout() {
         tableView.isHidden = false
         resultHeaderView.isHidden = true
+        landingGuideLabel.isHidden = true
         brandSectionLabel.isHidden = true
+        brandEmptyLabel.isHidden = true
         brandTableView.isHidden = true
         perfumeCollectionView.isHidden = true
         emptyView.isHidden = true
         searchBar.showsCancelButton = false
         tableView.tableHeaderView = nil
+        tableView.tableFooterView = nil
         reloadTableView()
     }
 
     func showResultLayout() {
         tableView.isHidden = true
         resultHeaderView.isHidden = false
+        landingGuideLabel.isHidden = true
         searchBar.showsCancelButton = false
         searchBar.endEditing(true)
+        tableView.tableFooterView = nil
         updateResultVisibility()
+    }
+
+    func showLandingLayout() {
+        tableView.isHidden = true
+        resultHeaderView.isHidden = false
+        landingGuideLabel.isHidden = true
+        brandSectionLabel.isHidden = false
+        brandTableView.isHidden = true
+        perfumeCollectionView.isHidden = true
+        emptyView.isHidden = false
+        brandEmptyLabel.isHidden = false
+        searchBar.showsCancelButton = false
+        brandSectionLabel.text = AppStrings.UIKitScreens.Search.brandCount(0)
+        brandEmptyLabel.text = AppStrings.UIKitScreens.Search.landingBrandMessage
+        resultCountLabel.text = AppStrings.UIKitScreens.Search.perfumeCount(0)
+        brandTableView.snp.updateConstraints { $0.height.equalTo(0) }
+        emptyView.configureLanding()
+        resultHeaderTopToBrandConstraint?.deactivate()
+        resultHeaderTopToGuideConstraint?.deactivate()
+        resultHeaderTopToBrandEmptyConstraint?.activate()
+        tableView.tableFooterView = nil
     }
 
     func reloadTableView() {
         tableView.reloadData()
+    }
+
+    func updateRecentTableChrome() {
+        recentTitleLabel.isHidden = recentSearches.isEmpty
+        clearAllButton.isHidden = true
+        recentHeaderView.frame = CGRect(x: 0, y: 0, width: tableView.bounds.width, height: 44)
+        recentFooterView.frame = CGRect(x: 0, y: 0, width: tableView.bounds.width, height: 44)
+        tableView.tableHeaderView = recentSearches.isEmpty ? nil : recentHeaderView
+        tableView.tableFooterView = recentSearches.count > 1 ? recentFooterView : nil
     }
 
     func reloadPerfumeResults() {
@@ -570,18 +678,18 @@ private extension SearchViewController {
     }
 
     func presentSortActionSheet() {
-        let alert = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-        SortOption.allCases.forEach { option in
-            let action = UIAlertAction(title: option.displayName, style: .default) { [weak self] _ in
+        let sortSheet = SortBottomSheetViewController(
+            currentSort: currentSort,
+            onSelect: { [weak self] option in
                 self?.sortChangedRelay.accept(option)
             }
-            if option == currentSort {
-                action.setValue(true, forKey: "checked")
-            }
-            alert.addAction(action)
+        )
+        sortSheet.modalPresentationStyle = .pageSheet
+        if let sheet = sortSheet.sheetPresentationController {
+            sheet.detents = [.medium()]
+            sheet.prefersGrabberVisible = true
         }
-        alert.addAction(UIAlertAction(title: AppStrings.UIKitScreens.cancel, style: .cancel))
-        present(alert, animated: true)
+        present(sortSheet, animated: true)
     }
 
     private func updateResultVisibility() {
@@ -591,9 +699,16 @@ private extension SearchViewController {
         let hasPerfumes = !filteredPerfumeResults.isEmpty
 
         resultHeaderView.isHidden = false
-        brandSectionLabel.isHidden = !hasBrands
+        brandSectionLabel.isHidden = false
         brandTableView.isHidden = !hasBrands
+        brandEmptyLabel.isHidden = hasBrands
         perfumeCollectionView.isHidden = !hasPerfumes
+        brandSectionLabel.text = AppStrings.UIKitScreens.Search.brandCount(brandResults.count)
+        resultHeaderTopToGuideConstraint?.deactivate()
+        resultHeaderTopToBrandConstraint?.isActive = hasBrands
+        resultHeaderTopToBrandEmptyConstraint?.isActive = !hasBrands
+
+        brandEmptyLabel.text = hasBrands ? nil : AppStrings.UIKitScreens.Search.noBrandResults(query)
 
         if !hasPerfumes {
             emptyView.configure(query: query)
@@ -713,6 +828,13 @@ private extension SearchViewController {
         alert.addAction(UIAlertAction(title: AppStrings.UIKitScreens.confirm, style: .default))
         present(alert, animated: true)
     }
+
+    private func updateSearchBarLeadingConstraint() {
+        let showsBackButton = !backButton.isHidden
+        searchBarLeadingToBackConstraint?.isActive = showsBackButton
+        searchBarLeadingToSuperviewConstraint?.isActive = !showsBackButton
+        view.layoutIfNeeded()
+    }
 }
 
     // MARK: - UITableViewDataSource & Delegate
@@ -724,6 +846,8 @@ extension SearchViewController: UITableViewDataSource, UITableViewDelegate {
             return brandResults.count
         }
         switch currentState {
+            case .landing:
+                return 0
             case .initial:
                 return recentSearches.isEmpty ? 1 : recentSearches.count // 1 = 빈 상태 안내 셀
             case .suggesting:
@@ -887,5 +1011,63 @@ final class SearchEmptyView: UIView {
 
     func configure(query: String) {
         label.text = AppStrings.UIKitScreens.Search.noResults(query)
+    }
+
+    func configureLanding() {
+        label.text = AppStrings.UIKitScreens.Search.landingPerfumeMessage
+    }
+}
+
+final class SortBottomSheetViewController: UIViewController {
+    private let currentSort: SortOption
+    private let onSelect: (SortOption) -> Void
+
+    init(currentSort: SortOption, onSelect: @escaping (SortOption) -> Void) {
+        self.currentSort = currentSort
+        self.onSelect = onSelect
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .systemBackground
+
+        let stack = UIStackView()
+        stack.axis = .vertical
+        stack.spacing = 0
+        view.addSubview(stack)
+        stack.snp.makeConstraints {
+            $0.top.equalToSuperview().offset(18)
+            $0.leading.trailing.equalToSuperview().inset(24)
+            $0.bottom.lessThanOrEqualTo(view.safeAreaLayoutGuide).inset(24)
+        }
+
+        [SortOption.recommended, .nameAsc, .nameDesc].forEach { option in
+            let button = UIButton(type: .system)
+            var configuration = UIButton.Configuration.plain()
+            configuration.title = option.displayName
+            configuration.baseForegroundColor = .label
+            configuration.contentInsets = NSDirectionalEdgeInsets(top: 18, leading: 0, bottom: 18, trailing: 0)
+            configuration.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
+                var outgoing = incoming
+                outgoing.font = .systemFont(ofSize: 16, weight: .medium)
+                return outgoing
+            }
+            if option == currentSort {
+                configuration.image = UIImage(systemName: "checkmark")
+                configuration.imagePlacement = .trailing
+                configuration.imagePadding = 12
+            }
+            button.configuration = configuration
+            button.contentHorizontalAlignment = .leading
+            button.addAction(UIAction { [weak self] _ in
+                self?.dismiss(animated: true) {
+                    self?.onSelect(option)
+                }
+            }, for: .touchUpInside)
+            stack.addArrangedSubview(button)
+        }
     }
 }

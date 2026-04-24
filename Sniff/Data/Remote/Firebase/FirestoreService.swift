@@ -306,6 +306,7 @@ private extension FirestoreService {
 
     static func tasteAnalysisDictionary(from result: TasteAnalysisResult) -> [String: Any] {
         [
+            "taste_title": result.tasteTitle as Any,
             "analysis_summary": result.analysisSummary,
             "evidence_tags": [
                 "experience": result.evidenceTags.experience,

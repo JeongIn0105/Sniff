@@ -8,7 +8,7 @@
 import Foundation
 
 extension PerfumeKoreanTranslator {
-    static let accordToKorean: [String: String] = [
+    nonisolated static let accordToKorean: [String: String] = [
         "Floral": "플로럴",
         "White Floral": "화이트 플로럴",
         "Soft Floral": "소프트 플로럴",
@@ -29,7 +29,7 @@ extension PerfumeKoreanTranslator {
         "Ylang-Ylang": "일랑일랑",
         "Neroli": "네롤리",
         "Woody": "우디",
-        "Woods": "우즈",
+        "Woods": "우디",
         "Woody Amber": "우디 앰버",
         "Woody Spicy": "우디 스파이시",
         "Fresh Woody": "프레시 우디",
@@ -100,7 +100,7 @@ extension PerfumeKoreanTranslator {
         "Soapy": "소피",
     ]
 
-    static let noteToKorean: [String: String] = [
+    nonisolated static let noteToKorean: [String: String] = [
         "Bergamot": "베르가못",
         "Lemon": "레몬",
         "Orange": "오렌지",
@@ -171,7 +171,7 @@ extension PerfumeKoreanTranslator {
         "Ginger": "진저",
     ]
 
-    static let concentrationToKorean: [String: String] = [
+    nonisolated static let concentrationToKorean: [String: String] = [
         "parfum": "퍼퓸",
         "perfume": "퍼퓸",
         "extrait": "엑스트레 드 퍼퓸",
@@ -188,7 +188,7 @@ extension PerfumeKoreanTranslator {
         "oil": "오일",
     ]
 
-    static let longevityToKorean: [String: String] = [
+    nonisolated static let longevityToKorean: [String: String] = [
         "very weak": "매우 약함",
         "weak": "약함",
         "moderate": "보통",
@@ -196,7 +196,7 @@ extension PerfumeKoreanTranslator {
         "very long lasting": "매우 오래 지속됨",
     ]
 
-    static let sillageToKorean: [String: String] = [
+    nonisolated static let sillageToKorean: [String: String] = [
         "intimate": "은은함",
         "soft": "약함",
         "moderate": "보통",
@@ -205,13 +205,16 @@ extension PerfumeKoreanTranslator {
         "overwhelming": "압도적",
     ]
 
-    static let seasonToKorean: [String: String] = [
+    nonisolated static let seasonToKorean: [String: String] = [
         "spring": "봄",
         "summer": "여름",
         "fall": "가을",
         "autumn": "가을",
         "winter": "겨울",
     ]
+
+
+    nonisolated static let lowerAccordToKorean: [String: String] = {
 
     static let domesticRetailBrandPriority: [String: Int] = [
         "Chanel": 100,
@@ -374,16 +377,17 @@ extension PerfumeKoreanTranslator {
     ]
 
     static let lowerAccordToKorean: [String: String] = {
+
         Dictionary(accordToKorean.map { ($0.key.lowercased(), $0.value) },
                    uniquingKeysWith: { _, last in last })
     }()
 
-    static let lowerNoteToKorean: [String: String] = {
+    nonisolated static let lowerNoteToKorean: [String: String] = {
         Dictionary(noteToKorean.map { ($0.key.lowercased(), $0.value) },
                    uniquingKeysWith: { _, last in last })
     }()
 
-    static let koreanToAccord: [String: String] = {
+    nonisolated static let koreanToAccord: [String: String] = {
         Dictionary(accordToKorean.map { ($1, $0) }, uniquingKeysWith: { _, last in last })
     }()
 
@@ -2519,11 +2523,11 @@ extension PerfumeKoreanTranslator {
         (" for Men", ""),
     ]
 
-    static let koreanToBrand: [String: String] = {
+    nonisolated static let koreanToBrand: [String: String] = {
         Dictionary(brandToKorean.map { ($1, $0) }, uniquingKeysWith: { _, last in last })
     }()
 
-    static let koreanWordToEnglish: [String: String] = [
+    nonisolated static let koreanWordToEnglish: [String: String] = [
         "어벤투스": "aventus", "히말라야": "himalaya", "카르미나": "carmina",
         "타바롬": "tabarome", "에롤파": "erolfa", "델피너스": "delphinus",
         "밀레짐": "millesime", "임페리알레": "imperiale", "부아": "bois",

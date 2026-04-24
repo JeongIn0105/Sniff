@@ -2,90 +2,42 @@
 //  TasteProfileCardView.swift
 //  Sniff
 //
-//  Created by t2025-m0239 on 2026.04.16.
-//
-
-    //
-    //  TasteProfileCardView.swift
-    //  Sniff
-    //
 
 import UIKit
 import SnapKit
 
-    // MARK: - TasteProfileCardView
-
 final class TasteProfileCardView: UIView {
 
-        // MARK: - UI
-
     private let iconView: UIView = {
-        let v = UIView()
-        v.layer.cornerRadius = 13
-        v.layer.masksToBounds = true
-        return v
-    }()
-
-    private let iconLabel: UILabel = {
-        let l = UILabel()
-        l.font = .systemFont(ofSize: 22)
-        l.textAlignment = .center
-        return l
+        let view = UIView()
+        view.layer.cornerRadius = 14
+        view.layer.cornerCurve = .continuous
+        view.layer.masksToBounds = true
+        return view
     }()
 
     private let profileNameLabel: UILabel = {
-        let l = UILabel()
-        l.font = .systemFont(ofSize: 16, weight: .medium)
-        l.textColor = .label
-        l.numberOfLines = 1
-        l.adjustsFontSizeToFitWidth = true
-        return l
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 20, weight: .bold)
+        label.textColor = .label
+        label.numberOfLines = 1
+        return label
     }()
 
-    private let profileSubLabel: UILabel = {
-        let l = UILabel()
-        l.font = .systemFont(ofSize: 12)
-        l.textColor = .secondaryLabel
-        l.numberOfLines = 2
-        return l
-    }()
-
-    private let divider: UIView = {
-        let v = UIView()
-        v.backgroundColor = UIColor.separator.withAlphaComponent(0.3)
-        return v
-    }()
-
-    private let barsStack: UIStackView = {
-        let s = UIStackView()
-        s.axis = .vertical
-        s.spacing = 8
-        return s
-    }()
-
-    private let hintDot: UIView = {
-        let v = UIView()
-        v.layer.cornerRadius = 4
-        return v
-    }()
-
-    private let hintLabel: UILabel = {
-        let l = UILabel()
-        l.font = .systemFont(ofSize: 12)
-        l.textColor = .secondaryLabel
-        l.numberOfLines = 2
-        return l
+    private let chipStackView: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .vertical
+        stack.spacing = 20
+        return stack
     }()
 
     private let analysisLabel: UILabel = {
-        let l = UILabel()
-        l.font = .systemFont(ofSize: 12)
-        l.textColor = .secondaryLabel
-        l.numberOfLines = 0
-        return l
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 14, weight: .regular)
+        label.textColor = UIColor.label.withAlphaComponent(0.74)
+        label.numberOfLines = 0
+        return label
     }()
-
-        // MARK: - Init
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -99,114 +51,93 @@ final class TasteProfileCardView: UIView {
 
     private func setup() {
         backgroundColor = .systemBackground
-        layer.cornerRadius = 14
-        layer.borderWidth = 0.5
+        layer.cornerRadius = 18
+        layer.cornerCurve = .continuous
+        layer.borderWidth = 1
         layer.borderColor = UIColor.separator.withAlphaComponent(0.2).cgColor
 
-        let profileStack = UIStackView(arrangedSubviews: [profileNameLabel, profileSubLabel])
-        profileStack.axis = .vertical
-        profileStack.spacing = 2
+        [iconView, profileNameLabel, chipStackView, analysisLabel].forEach { addSubview($0) }
 
-        let topRow = UIStackView(arrangedSubviews: [iconView, profileStack])
-        topRow.axis = .horizontal
-        topRow.spacing = 12
-        topRow.alignment = .top
-
-        let hintRow = UIStackView(arrangedSubviews: [hintDot, hintLabel])
-        hintRow.axis = .horizontal
-        hintRow.spacing = 6
-        hintRow.alignment = .center
-
-        [topRow, divider, barsStack, hintRow, analysisLabel].forEach { addSubview($0) }
-        iconView.addSubview(iconLabel)
-
-        topRow.snp.makeConstraints {
-            $0.top.leading.trailing.equalToSuperview().inset(18)
-        }
         iconView.snp.makeConstraints {
-            $0.size.equalTo(CGSize(width: 46, height: 46))
+            $0.top.leading.equalToSuperview().inset(20)
+            $0.size.equalTo(CGSize(width: 38, height: 38))
         }
-        iconLabel.snp.makeConstraints { $0.edges.equalToSuperview() }
 
-        divider.snp.makeConstraints {
-            $0.top.equalTo(topRow.snp.bottom).offset(12)
-            $0.leading.trailing.equalToSuperview().inset(18)
-            $0.height.equalTo(0.5)
+        profileNameLabel.snp.makeConstraints {
+            $0.centerY.equalTo(iconView)
+            $0.leading.equalTo(iconView.snp.trailing).offset(16)
+            $0.trailing.equalToSuperview().inset(20)
         }
-        barsStack.snp.makeConstraints {
-            $0.top.equalTo(divider.snp.bottom).offset(12)
-            $0.leading.trailing.equalToSuperview().inset(18)
+
+        chipStackView.snp.makeConstraints {
+            $0.top.equalTo(iconView.snp.bottom).offset(24)
+            $0.leading.trailing.equalToSuperview().inset(20)
         }
-        hintDot.snp.makeConstraints { $0.size.equalTo(CGSize(width: 8, height: 8)) }
-        hintRow.snp.makeConstraints {
-            $0.top.equalTo(barsStack.snp.bottom).offset(12)
-            $0.leading.trailing.equalToSuperview().inset(18)
-        }
+
         analysisLabel.snp.makeConstraints {
-            $0.top.equalTo(hintRow.snp.bottom).offset(10)
-            $0.leading.trailing.equalToSuperview().inset(18)
-            $0.bottom.equalToSuperview().inset(18)
+            $0.top.equalTo(chipStackView.snp.bottom).offset(26)
+            $0.leading.trailing.equalToSuperview().inset(20)
+            $0.bottom.equalToSuperview().inset(20)
         }
     }
-
-        // MARK: - Configure
 
     func configure(with profile: UserTasteProfile, collectionCount: Int, tastingCount: Int) {
         iconView.backgroundColor = ScentFamilyColor.iconBackground(for: profile.displayLeadingFamily)
-        iconLabel.text = ScentFamilyColor.iconEmoji(for: profile.displayLeadingFamily)
         profileNameLabel.text = profile.displayTitle
-        profileSubLabel.text = profile.displayFamilySummary
-        profileSubLabel.isHidden = profile.displayFamilySummary.isEmpty
 
-        configureHint(
-            profile: profile,
+        chipStackView.arrangedSubviews.forEach {
+            chipStackView.removeArrangedSubview($0)
+            $0.removeFromSuperview()
+        }
+        let majorFamilies = majorFamilyRatios(from: profile.scentVector)
+        let highlightedFamilies = Set(
+            majorFamilies
+                .sorted { lhs, rhs in
+                    if lhs.1 != rhs.1 { return lhs.1 > rhs.1 }
+                    return lhs.0 < rhs.0
+                }
+                .prefix(2)
+                .filter { $0.1 > 0 }
+                .map(\.0)
+        )
+
+        for (family, ratio) in majorFamilies {
+            chipStackView.addArrangedSubview(
+                makeBarRow(
+                    family: family,
+                    ratio: ratio,
+                    color: ScentFamilyColor.barColor(for: family),
+                    isHighlighted: highlightedFamilies.contains(family)
+                )
+            )
+        }
+
+        analysisLabel.text = makeAnalysisText(
+            for: profile,
             collectionCount: collectionCount,
             tastingCount: tastingCount
         )
-        configureAnalysisText(for: profile)
-
-        configureBars(from: profile.scentVector)
     }
 
-        // MARK: - Private
-
-    private func configureHint(
-        profile: UserTasteProfile,
+    private func makeAnalysisText(
+        for profile: UserTasteProfile,
         collectionCount: Int,
         tastingCount: Int
-    ) {
-        let hintIntro: String
-        switch profile.stage {
-            case .onboardingOnly:
-                hintIntro = AppStrings.DomainDisplay.TasteProfile.needsCollectionOrRecord
-                hintDot.backgroundColor = UIColor(hex: "#E24B4A")
-
-            case .onboardingCollection:
-                hintIntro = AppStrings.DomainDisplay.TasteProfile.needsTastingRecord
-                hintDot.backgroundColor = UIColor(hex: "#EF9F27")
-
-            case .earlyTasting, .heavyTasting:
-                let parts = [
-                    tastingCount > 0 ? AppStrings.DomainDisplay.TasteProfile.tastingCount(tastingCount) : nil,
-                    collectionCount > 0 ? AppStrings.DomainDisplay.TasteProfile.collectionCount(collectionCount) : nil
-                ].compactMap { $0 }.joined(separator: " · ")
-                hintIntro = parts.isEmpty
-                ? AppStrings.DomainDisplay.TasteProfile.updatedFromTasting
-                : AppStrings.DomainDisplay.TasteProfile.updatedFrom(parts)
-                hintDot.backgroundColor = UIColor(hex: "#5DCAA5")
-        }
-
-        hintLabel.text = hintIntro
-    }
-
-    private func configureAnalysisText(for profile: UserTasteProfile) {
-        analysisLabel.text = makeAnalysisText(for: profile)
-    }
-
-    private func makeAnalysisText(for profile: UserTasteProfile) -> String? {
+    ) -> String {
         let summary = profile.analysisSummary.trimmingCharacters(in: .whitespacesAndNewlines)
         if !summary.isEmpty {
             return summary
+        }
+
+        let parts = [
+            tastingCount > 0 ? AppStrings.DomainDisplay.TasteProfile.tastingCount(tastingCount) : nil,
+            collectionCount > 0 ? AppStrings.DomainDisplay.TasteProfile.collectionCount(collectionCount) : nil
+        ]
+        .compactMap { $0 }
+        .joined(separator: ", ")
+
+        if !parts.isEmpty {
+            return "\(parts)을 기반으로 취향을 정리했어요."
         }
 
         let safeStartingPoint = profile.safeStartingPoint.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -214,89 +145,96 @@ final class TasteProfileCardView: UIView {
             return safeStartingPoint
         }
 
-        return makeImpressionLine(from: profile.preferredImpressions)
+        return AppStrings.DomainDisplay.TasteProfile.needsCollectionOrRecord
     }
 
-    private func makeImpressionLine(from impressions: [String]) -> String? {
-        let trimmed = impressions
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-
-        guard let first = trimmed.first else { return nil }
-
-        if trimmed.count >= 2 {
-            return AppStrings.DomainDisplay.TasteProfile.prefersTwo(first, trimmed[1])
-        }
-
-        return AppStrings.DomainDisplay.TasteProfile.prefersOne(first)
-    }
-
-    private func configureBars(from scentVector: [String: Double]) {
-        barsStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
-
-        let top4 = scentVector
-            .sorted { $0.value > $1.value }
-            .prefix(4)
-
-        for (family, ratio) in top4 {
-            let row = makeBarRow(
-                family: family,
-                ratio: ratio,
-                color: ScentFamilyColor.barColor(for: family)
-            )
-            barsStack.addArrangedSubview(row)
-        }
-    }
-
-    private func makeBarRow(
-        family: String,
-        ratio: Double,
-        color: UIColor
-    ) -> UIView {
+    private func makeBarRow(family: String, ratio: Double, color: UIColor, isHighlighted: Bool) -> UIView {
         let nameLabel = UILabel()
-        nameLabel.font = .systemFont(ofSize: 12)
+        nameLabel.font = .systemFont(ofSize: 15, weight: .semibold)
         nameLabel.textColor = .secondaryLabel
         nameLabel.text = family
 
-        let track = UIView()
-        track.backgroundColor = UIColor.systemFill
-        track.layer.cornerRadius = 3.5
-        track.clipsToBounds = true
+        let dotView = UIView()
+        dotView.backgroundColor = color
+        dotView.layer.cornerRadius = 4
 
-        let fill = UIView()
-        fill.backgroundColor = color
-        fill.layer.cornerRadius = 3.5
-        track.addSubview(fill)
+        let trackView = UIView()
+        trackView.backgroundColor = UIColor(red: 0.93, green: 0.93, blue: 0.95, alpha: 1)
+        trackView.layer.cornerRadius = 4
+        trackView.clipsToBounds = true
 
-        let pctLabel = UILabel()
-        pctLabel.font = .monospacedDigitSystemFont(ofSize: 11, weight: .regular)
-        pctLabel.textColor = .tertiaryLabel
-        pctLabel.text = "\(Int((ratio * 100).rounded()))%"
-        pctLabel.textAlignment = .right
+        let fillView = UIView()
+        fillView.backgroundColor = color
+        fillView.layer.cornerRadius = 4
+        trackView.addSubview(fillView)
+
+        let valueLabel = UILabel()
+        valueLabel.font = .monospacedDigitSystemFont(ofSize: 15, weight: .semibold)
+        valueLabel.textColor = isHighlighted ? .label : .tertiaryLabel
+        valueLabel.textAlignment = .right
+        valueLabel.text = "\(Int((ratio * 100).rounded()))%"
 
         let row = UIView()
-        [nameLabel, track, pctLabel].forEach { row.addSubview($0) }
+        [dotView, nameLabel, trackView, valueLabel].forEach { row.addSubview($0) }
+
+        dotView.snp.makeConstraints {
+            $0.leading.equalToSuperview()
+            $0.top.equalToSuperview().offset(4)
+            $0.size.equalTo(CGSize(width: 8, height: 8))
+        }
 
         nameLabel.snp.makeConstraints {
-            $0.leading.centerY.equalToSuperview()
-            $0.width.equalTo(78)
+            $0.leading.equalTo(dotView.snp.trailing).offset(8)
+            $0.top.equalToSuperview()
+            $0.trailing.lessThanOrEqualTo(valueLabel.snp.leading).offset(-8)
         }
-        pctLabel.snp.makeConstraints {
-            $0.trailing.centerY.equalToSuperview()
-            $0.width.equalTo(32)
+
+        valueLabel.snp.makeConstraints {
+            $0.trailing.equalToSuperview()
+            $0.centerY.equalTo(nameLabel)
+            $0.width.equalTo(40)
         }
-        track.snp.makeConstraints {
-            $0.leading.equalTo(nameLabel.snp.trailing).offset(10)
-            $0.trailing.equalTo(pctLabel.snp.leading).offset(-10)
-            $0.centerY.equalToSuperview()
-            $0.height.equalTo(7)
+
+        trackView.snp.makeConstraints {
+            $0.top.equalTo(nameLabel.snp.bottom).offset(12)
+            $0.leading.equalTo(nameLabel)
+            $0.trailing.equalToSuperview()
+            $0.height.equalTo(8)
+            $0.bottom.equalToSuperview()
         }
-        fill.snp.makeConstraints {
+
+        fillView.snp.makeConstraints {
             $0.leading.top.bottom.equalToSuperview()
             $0.width.equalToSuperview().multipliedBy(max(ratio, 0.02))
         }
-        row.snp.makeConstraints { $0.height.equalTo(20) }
 
         return row
+    }
+
+    private func majorFamilyRatios(from scentVector: [String: Double]) -> [(String, Double)] {
+        let grouped = scentVector.reduce(into: [String: Double]()) { result, pair in
+            guard let majorFamily = majorFamily(for: pair.key) else { return }
+            result[majorFamily, default: 0] += pair.value
+        }
+
+        let order = ["플로럴", "앰버", "우디", "프레쉬"]
+        return order.map { family in
+            (family, grouped[family, default: 0])
+        }
+    }
+
+    private func majorFamily(for family: String) -> String? {
+        switch family {
+        case "Floral", "Soft Floral", "Floral Amber":
+            return "플로럴"
+        case "Soft Amber", "Amber", "Woody Amber":
+            return "앰버"
+        case "Woods", "Mossy Woods", "Dry Woods":
+            return "우디"
+        case "Citrus", "Fruity", "Green", "Water", "Aromatic":
+            return "프레쉬"
+        default:
+            return nil
+        }
     }
 }

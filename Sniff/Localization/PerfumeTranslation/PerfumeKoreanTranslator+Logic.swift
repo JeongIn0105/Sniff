@@ -8,7 +8,7 @@
 import Foundation
 
 extension PerfumeKoreanTranslator {
-    static func containsKorean(_ text: String) -> Bool {
+    nonisolated static func containsKorean(_ text: String) -> Bool {
         text.unicodeScalars.contains {
             (0xAC00...0xD7A3).contains($0.value) ||
             (0x1100...0x11FF).contains($0.value) ||
@@ -16,17 +16,17 @@ extension PerfumeKoreanTranslator {
         }
     }
 
-    static func korean(for accord: String) -> String {
+    nonisolated static func korean(for accord: String) -> String {
         if containsKorean(accord) { return accord }
         if let korean = accordToKorean[accord] { return korean }
         return lowerAccordToKorean[accord.lowercased()] ?? accord
     }
 
-    static func koreanAccords(for accords: [String]) -> [String] {
+    nonisolated static func koreanAccords(for accords: [String]) -> [String] {
         accords.map { korean(for: $0) }
     }
 
-    static func koreanBrand(for brand: String) -> String {
+    nonisolated static func koreanBrand(for brand: String) -> String {
         let trimmed = brand.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return brand }
         if containsKorean(trimmed) { return trimmed }
@@ -35,24 +35,24 @@ extension PerfumeKoreanTranslator {
         return normalizedBrandToKorean[normalizeBrandKey(trimmed)] ?? trimmed
     }
 
-    static func isDomesticRetailFocusedBrand(_ brand: String) -> Bool {
+    nonisolated static func isDomesticRetailFocusedBrand(_ brand: String) -> Bool {
         domesticRetailPriority(for: brand) > 0
     }
 
-    static func domesticRetailPriority(for brand: String) -> Int {
+    nonisolated static func domesticRetailPriority(for brand: String) -> Int {
         let trimmed = brand.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return 0 }
         if let priority = domesticRetailBrandPriority[trimmed] { return priority }
         return normalizedDomesticRetailBrandPriority[normalizeBrandKey(trimmed)] ?? 0
     }
 
-    static func domesticRetailPriority(for perfume: Perfume) -> Int {
+    nonisolated static func domesticRetailPriority(for perfume: Perfume) -> Int {
         ([perfume.brand] + perfume.brandAliases)
             .map { domesticRetailPriority(for: $0) }
             .max() ?? 0
     }
 
-    static func sortedByDomesticRetailPriority(_ perfumes: [Perfume]) -> [Perfume] {
+    nonisolated static func sortedByDomesticRetailPriority(_ perfumes: [Perfume]) -> [Perfume] {
         perfumes.sorted { lhs, rhs in
             let lhsPriority = domesticRetailPriority(for: lhs)
             let rhsPriority = domesticRetailPriority(for: rhs)
@@ -70,17 +70,27 @@ extension PerfumeKoreanTranslator {
         }
     }
 
-    static func koreanNote(for note: String) -> String {
-        if containsKorean(note) { return note }
-        if let korean = noteToKorean[note] { return korean }
-        return lowerNoteToKorean[note.lowercased()] ?? note
+    nonisolated static func koreanNote(for note: String) -> String {
+        let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalized = trimmed
+            .replacingOccurrences(of: " Notes", with: "")
+            .replacingOccurrences(of: " Note", with: "")
+            .replacingOccurrences(of: " notes", with: "")
+            .replacingOccurrences(of: " note", with: "")
+            .replacingOccurrences(of: " 노트", with: "")
+
+        if containsKorean(normalized) { return normalized }
+        if let korean = noteToKorean[trimmed] { return korean.replacingOccurrences(of: " 노트", with: "") }
+        if let korean = noteToKorean[normalized] { return korean.replacingOccurrences(of: " 노트", with: "") }
+        return (lowerNoteToKorean[trimmed.lowercased()] ?? lowerNoteToKorean[normalized.lowercased()] ?? normalized)
+            .replacingOccurrences(of: " 노트", with: "")
     }
 
-    static func koreanNotes(for notes: [String]) -> [String] {
+    nonisolated static func koreanNotes(for notes: [String]) -> [String] {
         notes.map { koreanNote(for: $0) }
     }
 
-    static func koreanConcentration(for concentration: String?) -> String {
+    nonisolated static func koreanConcentration(for concentration: String?) -> String {
         guard let concentration else { return "-" }
         let trimmed = concentration.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return "-" }
@@ -97,7 +107,7 @@ extension PerfumeKoreanTranslator {
             .capitalized
     }
 
-    static func koreanPerfumeName(for perfumeName: String) -> String {
+    nonisolated static func koreanPerfumeName(for perfumeName: String) -> String {
         let trimmed = perfumeName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return perfumeName }
         if containsKorean(trimmed) { return trimmed }
@@ -118,7 +128,7 @@ extension PerfumeKoreanTranslator {
         return PerfumeNameTranslationService.localTransliterate(trimmed)
     }
 
-    static func koreanLongevity(for value: String?) -> String {
+    nonisolated static func koreanLongevity(for value: String?) -> String {
         guard let value else { return "-" }
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return "-" }
@@ -126,7 +136,7 @@ extension PerfumeKoreanTranslator {
         return longevityToKorean[trimmed.lowercased()] ?? trimmed
     }
 
-    static func koreanSillage(for value: String?) -> String {
+    nonisolated static func koreanSillage(for value: String?) -> String {
         guard let value else { return "-" }
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return "-" }
@@ -134,14 +144,14 @@ extension PerfumeKoreanTranslator {
         return sillageToKorean[trimmed.lowercased()] ?? trimmed
     }
 
-    static func koreanSeason(for value: String) -> String {
+    nonisolated static func koreanSeason(for value: String) -> String {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return value }
         if containsKorean(trimmed) { return trimmed }
         return seasonToKorean[trimmed.lowercased()] ?? trimmed
     }
 
-    static func toEnglishQuery(_ query: String) -> String? {
+    nonisolated static func toEnglishQuery(_ query: String) -> String? {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
 

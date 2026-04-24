@@ -29,13 +29,18 @@ final class SuggestionCell: UITableViewCell {
     private let nameLabel = UILabel().then {
         $0.font = .systemFont(ofSize: 15)
         $0.textColor = .label
+        $0.numberOfLines = 2
+        $0.lineBreakMode = .byWordWrapping
     }
 
-        // 매칭된 텍스트 강조용 (브랜드명은 빨간색)
     private let subTitleLabel = UILabel().then {
         $0.font = .systemFont(ofSize: 13)
-        $0.textColor = .systemRed
+        $0.textColor = .label
+        $0.numberOfLines = 1
     }
+
+    private var nameLeadingToThumbnailConstraint: Constraint?
+    private var nameLeadingToSuperviewConstraint: Constraint?
 
         // MARK: - Init
 
@@ -63,15 +68,17 @@ final class SuggestionCell: UITableViewCell {
         }
 
         nameLabel.snp.makeConstraints {
-            $0.leading.equalTo(thumbnailImageView.snp.trailing).offset(12)
-            $0.top.equalToSuperview().offset(12)
+            nameLeadingToThumbnailConstraint = $0.leading.equalTo(thumbnailImageView.snp.trailing).offset(12).constraint
+            nameLeadingToSuperviewConstraint = $0.leading.equalToSuperview().offset(20).constraint
+            $0.top.equalToSuperview().offset(10)
             $0.trailing.equalToSuperview().offset(-20)
         }
 
         subTitleLabel.snp.makeConstraints {
             $0.leading.equalTo(nameLabel)
             $0.top.equalTo(nameLabel.snp.bottom).offset(2)
-            $0.bottom.equalToSuperview().offset(-12)
+            $0.trailing.lessThanOrEqualToSuperview().offset(-20)
+            $0.bottom.equalToSuperview().offset(-10)
         }
     }
 
@@ -90,34 +97,30 @@ final class SuggestionCell: UITableViewCell {
             displaySubtitle = PerfumePresentationSupport.displayBrand(brand)
         }
 
-        nameLabel.attributedText = highlight(text: displayName, query: query)
+        nameLabel.text = displayName
         subTitleLabel.text = displaySubtitle
 
-            // 브랜드 타입은 subTitle을 "브랜드"로 고정 (검정색)
         if case .brand = item {
             subTitleLabel.textColor = .secondaryLabel
         } else {
-            subTitleLabel.textColor = .systemRed
+            subTitleLabel.textColor = .label
         }
 
         thumbnailImageView.image = nil
         thumbnailImageView.backgroundColor = .systemGray5
+        thumbnailImageView.isHidden = true
+        nameLeadingToThumbnailConstraint?.deactivate()
+        nameLeadingToSuperviewConstraint?.activate()
     }
 
     func configure(with item: SuggestionItem, query: String, imageUrl: String?) {
         configure(with: item, query: query)
         if let urlStr = imageUrl, let url = URL(string: urlStr) {
+            thumbnailImageView.isHidden = false
+            nameLeadingToSuperviewConstraint?.deactivate()
+            nameLeadingToThumbnailConstraint?.activate()
             thumbnailImageView.kf.setImage(with: url, placeholder: nil)
         }
     }
 
-        // MARK: - 검색어 하이라이트 (빨간색 강조)
-    private func highlight(text: String, query: String) -> NSAttributedString {
-        let attributed = NSMutableAttributedString(string: text)
-        let range = (text.lowercased() as NSString).range(of: query.lowercased())
-        if range.location != NSNotFound {
-            attributed.addAttribute(.foregroundColor, value: UIColor.systemRed, range: range)
-        }
-        return attributed
-    }
 }

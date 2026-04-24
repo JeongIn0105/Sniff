@@ -12,15 +12,14 @@ struct LikedPerfumeListView: View {
     @Environment(\.dismiss) private var dismiss
     private enum Layout {
         static let horizontalPadding: CGFloat = PerfumeGridCardLayout.listHorizontalPadding
-        static let rowSpacing: CGFloat = PerfumeGridCardLayout.listRowSpacing
-        static let thumbnailSize: CGFloat = PerfumeGridCardLayout.listThumbnailSize
-        static let rowVerticalPadding: CGFloat = 4
-        static let contentSpacing: CGFloat = 12
-        static let inlineInfoSpacing: CGFloat = 7
-        static let nameToMetaSpacing: CGFloat = 6
-        static let badgeTopSpacing: CGFloat = 8
-        static let heartSize: CGFloat = 18
-        static let heartTopPadding: CGFloat = 6
+        static let rowSpacing: CGFloat = 18
+        static let thumbnailSize: CGFloat = 68
+        static let rowVerticalPadding: CGFloat = 2
+        static let contentSpacing: CGFloat = 14
+        static let inlineInfoSpacing: CGFloat = 8
+        static let nameToMetaSpacing: CGFloat = 5
+        static let badgeTopSpacing: CGFloat = 7
+        static let heartSize: CGFloat = 20
     }
 
     init(viewModel: LikedPerfumeListViewModel) {
@@ -116,25 +115,26 @@ struct LikedPerfumeListView: View {
     }
 
     private func perfumeNavigationRow(_ perfume: LikedPerfumeListViewModel.PerfumeRowItem) -> some View {
-        ZStack(alignment: .topTrailing) {
+        HStack(alignment: .center, spacing: 12) {
             NavigationLink {
                 PerfumeDetailContainerView(perfume: perfume.sourcePerfume)
             } label: {
                 perfumeRowContent(perfume)
             }
             .buttonStyle(.plain)
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             Button {
                 Task { await viewModel.removeLike(id: perfume.id) }
             } label: {
                 Image(systemName: "heart.fill")
                     .font(.system(size: Layout.heartSize, weight: .semibold))
-                    .foregroundColor(Color(.systemGray))
-                    .frame(width: 28, height: 28)
+                    .foregroundColor(PerfumeHeartStyle.activeColor)
+                    .frame(width: 36, height: 36)
             }
             .buttonStyle(.plain)
-            .padding(.top, Layout.heartTopPadding)
         }
+        .padding(.vertical, Layout.rowVerticalPadding)
     }
 
     private func perfumeRowContent(_ perfume: LikedPerfumeListViewModel.PerfumeRowItem) -> some View {
@@ -143,10 +143,9 @@ struct LikedPerfumeListView: View {
 
             VStack(alignment: .leading, spacing: 0) {
                 Text(PerfumePresentationSupport.displayPerfumeName(perfume.name))
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(.primary)
-                    .lineLimit(2)
-                    .lineSpacing(2)
+                    .lineLimit(1)
                     .multilineTextAlignment(.leading)
 
                 likeMetaLine(
@@ -161,10 +160,7 @@ struct LikedPerfumeListView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .topLeading)
-
-            Spacer(minLength: 44)
         }
-        .padding(.vertical, Layout.rowVerticalPadding)
     }
 
     private func perfumeImage(url: String?) -> some View {
@@ -173,15 +169,20 @@ struct LikedPerfumeListView: View {
             style: .listThumbnail
         )
         .frame(width: Layout.thumbnailSize, height: Layout.thumbnailSize)
+        .overlay {
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color(.systemGray5), lineWidth: 1)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 
     private var tastingRecordBadge: some View {
         Text(AppStrings.TastingNoteUI.tastingRecordBadge)
             .font(.system(size: 11, weight: .semibold))
-            .foregroundColor(Color(.systemGray))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(Color(red: 0.97, green: 0.95, blue: 0.92))
+            .foregroundColor(Color(uiColor: UIColor(red: 0.47, green: 0.39, blue: 0.31, alpha: 1)))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(Color.white.opacity(0.92))
             .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
@@ -194,14 +195,10 @@ struct LikedPerfumeListView: View {
                 .foregroundColor(.secondary)
                 .lineLimit(1)
 
-            Text("|")
-                .font(.system(size: 12, weight: .regular))
-                .foregroundColor(Color(.systemGray3))
-
             ForEach(Array(displayAccords.enumerated()), id: \.offset) { index, accord in
                 HStack(spacing: 4) {
                     Circle()
-                        .fill(index == 0 ? Color(red: 0.97, green: 0.67, blue: 0.67) : Color(red: 0.73, green: 0.42, blue: 0.55))
+                        .fill(Color(uiColor: ScentFamilyColor.color(for: accords[index])))
                         .frame(width: 7, height: 7)
 
                     Text(accord)

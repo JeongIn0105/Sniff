@@ -265,7 +265,7 @@ final class ChipWrapView: UIView {
         var y: CGFloat = 0
         let horizontalSpacing: CGFloat = 10
         let verticalSpacing: CGFloat = 8
-        let height: CGFloat = 30
+        let height: CGFloat = 36
 
         for (index, text) in texts.enumerated() {
             let chip = makeChip(text: text, highlighted: highlightedIndices.contains(index))
@@ -287,7 +287,7 @@ final class ChipWrapView: UIView {
         var y: CGFloat = 0
         let horizontalSpacing: CGFloat = 10
         let verticalSpacing: CGFloat = 8
-        let height: CGFloat = 30
+        let height: CGFloat = 36
 
         for text in texts {
             let width = chipWidth(for: text)
@@ -304,32 +304,28 @@ final class ChipWrapView: UIView {
     private func makeChip(text: String, highlighted: Bool) -> UIView {
         let label = UILabel().then {
             $0.text = text
-            $0.font = UIFont(name: "Georgia-Bold", size: 13) ?? .systemFont(ofSize: 13, weight: .bold)
+            $0.font = UIFont(name: "Georgia-Bold", size: 14) ?? .systemFont(ofSize: 14, weight: .bold)
             $0.textColor = highlighted
                 ? PerfumeDetailViewController.Palette.textPrimary
                 : PerfumeDetailViewController.Palette.textSecondary
         }
 
         let container = UIView()
-        let shouldFill = style == .mixed && highlighted
-        let highlightColor = ScentFamilyColor.color(for: text)
-        container.backgroundColor = shouldFill ? highlightColor.withAlphaComponent(0.22) : .clear
-        container.layer.cornerRadius = 19
+        container.backgroundColor = PerfumeDetailViewController.Palette.card
+        container.layer.cornerRadius = 18
         container.layer.borderWidth = 1
-        container.layer.borderColor = shouldFill
-            ? highlightColor.cgColor
-            : PerfumeDetailViewController.Palette.border.cgColor
+        container.layer.borderColor = PerfumeDetailViewController.Palette.border.cgColor
         container.addSubview(label)
         label.snp.makeConstraints {
-            $0.leading.trailing.equalToSuperview().inset(12)
+            $0.leading.trailing.equalToSuperview().inset(16)
             $0.centerY.equalToSuperview()
         }
         return container
     }
 
     private func chipWidth(for text: String) -> CGFloat {
-        let font = UIFont(name: "Georgia-Bold", size: 13) ?? UIFont.systemFont(ofSize: 13, weight: .bold)
+        let font = UIFont(name: "Georgia-Bold", size: 14) ?? UIFont.systemFont(ofSize: 14, weight: .bold)
         let textWidth = (text as NSString).size(withAttributes: [.font: font]).width
-        return ceil(textWidth) + 24
+        return ceil(textWidth) + 32
     }
 }

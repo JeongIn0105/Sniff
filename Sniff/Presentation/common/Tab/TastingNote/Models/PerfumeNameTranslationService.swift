@@ -52,7 +52,7 @@ enum PerfumeNameTranslationService {
 
     // MARK: - 로컬 단어사전 번역
 
-    static func localTransliterate(_ name: String) -> String {
+    nonisolated static func localTransliterate(_ name: String) -> String {
         // 특수문자(&, -) 기준으로 분리 후 각각 번역
         let segments = name.components(separatedBy: CharacterSet(charactersIn: "&"))
         let translated = segments.map { seg -> String in
@@ -62,7 +62,7 @@ enum PerfumeNameTranslationService {
         return translated.joined(separator: " & ")
     }
 
-    private static func transliterateSegment(_ text: String) -> String {
+    nonisolated private static func transliterateSegment(_ text: String) -> String {
         let words = text.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
         var result: [String] = []
         var i = 0
@@ -98,7 +98,7 @@ enum PerfumeNameTranslationService {
         return result.joined(separator: " ")
     }
 
-    private static func transliterateWord(_ word: String) -> String {
+    nonisolated private static func transliterateWord(_ word: String) -> String {
         let lower = word.lowercased()
         // 숫자가 포함된 단어는 그대로 유지 (No.5, EdP100 등)
         if word.contains(where: { $0.isNumber }) { return word }
@@ -122,7 +122,7 @@ enum PerfumeNameTranslationService {
 
     // MARK: - 단어 사전 (향수 이름에 자주 나오는 단어 300+)
 
-    private static let wordDict: [String: String] = [
+    nonisolated private static let wordDict: [String: String] = [
         // ── 크리드 향수 ──
         "aventus": "어벤투스", "himalaya": "히말라야", "carmina": "카르미나",
         "tabarome": "타바롬", "erolfa": "에롤파", "delphinus": "델피너스",

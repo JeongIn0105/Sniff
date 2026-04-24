@@ -23,7 +23,6 @@ final class FilterViewController: UIViewController {
 
     private enum SelectionLimit {
         static let scentFamilies = 3
-        static let moodTags = 5
     }
 
     // MARK: - Properties
@@ -34,7 +33,6 @@ final class FilterViewController: UIViewController {
     private var tagButtons: [String: UIButton] = [:]
 
     private let scentFamilyToggleRelay = PublishRelay<ScentFamilyFilter>()
-    private let moodTagToggleRelay = PublishRelay<MoodTag>()
     private let concentrationToggleRelay = PublishRelay<Concentration>()
     private let seasonToggleRelay = PublishRelay<Season>()
     private let resetRelay = PublishRelay<Void>()
@@ -44,7 +42,6 @@ final class FilterViewController: UIViewController {
 
     private enum TagType {
         case scentFamily
-        case mood
         case concentration
         case season
     }
@@ -218,7 +215,7 @@ final class FilterViewController: UIViewController {
         // 각 필터 탭 이벤트를 ViewModel 입력으로 묶어 바텀시트 상태를 한 곳에서 관리한다.
         let input = FilterViewModel.Input(
             scentFamilyToggle: scentFamilyToggleRelay.asObservable(),
-            moodTagToggle: moodTagToggleRelay.asObservable(),
+            moodTagToggle: .empty(),
             concentrationToggle: concentrationToggleRelay.asObservable(),
             seasonToggle: seasonToggleRelay.asObservable(),
             resetTrigger: resetRelay.asObservable(),
@@ -285,9 +282,6 @@ final class FilterViewController: UIViewController {
         ScentFamilyFilter.allCases.forEach { family in
             tagButtons[family.displayName]?.isSelected = filter.scentFamilies.contains(family)
         }
-        MoodTag.allCases.forEach { tag in
-            tagButtons[tag.displayName]?.isSelected = filter.moodTags.contains(tag)
-        }
         Concentration.allCases.forEach { conc in
             tagButtons[conc.displayName]?.isSelected = filter.concentrations.contains(conc)
         }
@@ -301,12 +295,6 @@ final class FilterViewController: UIViewController {
             let isSelected = filter.scentFamilies.contains(family)
             let isAtSelectionLimit = !isSelected && filter.scentFamilies.count >= SelectionLimit.scentFamilies
             tagButtons[family.displayName]?.isEnabled = !isAtSelectionLimit
-        }
-
-        MoodTag.allCases.forEach { tag in
-            let isSelected = filter.moodTags.contains(tag)
-            let isAtSelectionLimit = !isSelected && filter.moodTags.count >= SelectionLimit.moodTags
-            tagButtons[tag.displayName]?.isEnabled = !isAtSelectionLimit
         }
 
         Concentration.allCases.forEach { concentration in
@@ -325,7 +313,6 @@ final class FilterViewController: UIViewController {
 
         // 상단 바는 현재 적용 중인 필터만 요약해서 보여주고, 칩 탭으로 바로 해제할 수 있다.
         let allSelected: [String] = filter.scentFamilies.map { $0.displayName }
-        + filter.moodTags.map { $0.displayName }
         + filter.concentrations.map { $0.displayName }
         + filter.seasons.map { $0.displayName }
 
@@ -359,13 +346,11 @@ final class FilterViewController: UIViewController {
     }
 
     private func removeFilter(named title: String) {
-        if let family = ScentFamilyFilter(rawValue: title) {
+        if let family = ScentFamilyFilter.fromDisplayName(title) {
             scentFamilyToggleRelay.accept(family)
-        } else if let tag = MoodTag(rawValue: title) {
-            moodTagToggleRelay.accept(tag)
-        } else if let conc = Concentration(rawValue: title) {
+        } else if let conc = Concentration.fromDisplayName(title) {
             concentrationToggleRelay.accept(conc)
-        } else if let season = Season(rawValue: title) {
+        } else if let season = Season.fromDisplayName(title) {
             seasonToggleRelay.accept(season)
         }
     }
@@ -381,14 +366,6 @@ final class FilterViewController: UIViewController {
                 tags: ScentFamilyFilter.allCases.map(\.displayName),
                 type: .scentFamily,
                 topInset: 0,
-                bottomInset: 25
-            ),
-            .init(
-                title: AppStrings.UIKitScreens.Filter.moodImage,
-                subtitle: nil,
-                tags: MoodTag.imageTags.map(\.displayName) + MoodTag.vibeTags.map(\.displayName),
-                type: .mood,
-                topInset: 15,
                 bottomInset: 25
             ),
             .init(
@@ -498,19 +475,15 @@ final class FilterViewController: UIViewController {
             // 태그 문자열을 실제 필터 enum으로 다시 매핑해 토글 이벤트를 보낸다.
             switch type {
                 case .scentFamily:
-                    if let family = ScentFamilyFilter(rawValue: selectedTag) {
+                    if let family = ScentFamilyFilter.fromDisplayName(selectedTag) {
                         self.scentFamilyToggleRelay.accept(family)
                     }
-                case .mood:
-                    if let tag = MoodTag(rawValue: selectedTag) {
-                        self.moodTagToggleRelay.accept(tag)
-                    }
                 case .concentration:
-                    if let conc = Concentration(rawValue: selectedTag) {
+                    if let conc = Concentration.fromDisplayName(selectedTag) {
                         self.concentrationToggleRelay.accept(conc)
                     }
                 case .season:
-                    if let season = Season(rawValue: selectedTag) {
+                    if let season = Season.fromDisplayName(selectedTag) {
                         self.seasonToggleRelay.accept(season)
                     }
             }
