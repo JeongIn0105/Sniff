@@ -27,8 +27,47 @@ extension PerfumeKoreanTranslator {
     }
 
     static func koreanBrand(for brand: String) -> String {
-        if containsKorean(brand) { return brand }
-        return brandToKorean[brand] ?? brand
+        let trimmed = brand.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return brand }
+        if containsKorean(trimmed) { return trimmed }
+        if let korean = brandToKorean[trimmed] { return korean }
+        if let korean = lowerBrandToKorean[trimmed.lowercased()] { return korean }
+        return normalizedBrandToKorean[normalizeBrandKey(trimmed)] ?? trimmed
+    }
+
+    static func isDomesticRetailFocusedBrand(_ brand: String) -> Bool {
+        domesticRetailPriority(for: brand) > 0
+    }
+
+    static func domesticRetailPriority(for brand: String) -> Int {
+        let trimmed = brand.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return 0 }
+        if let priority = domesticRetailBrandPriority[trimmed] { return priority }
+        return normalizedDomesticRetailBrandPriority[normalizeBrandKey(trimmed)] ?? 0
+    }
+
+    static func domesticRetailPriority(for perfume: Perfume) -> Int {
+        ([perfume.brand] + perfume.brandAliases)
+            .map { domesticRetailPriority(for: $0) }
+            .max() ?? 0
+    }
+
+    static func sortedByDomesticRetailPriority(_ perfumes: [Perfume]) -> [Perfume] {
+        perfumes.sorted { lhs, rhs in
+            let lhsPriority = domesticRetailPriority(for: lhs)
+            let rhsPriority = domesticRetailPriority(for: rhs)
+            if lhsPriority != rhsPriority { return lhsPriority > rhsPriority }
+
+            let lhsBrand = koreanBrand(for: lhs.brand)
+            let rhsBrand = koreanBrand(for: rhs.brand)
+            if lhsBrand != rhsBrand {
+                return lhsBrand.localizedCaseInsensitiveCompare(rhsBrand) == .orderedAscending
+            }
+
+            let lhsName = koreanPerfumeName(for: lhs.name)
+            let rhsName = koreanPerfumeName(for: rhs.name)
+            return lhsName.localizedCaseInsensitiveCompare(rhsName) == .orderedAscending
+        }
     }
 
     static func koreanNote(for note: String) -> String {
@@ -62,6 +101,20 @@ extension PerfumeKoreanTranslator {
         let trimmed = perfumeName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return perfumeName }
         if containsKorean(trimmed) { return trimmed }
+
+        if let korean = perfumeNameToKorean[trimmed] {
+            return korean
+        }
+
+        if let korean = normalizedPerfumeNameToKorean[normalizeBrandKey(trimmed)] {
+            return korean
+        }
+
+        let domesticName = applyDomesticPerfumeNameReplacements(to: trimmed)
+        if domesticName != trimmed {
+            return domesticName
+        }
+
         return PerfumeNameTranslationService.localTransliterate(trimmed)
     }
 
