@@ -1,5 +1,3 @@
-
-
 //
 //  GeminiService.swift
 //  Sniff
@@ -9,21 +7,6 @@
 
 import Foundation
 import RxSwift
-
-
-
-    // MARK: - Input Model
-
-
-struct TasteAnalysisInput {
-    let experience: String
-    let vibes: [String]
-    let images: [String]
-}
-
-
-// MARK: - Service
-
 
 final class GeminiTasteAnalysisService {
 
@@ -38,12 +21,9 @@ final class GeminiTasteAnalysisService {
         "https://generativelanguage.googleapis.com/v1beta/models/\(model):generateContent?key=\(apiKey)"
     }
 
-
     func requestTasteAnalysis(input: TasteAnalysisInput) async throws -> TasteAnalysisResult {
         try await request(input: input)
     }
-
-        // MARK: - RxSwift 기반 취향 분석 호출
 
     func analyzeTaste(input: TasteAnalysisInput) -> Single<TasteAnalysisResult> {
         Single.create { [weak self] single in
@@ -66,10 +46,6 @@ final class GeminiTasteAnalysisService {
             }
         }
     }
-
-
-    // MARK: - 실제 네트워크 요청
-
 
     private func request(input: TasteAnalysisInput) async throws -> TasteAnalysisResult {
         guard let url = URL(string: baseURL) else {
@@ -98,24 +74,8 @@ final class GeminiTasteAnalysisService {
         return try parseResponse(data: data)
     }
 
-
-
-        // MARK: - 요청 바디 조립
-
-
     private func buildRequestBody(input: TasteAnalysisInput) -> [String: Any] {
-        let vibesString = input.vibes.map { "\"\($0)\"" }.joined(separator: ", ")
-        let imagesString = input.images.map { "\"\($0)\"" }.joined(separator: ", ")
-
-        let userInput = """
-        {
-          "experience": "\(input.experience)",
-          "vibes": [\(vibesString)],
-          "images": [\(imagesString)]
-        }
-        """
-
-        return [
+        [
             "system_instruction": [
                 "parts": [
                     ["text": GeminiPrompts.tasteAnalysis]
@@ -124,7 +84,7 @@ final class GeminiTasteAnalysisService {
             "contents": [
                 [
                     "parts": [
-                        ["text": userInput]
+                        ["text": makePromptInput(from: input)]
                     ]
                 ]
             ],
@@ -135,9 +95,72 @@ final class GeminiTasteAnalysisService {
         ]
     }
 
+    private func makePromptInput(from input: TasteAnalysisInput) -> String {
+        var sections: [String] = [
+            makeJSONSection(
+                title: "Onboarding Signal (JSON)",
+                value: OnboardingSignalForGemini(
+                    experience: input.experience,
+                    vibes: input.vibes,
+                    images: input.images
+                )
+            )
+        ]
 
-// MARK: - 응답 파싱
+        if let aggregatedProfile = input.aggregatedProfile {
+            sections.append(
+                makeJSONSection(
+                    title: "Aggregated Preference Profile",
+                    preface: "Use this as the primary signal for taste analysis.",
+                    value: aggregatedProfile
+                )
+            )
+        }
 
+        if !input.records.isEmpty {
+            sections.append(
+                makeJSONSection(
+                    title: "Tasting Records (JSON)",
+                    preface: """
+                    Analyze ONLY the structured data below. Do not infer from field names.
+                    Use the structured records below only as supporting evidence.
+                    Prioritize repeated patterns across accords, mood tags, and revisit desire.
+                    Do not invent preferences that are not supported by the records.
+                    """,
+                    value: input.records
+                )
+            )
+        }
+
+        return sections.joined(separator: "\n\n")
+    }
+
+    private func makeJSONSection<T: Encodable>(
+        title: String,
+        preface: String? = nil,
+        value: T
+    ) -> String {
+        var lines = ["## \(title)"]
+        if let preface {
+            lines.append(preface)
+        }
+        lines.append(encodedJSONString(from: value))
+        return lines.joined(separator: "\n")
+    }
+
+    private func encodedJSONString<T: Encodable>(from value: T) -> String {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+
+        guard
+            let data = try? encoder.encode(value),
+            let json = String(data: data, encoding: .utf8)
+        else {
+            return "{}"
+        }
+
+        return json
+    }
 
     private func parseResponse(data: Data) throws -> TasteAnalysisResult {
         guard
@@ -161,9 +184,11 @@ final class GeminiTasteAnalysisService {
     }
 }
 
-
-
-    // MARK: - Error
+private struct OnboardingSignalForGemini: Encodable {
+    let experience: String
+    let vibes: [String]
+    let images: [String]
+}
 
 enum GeminiError: Error, LocalizedError {
     case serviceDeallocated
@@ -175,20 +200,18 @@ enum GeminiError: Error, LocalizedError {
 
     var errorDescription: String? {
         switch self {
-
-            case .serviceDeallocated:
-                return "서비스 객체가 해제되었어요"
-            case .invalidURL:
-                return "잘못된 URL이에요"
-            case .invalidResponse:
-                return "서버 응답이 올바르지 않아요"
-            case .httpError(let code, let message):
-                return "서버 응답 오류가 발생했어요. (\(code))\n\(message)"
-            case .parsingFailed(let rawText):
-                return "결과를 분석하는 데 실패했어요\n\(rawText)"
-            case .decodingFailed(let decodedText):
-                return "결과 디코딩에 실패했어요\n\(decodedText)"
-
+        case .serviceDeallocated:
+            return "서비스 객체가 해제되었어요"
+        case .invalidURL:
+            return "잘못된 URL이에요"
+        case .invalidResponse:
+            return "서버 응답이 올바르지 않아요"
+        case .httpError(let code, let message):
+            return "서버 응답 오류가 발생했어요. (\(code))\n\(message)"
+        case .parsingFailed(let rawText):
+            return "결과를 분석하는 데 실패했어요\n\(rawText)"
+        case .decodingFailed(let decodedText):
+            return "결과 디코딩에 실패했어요\n\(decodedText)"
         }
     }
 }

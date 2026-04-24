@@ -116,12 +116,26 @@ final class HomeViewModel {
             .asDriver(onErrorJustReturn: nil)
 
         let recommendations = recommendationResult
-            .map { result -> [HomePerfumeItem] in
-                guard let result else {
+            .withLatestFrom(sourceData) { ($0, $1) }
+            .map { payload -> [HomePerfumeItem] in
+                let (result, source) = payload
+                guard let result, let source else {
                     return []
                 }
+                let tastingKeys = Set(
+                    source.tastingRecords.map {
+                        PerfumePresentationSupport.recordKey(
+                            perfumeName: $0.perfumeName,
+                            brandName: $0.brandName
+                        )
+                    }
+                )
                 return result.perfumes.map { recommendation in
-                    mapToHomePerfumeItem(recommendation, profile: result.profile)
+                    mapToHomePerfumeItem(
+                        recommendation,
+                        profile: result.profile,
+                        tastingKeys: tastingKeys
+                    )
                 }
             }
             .do(onNext: { [weak self] items in
@@ -184,7 +198,8 @@ private extension HomeViewModel {
 
 private func mapToHomePerfumeItem(
     _ recommendation: RecommendedPerfume,
-    profile: UserTasteProfile
+    profile: UserTasteProfile,
+    tastingKeys: Set<String>
 ) -> HomePerfumeItem {
     let perfume = recommendation.perfume
     return HomePerfumeItem(
@@ -194,7 +209,13 @@ private func mapToHomePerfumeItem(
         perfumeName: perfume.name,
         accordsText: makeHomeAccordText(perfume, profile: profile),
         recommendationReason: recommendation.reason,
-        imageURL: perfume.imageUrl
+        imageURL: perfume.imageUrl,
+        hasTastingRecord: tastingKeys.contains(
+            PerfumePresentationSupport.recordKey(
+                perfumeName: perfume.name,
+                brandName: perfume.brand
+            )
+        )
     )
 }
 

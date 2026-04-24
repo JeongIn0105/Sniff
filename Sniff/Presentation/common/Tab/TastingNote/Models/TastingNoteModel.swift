@@ -164,40 +164,7 @@ let kMoodTagList: [String] = [
 extension String {
 
     var accordColor: Color {
-        switch self {
-        // ── 플로럴 계열 ──
-        case "플로럴", "플로리엔탈":    return Color(red: 0.95, green: 0.55, blue: 0.75)
-        case "화이트 플로럴":           return Color(red: 0.95, green: 0.60, blue: 0.78)
-        case "로즈":                    return Color(red: 0.92, green: 0.28, blue: 0.50)
-        case "재스민":                  return Color(red: 0.90, green: 0.72, blue: 0.20)
-        case "이리스":                  return Color(red: 0.72, green: 0.55, blue: 0.88)
-        case "튜베로즈":                return Color(red: 0.92, green: 0.65, blue: 0.78)
-        // ── 시트러스/프레시 계열 ──
-        case "시트러스":                return Color(red: 1.00, green: 0.75, blue: 0.08)
-        case "프레시", "아로마틱":      return Color(red: 0.18, green: 0.72, blue: 0.62)
-        case "아쿠아틱", "오존":        return Color(red: 0.18, green: 0.52, blue: 0.88)
-        case "시원한":                  return Color(red: 0.25, green: 0.62, blue: 0.92)
-        case "헤르바시어스", "그린":    return Color(red: 0.28, green: 0.72, blue: 0.32)
-        // ── 우디/머스키/앰버 계열 ──
-        case "우디", "우드":            return Color(red: 0.58, green: 0.38, blue: 0.18)
-        case "레더":                    return Color(red: 0.42, green: 0.26, blue: 0.16)
-        case "스모키":                  return Color(red: 0.35, green: 0.35, blue: 0.38)
-        case "어니멀릭":                return Color(red: 0.52, green: 0.32, blue: 0.22)
-        case "머스키":                  return Color(red: 0.55, green: 0.42, blue: 0.72)
-        // ── 앰버/오리엔탈 계열 ──
-        case "앰버", "앰버(오리엔탈)":  return Color(red: 0.85, green: 0.60, blue: 0.10)
-        case "바닐라":                  return Color(red: 0.92, green: 0.72, blue: 0.35)
-        case "발사믹":                  return Color(red: 0.72, green: 0.42, blue: 0.12)
-        case "구르망":                  return Color(red: 0.88, green: 0.52, blue: 0.22)
-        // ── 스파이시/웜 계열 ──
-        case "스파이시":                return Color(red: 0.85, green: 0.22, blue: 0.18)
-        case "따뜻한":                  return Color(red: 1.00, green: 0.55, blue: 0.20)
-        // ── 스위트/파우더리/프루티 계열 ──
-        case "스위트":                  return Color(red: 0.95, green: 0.58, blue: 0.72)
-        case "프루티":                  return Color(red: 0.95, green: 0.35, blue: 0.42)
-        case "파우더리":                return Color(red: 0.78, green: 0.58, blue: 0.88)
-        default:                        return Color(.systemGray2)
-        }
+        Color(uiColor: ScentFamilyColor.color(for: self))
     }
     var accordBackgroundColor: Color { accordColor.opacity(0.12) }
     var accordBorderColor: Color { accordColor.opacity(0.45) }

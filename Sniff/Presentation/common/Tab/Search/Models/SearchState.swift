@@ -15,6 +15,9 @@ import Foundation
 
 enum SearchState: Equatable {
 
+        /// 기본 탭 진입 상태 — 결과형 빈 화면
+    case landing
+
         /// 초기 상태 — 최근 검색어 표시
     case initial
 
@@ -26,6 +29,11 @@ enum SearchState: Equatable {
 
     var isInitial: Bool {
         if case .initial = self { return true }
+        return false
+    }
+
+    var isLanding: Bool {
+        if case .landing = self { return true }
         return false
     }
 
@@ -41,6 +49,7 @@ enum SearchState: Equatable {
 
     var query: String? {
         switch self {
+            case .landing:              return nil
             case .initial:              return nil
             case .suggesting(let q):   return q
             case .result(let q):       return q

@@ -165,7 +165,7 @@ struct MyPageView: View {
                                 name: perfume.name,
                                 accords: perfume.accordTags,
                                 isLiked: true,
-                                hasTastingRecord: false
+                                hasTastingRecord: perfume.hasTastingRecord
                             ) {
                                 Task { await viewModel.removeLikedPerfume(id: perfume.id) }
                             }

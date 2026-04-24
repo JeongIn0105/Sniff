@@ -10,19 +10,22 @@ import Foundation
 enum SearchSceneFactory {
 
     static func makeSearchViewController() -> SearchViewController {
-        makeSearchViewController(dependencyContainer: AppDependencyContainer())
+        makeSearchViewController(dependencyContainer: AppDependencyContainer(), showsRecentOnAppear: false)
     }
 
     static func makeSearchViewController(
-        dependencyContainer: AppDependencyContainer
+        dependencyContainer: AppDependencyContainer,
+        showsRecentOnAppear: Bool = false
     ) -> SearchViewController {
         let viewModel = SearchViewModel(
             perfumeCatalogRepository: dependencyContainer.makePerfumeCatalogRepository(),
-            recentSearchStore: dependencyContainer.makeRecentSearchStore()
+            recentSearchStore: dependencyContainer.makeRecentSearchStore(),
+            initialState: showsRecentOnAppear ? .initial : .landing
         )
         return SearchViewController(
             viewModel: viewModel,
-            collectionRepository: dependencyContainer.makeCollectionRepository()
+            collectionRepository: dependencyContainer.makeCollectionRepository(),
+            showsRecentOnAppear: showsRecentOnAppear
         )
     }
 }

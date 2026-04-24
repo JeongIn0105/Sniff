@@ -5,7 +5,6 @@
 //  Created by t2025-m0239 on 2026.04.13.
 //
 
-
 import UIKit
 import SnapKit
 import RxSwift
@@ -16,9 +15,9 @@ final class HomeViewController: UIViewController {
 
     private enum Layout {
         static let horizontalInset: CGFloat = 20
-        static let bestCardWidth: CGFloat = 176
-        static let bestCardHeight: CGFloat = 272
-        static let gridSpacing: CGFloat = 16
+        static let cardWidth: CGFloat = 154
+        static let cardHeight: CGFloat = 256
+        static let cardSpacing: CGFloat = 14
     }
 
     private let viewModel: HomeViewModel
@@ -26,140 +25,114 @@ final class HomeViewController: UIViewController {
     private let disposeBag = DisposeBag()
     private var recommendations: [HomePerfumeItem] = []
     private var currentProfileItem: HomeViewModel.HomeProfileItem?
+    private var currentBannerItem: HomeTasteBannerItem?
     private var likedPerfumeIDs = Set<String>()
-
-        // MARK: - UI
 
     private let scrollView = UIScrollView()
     private let contentView = UIView()
+    private let topGradientView = HomeGradientView()
 
     private let titleLabel: UILabel = {
-        let l = UILabel()
-        l.text = AppStrings.UIKitScreens.Home.title
-        l.font = .systemFont(ofSize: 24, weight: .bold)
-        l.textColor = .label
-        return l
+        let label = UILabel()
+        label.text = AppStrings.UIKitScreens.Home.title
+        label.font = .systemFont(ofSize: 26, weight: .bold)
+        label.textColor = .label
+        return label
     }()
 
     private let searchButton: UIButton = {
-        let b = UIButton(type: .system)
-        b.setImage(UIImage(systemName: "magnifyingglass"), for: .normal)
-        b.tintColor = .label
-        return b
+        let button = UIButton(type: .system)
+        button.setImage(UIImage(systemName: "magnifyingglass"), for: .normal)
+        button.tintColor = .label
+        return button
     }()
 
-        // 취향 프로필 entry 카드
-    private let profileEntryCard: UIView = {
-        let v = UIView()
-        v.backgroundColor = .systemBackground
-        v.layer.cornerRadius = 16
-        v.layer.borderWidth = 0.5
-        v.layer.borderColor = UIColor.separator.withAlphaComponent(0.25).cgColor
-        return v
+    private let profileHeroCard: UIView = {
+        let view = UIView()
+        view.backgroundColor = .clear
+        return view
     }()
 
-    private let profileIconView: UIView = {
-        let v = UIView()
-        v.layer.cornerRadius = 11
-        return v
+    private let profileTitleLabel: UILabel = {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 1, weight: .regular)
+        label.textColor = .clear
+        label.numberOfLines = 1
+        return label
     }()
 
-    private let profileIconLabel: UILabel = {
-        let l = UILabel()
-        l.font = .systemFont(ofSize: 18)
-        l.textAlignment = .center
-        l.text = ""
-        return l
+    private let profileChevronView: UIImageView = {
+        let imageView = UIImageView(image: UIImage(systemName: "chevron.right"))
+        imageView.tintColor = .label
+        imageView.contentMode = .scaleAspectFit
+        return imageView
     }()
 
-    private let profileCategoryLabel: UILabel = {
-        let l = UILabel()
-        l.text = AppStrings.UIKitScreens.Home.profile
-        l.font = .systemFont(ofSize: 10, weight: .medium)
-        l.textColor = .tertiaryLabel
-        return l
-    }()
-
-    private let profileNameLabel: UILabel = {
-        let l = UILabel()
-        l.text = AppStrings.UIKitScreens.Home.profileLoading
-        l.font = .systemFont(ofSize: 16, weight: .semibold)
-        l.textColor = .label
-        return l
+    private let profileHeadlineLabel: UILabel = {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 26, weight: .bold)
+        label.textColor = .label
+        label.numberOfLines = 2
+        return label
     }()
 
     private let profileSummaryLabel: UILabel = {
-        let l = UILabel()
-        l.text = ""
-        l.font = .systemFont(ofSize: 12, weight: .medium)
-        l.textColor = .secondaryLabel
-        l.numberOfLines = 1
-        return l
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 14, weight: .regular)
+        label.textColor = UIColor(white: 0.22, alpha: 0.82)
+        label.numberOfLines = 3
+        return label
     }()
 
-    private let profileChevron: UIImageView = {
-        let iv = UIImageView()
-        iv.image = UIImage(systemName: "chevron.right")
-        iv.tintColor = .tertiaryLabel
-        iv.contentMode = .scaleAspectFit
-        return iv
+    private let profileTagStack: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .horizontal
+        stack.spacing = 8
+        return stack
     }()
 
     private let recommendationTitleLabel: UILabel = {
-        let l = UILabel()
-        l.text = AppStrings.UIKitScreens.Home.best
-        l.font = .systemFont(ofSize: 17, weight: .bold)
-        l.textColor = .label
-        return l
-    }()
-
-        // 카드 바깥 대비 배경 — 카드들이 더 잘 구분되게
-    private let cardsBackgroundView: UIView = {
-        let v = UIView()
-        v.backgroundColor = UIColor(red: 0.97, green: 0.95, blue: 0.92, alpha: 1)
-        v.layer.cornerRadius = 24
-        return v
+        let label = UILabel()
+        label.text = AppStrings.Home.recommendTitle
+        label.font = .systemFont(ofSize: 18, weight: .bold)
+        label.textColor = .label
+        return label
     }()
 
     private let recommendationCollectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
         layout.scrollDirection = .horizontal
-        layout.minimumLineSpacing = 10
-        let cv = UICollectionView(frame: .zero, collectionViewLayout: layout)
-        cv.backgroundColor = .clear
-        cv.showsHorizontalScrollIndicator = false
-        return cv
+        layout.minimumLineSpacing = Layout.cardSpacing
+        let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        collectionView.backgroundColor = .clear
+        collectionView.showsHorizontalScrollIndicator = false
+        return collectionView
     }()
 
-    private let moreRecommendationTitleLabel: UILabel = {
-        let l = UILabel()
-        l.text = AppStrings.UIKitScreens.Home.recommendations
-        l.font = .systemFont(ofSize: 17, weight: .bold)
-        l.textColor = .label
-        return l
+    private let guideContainerView: UIView = {
+        let view = UIView()
+        view.backgroundColor = UIColor(red: 0.985, green: 0.984, blue: 0.982, alpha: 1)
+        view.layer.cornerRadius = 18
+        view.layer.cornerCurve = .continuous
+        view.layer.borderWidth = 1
+        view.layer.borderColor = UIColor.separator.withAlphaComponent(0.08).cgColor
+        return view
     }()
 
-    private let moreRecommendationCollectionView: UICollectionView = {
-        let layout = UICollectionViewFlowLayout()
-        layout.scrollDirection = .vertical
-        layout.minimumLineSpacing = 16
-        layout.minimumInteritemSpacing = 16
-        let cv = UICollectionView(frame: .zero, collectionViewLayout: layout)
-        cv.backgroundColor = .clear
-        cv.showsVerticalScrollIndicator = false
-        cv.isScrollEnabled = false
-        return cv
+    private let guideIconView: UIImageView = {
+        let imageView = UIImageView(image: UIImage(systemName: "info.circle"))
+        imageView.tintColor = .tertiaryLabel
+        imageView.contentMode = .scaleAspectFit
+        return imageView
     }()
-
-    private var moreRecommendationHeightConstraint: Constraint?
 
     private let guideLabel: UILabel = {
-        let l = UILabel()
-        l.text = AppStrings.UIKitScreens.Home.guide
-        l.font = .systemFont(ofSize: 11)
-        l.textColor = .quaternaryLabel
-        l.numberOfLines = 0
-        return l
+        let label = UILabel()
+        label.text = AppStrings.UIKitScreens.Home.guide
+        label.font = .systemFont(ofSize: 11, weight: .regular)
+        label.textColor = UIColor.secondaryLabel.withAlphaComponent(0.72)
+        label.numberOfLines = 0
+        return label
     }()
 
     init(
@@ -172,8 +145,6 @@ final class HomeViewController: UIViewController {
     }
 
     required init?(coder: NSCoder) { fatalError() }
-
-        // MARK: - Lifecycle
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -189,61 +160,40 @@ final class HomeViewController: UIViewController {
 
 private extension HomeViewController {
 
-    // MARK: - UI Setup
-
     func setupUI() {
         view.backgroundColor = .systemBackground
+        contentView.backgroundColor = .systemBackground
 
-        configureCollectionViews()
-        assembleHierarchy()
-        configureProfileCardGesture()
-        makeConstraints()
-    }
-
-    func configureCollectionViews() {
         recommendationCollectionView.delegate = self
         recommendationCollectionView.dataSource = self
-        moreRecommendationCollectionView.delegate = self
-        moreRecommendationCollectionView.dataSource = self
         recommendationCollectionView.register(
             HomePerfumeCardCell.self,
             forCellWithReuseIdentifier: HomePerfumeCardCell.reuseIdentifier
         )
-        moreRecommendationCollectionView.register(
-            HomePerfumeCardCell.self,
-            forCellWithReuseIdentifier: HomePerfumeCardCell.reuseIdentifier
-        )
-    }
 
-    func assembleHierarchy() {
         view.addSubview(scrollView)
         scrollView.addSubview(contentView)
+        contentView.addSubview(topGradientView)
 
         [
-            titleLabel, searchButton,
-            profileEntryCard,
+            titleLabel,
+            searchButton,
+            profileHeroCard,
             recommendationTitleLabel,
-            cardsBackgroundView,
-            moreRecommendationTitleLabel,
-            moreRecommendationCollectionView,
-            guideLabel
+            recommendationCollectionView,
+            guideContainerView
         ].forEach { contentView.addSubview($0) }
 
-        cardsBackgroundView.addSubview(recommendationCollectionView)
+        [profileTitleLabel, profileChevronView, profileHeadlineLabel, profileSummaryLabel, profileTagStack]
+            .forEach { profileHeroCard.addSubview($0) }
+        [guideIconView, guideLabel].forEach { guideContainerView.addSubview($0) }
 
-        profileEntryCard.addSubview(profileIconView)
-        profileIconView.addSubview(profileIconLabel)
-        profileEntryCard.addSubview(profileCategoryLabel)
-        profileEntryCard.addSubview(profileNameLabel)
-        profileEntryCard.addSubview(profileSummaryLabel)
-        profileEntryCard.addSubview(profileChevron)
-    }
-
-    func configureProfileCardGesture() {
-        profileEntryCard.addGestureRecognizer(
+        profileHeroCard.addGestureRecognizer(
             UITapGestureRecognizer(target: self, action: #selector(profileCardTapped))
         )
-        profileEntryCard.isUserInteractionEnabled = true
+        profileHeroCard.isUserInteractionEnabled = true
+
+        makeConstraints()
     }
 
     func makeConstraints() {
@@ -253,92 +203,96 @@ private extension HomeViewController {
             $0.width.equalTo(scrollView)
         }
 
+        topGradientView.snp.makeConstraints {
+            $0.top.leading.trailing.equalToSuperview()
+            $0.bottom.equalTo(profileHeroCard.snp.bottom).offset(20)
+        }
+
         titleLabel.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(12)
+            $0.top.equalToSuperview().offset(24)
             $0.leading.equalToSuperview().offset(20)
         }
+
         searchButton.snp.makeConstraints {
             $0.centerY.equalTo(titleLabel)
             $0.trailing.equalToSuperview().inset(20)
             $0.size.equalTo(28)
         }
 
-            // 취향 프로필 entry
-        profileEntryCard.snp.makeConstraints {
-            $0.top.equalTo(titleLabel.snp.bottom).offset(16)
-            $0.leading.trailing.equalToSuperview().inset(20)
-            $0.height.equalTo(82)
-        }
-        profileIconView.snp.makeConstraints {
-            $0.leading.equalToSuperview().offset(14)
-            $0.centerY.equalToSuperview()
-            $0.size.equalTo(44)
-        }
-        profileIconLabel.snp.makeConstraints { $0.edges.equalToSuperview() }
-        profileCategoryLabel.snp.makeConstraints {
-            $0.leading.equalTo(profileIconView.snp.trailing).offset(12)
-            $0.top.equalToSuperview().offset(16)
-        }
-        profileNameLabel.snp.makeConstraints {
-            $0.leading.equalTo(profileIconView.snp.trailing).offset(12)
-            $0.top.equalTo(profileCategoryLabel.snp.bottom).offset(2)
-        }
-        profileSummaryLabel.snp.makeConstraints {
-            $0.leading.equalTo(profileIconView.snp.trailing).offset(12)
-            $0.top.equalTo(profileNameLabel.snp.bottom).offset(3)
-            $0.trailing.lessThanOrEqualTo(profileChevron.snp.leading).offset(-12)
-        }
-        profileChevron.snp.makeConstraints {
-            $0.trailing.equalToSuperview().inset(14)
-            $0.centerY.equalToSuperview()
-            $0.size.equalTo(CGSize(width: 8, height: 14))
-        }
-
-            // 섹션 타이틀
-        recommendationTitleLabel.snp.makeConstraints {
-            $0.top.equalTo(profileEntryCard.snp.bottom).offset(28)
-            $0.leading.equalToSuperview().offset(20)
-        }
-
-            // 카드 배경 박스 — 위아래 패딩 주어 카드가 배경 안에 떠있는 느낌
-        cardsBackgroundView.snp.makeConstraints {
-            $0.top.equalTo(recommendationTitleLabel.snp.bottom).offset(12)
-            $0.leading.trailing.equalToSuperview().inset(0)
-            $0.height.equalTo(312)
-        }
-        recommendationCollectionView.snp.makeConstraints {
-            $0.top.bottom.equalToSuperview().inset(20)
+        profileHeroCard.snp.makeConstraints {
+            $0.top.equalTo(titleLabel.snp.bottom).offset(92)
             $0.leading.trailing.equalToSuperview()
         }
 
-        moreRecommendationTitleLabel.snp.makeConstraints {
-            $0.top.equalTo(cardsBackgroundView.snp.bottom).offset(28)
+        profileTitleLabel.snp.makeConstraints {
+            $0.top.equalToSuperview()
+            $0.leading.equalToSuperview().offset(20)
+            $0.height.equalTo(0)
+        }
+
+        profileChevronView.snp.makeConstraints {
+            $0.leading.greaterThanOrEqualTo(profileHeadlineLabel.snp.trailing).offset(6)
+            $0.centerY.equalTo(profileHeadlineLabel)
+            $0.trailing.lessThanOrEqualToSuperview().inset(20)
+            $0.width.equalTo(10)
+            $0.height.equalTo(14)
+        }
+
+        profileHeadlineLabel.snp.makeConstraints {
+            $0.top.equalToSuperview()
+            $0.leading.equalToSuperview().offset(20)
+            $0.trailing.lessThanOrEqualTo(profileChevronView.snp.leading).offset(-6)
+        }
+
+        profileSummaryLabel.snp.makeConstraints {
+            $0.top.equalTo(profileHeadlineLabel.snp.bottom).offset(14)
+            $0.leading.trailing.equalToSuperview().inset(20)
+        }
+
+        profileTagStack.snp.makeConstraints {
+            $0.top.equalTo(profileSummaryLabel.snp.bottom).offset(18)
+            $0.leading.equalToSuperview().offset(20)
+            $0.trailing.lessThanOrEqualToSuperview().inset(20)
+            $0.bottom.equalToSuperview()
+        }
+
+        recommendationTitleLabel.snp.makeConstraints {
+            $0.top.equalTo(profileHeroCard.snp.bottom).offset(44)
             $0.leading.equalToSuperview().offset(20)
         }
-        moreRecommendationCollectionView.snp.makeConstraints {
-            $0.top.equalTo(moreRecommendationTitleLabel.snp.bottom).offset(12)
+
+        recommendationCollectionView.snp.makeConstraints {
+            $0.top.equalTo(recommendationTitleLabel.snp.bottom).offset(14)
+            $0.leading.trailing.equalToSuperview()
+            $0.height.equalTo(Layout.cardHeight)
+        }
+
+        guideContainerView.snp.makeConstraints {
+            $0.top.equalTo(recommendationCollectionView.snp.bottom).offset(20)
             $0.leading.trailing.equalToSuperview().inset(20)
-            self.moreRecommendationHeightConstraint = $0.height.equalTo(0).constraint
+            $0.bottom.equalToSuperview().inset(24)
+        }
+
+        guideIconView.snp.makeConstraints {
+            $0.top.leading.equalToSuperview().inset(14)
+            $0.size.equalTo(16)
         }
 
         guideLabel.snp.makeConstraints {
-            $0.top.equalTo(moreRecommendationCollectionView.snp.bottom).offset(12)
-            $0.leading.trailing.equalToSuperview().inset(20)
-            $0.bottom.equalToSuperview().inset(20)
+            $0.top.bottom.equalToSuperview().inset(14)
+            $0.leading.equalTo(guideIconView.snp.trailing).offset(8)
+            $0.trailing.equalToSuperview().inset(14)
         }
     }
 
     @objc func profileCardTapped() {
         guard let item = currentProfileItem else { return }
-
         let profileVC = TasteProfileViewController(profileItem: item)
         navigationController?.pushViewController(profileVC, animated: true)
     }
 }
 
 private extension HomeViewController {
-
-    // MARK: - Bind
 
     func bind() {
         let input = HomeViewModel.Input(
@@ -351,10 +305,22 @@ private extension HomeViewController {
 
         let output = viewModel.transform(input: input)
 
+        bindBanner(output.banner)
         bindProfile(output.profile)
         bindRecommendations(output.recommendations)
         bindRoute(output.route)
         bindSearchButton()
+    }
+
+    func bindBanner(_ banner: Driver<HomeTasteBannerItem>) {
+        banner
+            .drive(with: self) { owner, item in
+                owner.currentBannerItem = item
+                owner.profileHeadlineLabel.text = item.title
+                owner.profileSummaryLabel.text = item.summary
+                owner.updateProfileTags(with: owner.currentProfileItem?.profile, banner: item)
+            }
+            .disposed(by: disposeBag)
     }
 
     func bindProfile(_ profile: Driver<HomeViewModel.HomeProfileItem?>) {
@@ -362,11 +328,11 @@ private extension HomeViewController {
             .drive(with: self) { owner, item in
                 guard let item else { return }
                 owner.currentProfileItem = item
-                let profile = item.profile
-                owner.profileNameLabel.text = profile.displayTitle
-                owner.profileSummaryLabel.text = profile.displayFamilySummary
-                owner.profileIconLabel.text = ScentFamilyColor.iconEmoji(for: profile.displayLeadingFamily)
-                owner.profileIconView.backgroundColor = ScentFamilyColor.iconBackground(for: profile.displayLeadingFamily)
+                if owner.currentBannerItem == nil {
+                    owner.profileHeadlineLabel.text = item.profile.displayTitle
+                    owner.profileSummaryLabel.text = item.profile.analysisSummary
+                }
+                owner.updateProfileTags(with: item.profile, banner: owner.currentBannerItem)
             }
             .disposed(by: disposeBag)
     }
@@ -375,8 +341,7 @@ private extension HomeViewController {
         recommendations
             .drive(with: self) { owner, items in
                 owner.recommendations = items
-                owner.reloadRecommendationViews()
-                owner.updateMoreRecommendationHeight()
+                owner.recommendationCollectionView.reloadData()
             }
             .disposed(by: disposeBag)
     }
@@ -390,16 +355,94 @@ private extension HomeViewController {
     func bindSearchButton() {
         searchButton.rx.tap
             .subscribe(onNext: { [weak self] in
-                let searchViewController = SearchSceneFactory.makeSearchViewController()
+                let searchViewController = SearchSceneFactory.makeSearchViewController(
+                    dependencyContainer: AppDependencyContainer.shared,
+                    showsRecentOnAppear: true
+                )
                 self?.navigationController?.pushViewController(searchViewController, animated: true)
             })
             .disposed(by: disposeBag)
     }
+
+    func updateProfileTags(with profile: UserTasteProfile?, banner: HomeTasteBannerItem?) {
+        profileTagStack.arrangedSubviews.forEach {
+            profileTagStack.removeArrangedSubview($0)
+            $0.removeFromSuperview()
+        }
+
+        var tags: [String] = []
+        if let profile {
+            tags.append(contentsOf: Array(profile.displayFamilies.prefix(2)).map(displayName(for:)))
+        } else if let banner, !banner.familyText.isEmpty {
+            tags.append(contentsOf: banner.familyText.components(separatedBy: "·").map {
+                $0.trimmingCharacters(in: .whitespacesAndNewlines)
+            })
+        }
+
+        if tags.isEmpty {
+            tags = ["취향 분석", "추천 업데이트"]
+        }
+
+        for tag in Array(tags.prefix(2)) {
+            profileTagStack.addArrangedSubview(makeTagLabel(text: tag))
+        }
+    }
+
+    func makeTagLabel(text: String) -> UIView {
+        let dotView = UIView()
+        dotView.backgroundColor = ScentFamilyColor.color(for: text)
+        dotView.layer.cornerRadius = 3
+
+        let label = UILabel()
+        label.text = text
+        label.font = .systemFont(ofSize: 11, weight: .medium)
+        label.textColor = UIColor(white: 0.42, alpha: 1)
+
+        let stack = UIStackView(arrangedSubviews: [dotView, label])
+        stack.axis = .horizontal
+        stack.alignment = .center
+        stack.spacing = 6
+
+        let container = UIView()
+        container.backgroundColor = UIColor.white.withAlphaComponent(0.82)
+        container.layer.cornerRadius = 13
+        container.layer.cornerCurve = .continuous
+        container.addSubview(stack)
+
+        dotView.snp.makeConstraints {
+            $0.size.equalTo(CGSize(width: 6, height: 6))
+        }
+
+        stack.snp.makeConstraints {
+            $0.top.bottom.equalToSuperview().inset(7)
+            $0.leading.trailing.equalToSuperview().inset(10)
+        }
+
+        return container
+    }
+
+    func displayName(for family: String) -> String {
+        switch family {
+        case "Soft Floral": return "소프트 플로럴"
+        case "Floral": return "플로럴"
+        case "Floral Amber": return "플로럴 앰버"
+        case "Soft Amber": return "소프트 앰버"
+        case "Amber": return "앰버"
+        case "Woody Amber": return "우디 앰버"
+        case "Woods": return "우디"
+        case "Mossy Woods": return "모시 우즈"
+        case "Dry Woods": return "드라이 우즈"
+        case "Citrus": return "시트러스"
+        case "Fruity": return "프루티"
+        case "Green": return "그린"
+        case "Water": return "워터리"
+        case "Aromatic": return "아로마틱"
+        default: return family
+        }
+    }
 }
 
 private extension HomeViewController {
-
-    // MARK: - Navigation
 
     func handleRoute(_ route: HomeRoute) {
         switch route {
@@ -433,14 +476,12 @@ private extension HomeViewController {
 
 private extension HomeViewController {
 
-    // MARK: - Likes
-
     func loadLikedPerfumes() {
         collectionRepository.fetchLikedPerfumes()
             .observe(on: MainScheduler.instance)
             .subscribe(onSuccess: { [weak self] items in
                 self?.likedPerfumeIDs = Set(items.map(\.id))
-                self?.reloadRecommendationViews()
+                self?.recommendationCollectionView.reloadData()
             })
             .disposed(by: disposeBag)
     }
@@ -468,8 +509,7 @@ private extension HomeViewController {
             .observe(on: MainScheduler.instance)
             .subscribe(onCompleted: { [weak self] in
                 self?.likedPerfumeIDs.insert(item.id)
-                self?.reloadRecommendationViews()
-                self?.presentLikeSavedAlert(perfumeName: item.perfumeName)
+                self?.recommendationCollectionView.reloadData()
             })
             .disposed(by: disposeBag)
     }
@@ -479,86 +519,30 @@ private extension HomeViewController {
             .observe(on: MainScheduler.instance)
             .subscribe(onCompleted: { [weak self] in
                 self?.likedPerfumeIDs.remove(id)
-                self?.reloadRecommendationViews()
+                self?.recommendationCollectionView.reloadData()
             })
             .disposed(by: disposeBag)
     }
 
-    func presentLikeSavedAlert(perfumeName: String) {
-        let alert = UIAlertController(
-            title: nil,
-            message: AppStrings.UIKitScreens.Home.likeSaved(PerfumePresentationSupport.displayPerfumeName(perfumeName)),
-            preferredStyle: .alert
-        )
-
-        alert.addAction(UIAlertAction(title: AppStrings.UIKitScreens.Home.likeSavedClose, style: .cancel))
-        alert.addAction(UIAlertAction(title: AppStrings.UIKitScreens.Home.likeSavedOpen, style: .default) { [weak self] _ in
-            let likedView = TastingNoteSceneFactory.makeLikedPerfumeListView()
-            let hostingController = UIHostingController(rootView: likedView)
-            self?.navigationController?.pushViewController(hostingController, animated: true)
-        })
-
-        present(alert, animated: true)
-    }
-}
-
-private extension HomeViewController {
-
-    // MARK: - Recommendation Helpers
-
-    func reloadRecommendationViews() {
-        recommendationCollectionView.reloadData()
-        moreRecommendationCollectionView.reloadData()
-    }
-
-    var bestRecommendations: [HomePerfumeItem] {
+    var visibleRecommendations: [HomePerfumeItem] {
         Array(recommendations.prefix(5))
-    }
-
-    var moreRecommendations: [HomePerfumeItem] {
-        Array(recommendations.dropFirst(5).prefix(10))
-    }
-
-    func recommendationItem(for collectionView: UICollectionView, indexPath: IndexPath) -> HomePerfumeItem? {
-        let source = collectionView === recommendationCollectionView ? bestRecommendations : moreRecommendations
-        guard source.indices.contains(indexPath.item) else { return nil }
-        return source[indexPath.item]
-    }
-
-    func updateMoreRecommendationHeight() {
-        let count = moreRecommendations.count
-        guard count > 0 else {
-            moreRecommendationHeightConstraint?.update(offset: 0)
-            return
-        }
-
-        let rows = ceil(CGFloat(count) / 2)
-        let availableWidth = moreRecommendationCollectionView.bounds.width > 0
-            ? moreRecommendationCollectionView.bounds.width
-            : view.bounds.width - 40
-        let cardWidth = floor((availableWidth - Layout.gridSpacing) / 2)
-        let cardHeight = gridCardHeight(for: cardWidth)
-        let height = rows * cardHeight + max(0, rows - 1) * 16
-        moreRecommendationHeightConstraint?.update(offset: height)
-    }
-
-    func gridCardHeight(for width: CGFloat) -> CGFloat {
-        width + 70
     }
 }
 
 extension HomeViewController: UICollectionViewDataSource {
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        collectionView === recommendationCollectionView ? bestRecommendations.count : moreRecommendations.count
+        visibleRecommendations.count
     }
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         guard let cell = collectionView.dequeueReusableCell(
-            withReuseIdentifier: HomePerfumeCardCell.reuseIdentifier, for: indexPath
-        ) as? HomePerfumeCardCell else { return UICollectionViewCell() }
-        guard let item = recommendationItem(for: collectionView, indexPath: indexPath) else {
+            withReuseIdentifier: HomePerfumeCardCell.reuseIdentifier,
+            for: indexPath
+        ) as? HomePerfumeCardCell else {
             return UICollectionViewCell()
         }
+
+        let item = visibleRecommendations[indexPath.item]
         cell.configure(with: item, isLiked: likedPerfumeIDs.contains(item.id))
         cell.wishlistButton.rx.tap
             .subscribe(onNext: { [weak self] in
@@ -575,23 +559,78 @@ extension HomeViewController: UICollectionViewDataSource {
 }
 
 extension HomeViewController: UICollectionViewDelegateFlowLayout {
-    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-        if collectionView === recommendationCollectionView {
-            return CGSize(width: Layout.bestCardWidth, height: Layout.bestCardHeight)
-        }
-
-        let width = floor((collectionView.bounds.width - Layout.gridSpacing) / 2)
-        return CGSize(width: width, height: gridCardHeight(for: width))
+    func collectionView(
+        _ collectionView: UICollectionView,
+        layout collectionViewLayout: UICollectionViewLayout,
+        sizeForItemAt indexPath: IndexPath
+    ) -> CGSize {
+        CGSize(width: Layout.cardWidth, height: Layout.cardHeight)
     }
-    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, insetForSectionAt section: Int) -> UIEdgeInsets {
-        if collectionView === recommendationCollectionView {
-            return UIEdgeInsets(top: 0, left: Layout.horizontalInset, bottom: 0, right: Layout.horizontalInset)
-        }
-        return .zero
+
+    func collectionView(
+        _ collectionView: UICollectionView,
+        layout collectionViewLayout: UICollectionViewLayout,
+        insetForSectionAt section: Int
+    ) -> UIEdgeInsets {
+        UIEdgeInsets(top: 0, left: Layout.horizontalInset, bottom: 0, right: Layout.horizontalInset)
     }
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        guard let item = recommendationItem(for: collectionView, indexPath: indexPath) else { return }
-        navigateToPerfumeDetail(item.perfume)
+        navigateToPerfumeDetail(visibleRecommendations[indexPath.item].perfume)
+    }
+}
+
+private final class PaddingLabel: UILabel {
+    private let insets: UIEdgeInsets
+
+    init(insets: UIEdgeInsets) {
+        self.insets = insets
+        super.init(frame: .zero)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    override func drawText(in rect: CGRect) {
+        super.drawText(in: rect.inset(by: insets))
+    }
+
+    override var intrinsicContentSize: CGSize {
+        let size = super.intrinsicContentSize
+        return CGSize(
+            width: size.width + insets.left + insets.right,
+            height: size.height + insets.top + insets.bottom
+        )
+    }
+}
+
+private final class HomeGradientView: UIView {
+    private let gradientLayer = CAGradientLayer()
+    private let beigeOverlayView = UIView()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        isUserInteractionEnabled = false
+        backgroundColor = UIColor(red: 0.96, green: 0.92, blue: 0.88, alpha: 1)
+        gradientLayer.colors = [
+            UIColor(red: 0.84, green: 0.49, blue: 0.58, alpha: 1).cgColor,
+            UIColor(red: 0.95, green: 0.69, blue: 0.78, alpha: 1).cgColor,
+            UIColor(red: 0.96, green: 0.92, blue: 0.88, alpha: 0.92).cgColor,
+            UIColor(red: 0.96, green: 0.92, blue: 0.88, alpha: 1).cgColor
+        ]
+        gradientLayer.locations = [0.0, 0.52, 0.82, 1.0]
+        gradientLayer.startPoint = CGPoint(x: 0.12, y: 0.0)
+        gradientLayer.endPoint = CGPoint(x: 0.88, y: 1.0)
+        layer.addSublayer(gradientLayer)
+
+        beigeOverlayView.backgroundColor = UIColor(red: 0.96, green: 0.92, blue: 0.88, alpha: 0.22)
+        addSubview(beigeOverlayView)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        gradientLayer.frame = bounds
+        beigeOverlayView.frame = bounds
     }
 }

@@ -23,8 +23,14 @@ enum TastingNoteSyncStatus: String {
 
 @MainActor
 final class LocalTastingNoteRepository {
+    private enum NarrativeRefreshRule {
+        static let minimumRecordCount = 5
+        static let minimumMemoLength = 20
+    }
+
     private let coreDataStack: CoreDataStack
     private let database: Firestore
+    private let userTasteRepository: UserTasteRepositoryType
 
     private var context: NSManagedObjectContext {
         coreDataStack.viewContext
@@ -39,10 +45,12 @@ final class LocalTastingNoteRepository {
 
     init(
         coreDataStack: CoreDataStack,
-        database: Firestore = .firestore()
+        database: Firestore = .firestore(),
+        userTasteRepository: UserTasteRepositoryType? = nil
     ) {
         self.coreDataStack = coreDataStack
         self.database = database
+        self.userTasteRepository = userTasteRepository ?? UserTasteRepository()
     }
 
     func loadNotes() throws -> [TastingNote] {
@@ -161,6 +169,7 @@ final class LocalTastingNoteRepository {
 
             try coreDataStack.saveIfNeeded()
             notifyChange()
+            await refreshNarrativeIfNeeded()
         } catch {
             markPendingEntitiesAsFailed()
             try? coreDataStack.saveIfNeeded()
@@ -241,6 +250,23 @@ final class LocalTastingNoteRepository {
 
     private func notifyChange() {
         NotificationCenter.default.post(name: .tastingNotesDidChange, object: nil)
+    }
+
+    private func refreshNarrativeIfNeeded() async {
+        guard let records = try? await FirestoreService.shared.fetchTastingRecords() else { return }
+        guard shouldRefreshNarrative(with: records) else { return }
+        _ = try? await userTasteRepository.reanalyzeTasteFromHistory()
+    }
+
+    private func shouldRefreshNarrative(with records: [TastingRecord]) -> Bool {
+        guard records.count >= NarrativeRefreshRule.minimumRecordCount else { return false }
+
+        return records.contains { record in
+            let memoLength = record.memo?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .count ?? 0
+            return memoLength >= NarrativeRefreshRule.minimumMemoLength
+        }
     }
 
     private func markPendingEntitiesAsFailed() {

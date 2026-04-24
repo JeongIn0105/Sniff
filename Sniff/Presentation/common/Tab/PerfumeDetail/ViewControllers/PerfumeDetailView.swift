@@ -27,10 +27,12 @@ final class PerfumeDetailViewController: UIViewController {
 
     private let viewModel: PerfumeDetailViewModel
     private let collectionRepository: CollectionRepositoryType
+    private let tastingRecordRepository: TastingRecordRepositoryType
     private let disposeBag = DisposeBag()
     private var currentPerfume: Perfume?
     private var likedPerfumeIDs = Set<String>()
     private var ownedPerfumeIDs = Set<String>()
+    private var hasTastingRecord = false
     private weak var presentedTastingFormController: UIViewController?
 
     private let addCollectionRelay = PublishRelay<Void>()
@@ -38,10 +40,12 @@ final class PerfumeDetailViewController: UIViewController {
 
     init(
         viewModel: PerfumeDetailViewModel,
-        collectionRepository: CollectionRepositoryType
+        collectionRepository: CollectionRepositoryType,
+        tastingRecordRepository: TastingRecordRepositoryType
     ) {
         self.viewModel = viewModel
         self.collectionRepository = collectionRepository
+        self.tastingRecordRepository = tastingRecordRepository
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -87,13 +91,8 @@ final class PerfumeDetailViewController: UIViewController {
     }
 
     private let likeButton = UIButton(type: .custom).then {
-        $0.setImage(UIImage(systemName: "heart")?.withRenderingMode(.alwaysTemplate), for: .normal)
-        $0.setImage(UIImage(systemName: "heart.fill")?.withRenderingMode(.alwaysTemplate), for: .selected)
-        $0.tintColor = .white
-        $0.backgroundColor = UIColor(hex: "#3B3934")
-        $0.layer.cornerRadius = 18
-        $0.layer.borderWidth = 1
-        $0.layer.borderColor = Palette.border.cgColor
+        PerfumeHeartStyle.configure($0)
+        PerfumeHeartStyle.applyState(to: $0, isLiked: false)
     }
 
     private let brandLabel = UILabel().then {
@@ -113,7 +112,7 @@ final class PerfumeDetailViewController: UIViewController {
         $0.numberOfLines = 1
     }
     private let usageInfoView = UsageInfoView()
-    private let accordChipsView = ChipWrapView(style: .mixed)
+    private let accordChipsView = ChipWrapView(style: .outline)
     private let notesView = DetailNotesView()
     private let seasonChipsView = SeasonSelectionView()
 
@@ -149,6 +148,7 @@ final class PerfumeDetailViewController: UIViewController {
         super.viewWillAppear(animated)
         navigationController?.setNavigationBarHidden(true, animated: animated)
         loadLikedPerfumes()
+        refreshTastingRecordState()
     }
 
     private func setupUI() {
@@ -235,7 +235,7 @@ final class PerfumeDetailViewController: UIViewController {
         likeButton.snp.makeConstraints {
             $0.trailing.equalToSuperview().offset(-18)
             $0.bottom.equalToSuperview().offset(-18)
-            $0.size.equalTo(42)
+            $0.size.equalTo(32)
         }
 
         infoSectionView.snp.makeConstraints {
@@ -350,7 +350,14 @@ final class PerfumeDetailViewController: UIViewController {
             .disposed(by: disposeBag)
 
         addTastingButton.rx.tap
-            .bind(to: addTastingRecordRelay)
+            .subscribe(onNext: { [weak self] in
+                guard let self, let perfume = self.currentPerfume else { return }
+                if self.hasTastingRecord {
+                    self.navigateToTastingRecords(perfume: perfume)
+                } else {
+                    self.addTastingRecordRelay.accept(())
+                }
+            })
             .disposed(by: disposeBag)
     }
 
@@ -389,6 +396,7 @@ final class PerfumeDetailViewController: UIViewController {
         seasonChipsView.configure(selectedSeasons: topSeasonNames(for: perfume))
         updateLikeUI(isLiked: likedPerfumeIDs.contains(perfume.id))
         updateOwnedUI(isOwned: ownedPerfumeIDs.contains(perfume.id))
+        updateTastingButtonUI()
     }
 
     private func configureImage(using imageURL: String?) {
@@ -443,15 +451,30 @@ final class PerfumeDetailViewController: UIViewController {
 
     private func navigateToTastingRecord(perfume: Perfume) {
         let formView = TastingNoteSceneFactory.makeFormView(initialPerfume: perfume) { [weak self] perfumeName in
-            self?.showCompletionAlert(
-                title: AppStrings.UIKitScreens.PerfumeDetail.tastingSavedTitle,
-                message: AppStrings.UIKitScreens.PerfumeDetail.tastingSaved(PerfumePresentationSupport.displayPerfumeName(perfumeName))
-            )
+            guard let self else { return }
+            self.hasTastingRecord = true
+            self.updateTastingButtonUI()
+            if let presentedTastingFormController {
+                presentedTastingFormController.dismiss(animated: true) {
+                    self.presentedTastingFormController = nil
+                    self.refreshTastingRecordState()
+                }
+            }
         }
         let hostingController = UIHostingController(rootView: formView)
         hostingController.modalPresentationStyle = .fullScreen
         presentedTastingFormController = hostingController
         present(hostingController, animated: true)
+    }
+
+    private func navigateToTastingRecords(perfume: Perfume) {
+        let scope = TastingNotePerfumeScope(
+            perfumeName: perfume.name,
+            brandName: perfume.brand
+        )
+        let tastingView = TastingNoteSceneFactory.makeListView(perfumeScope: scope)
+        let hostingController = UIHostingController(rootView: tastingView)
+        navigationController?.pushViewController(hostingController, animated: true)
     }
 
     private func showErrorAlert(message: String) {
@@ -588,11 +611,38 @@ final class PerfumeDetailViewController: UIViewController {
     }
 
     private func updateLikeUI(isLiked: Bool) {
-        likeButton.isSelected = isLiked
+        PerfumeHeartStyle.applyState(to: likeButton, isLiked: isLiked)
     }
 
     private func updateOwnedUI(isOwned: Bool) {
         let title = isOwned ? AppStrings.UIKitScreens.PerfumeDetail.addedCollection : AppStrings.UIKitScreens.PerfumeDetail.addCollection
         addCollectionButton.setTitle(title, for: .normal)
+    }
+
+    private func refreshTastingRecordState() {
+        guard let perfume = currentPerfume else { return }
+
+        tastingRecordRepository.fetchTastingRecords()
+            .observe(on: MainScheduler.instance)
+            .subscribe(onSuccess: { [weak self] records in
+                guard let self else { return }
+                let key = PerfumePresentationSupport.recordKey(
+                    perfumeName: perfume.name,
+                    brandName: perfume.brand
+                )
+                self.hasTastingRecord = records.contains {
+                    PerfumePresentationSupport.recordKey(
+                        perfumeName: $0.perfumeName,
+                        brandName: $0.brandName
+                    ) == key
+                }
+                self.updateTastingButtonUI()
+            }, onFailure: { _ in })
+            .disposed(by: disposeBag)
+    }
+
+    private func updateTastingButtonUI() {
+        let title = hasTastingRecord ? "시향기로 이동" : AppStrings.UIKitScreens.PerfumeDetail.addTasting
+        addTastingButton.setTitle(title, for: .normal)
     }
 }

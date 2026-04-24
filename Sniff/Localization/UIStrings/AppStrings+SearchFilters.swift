@@ -14,25 +14,25 @@ extension AppStrings {
 extension AppStrings.DomainDisplay {
     enum SearchFilters {
         nonisolated static let parfum = "퍼퓸"
-        nonisolated static let eauDeParfum = "오드퍼퓸(EDP)"
-        nonisolated static let eauDeToilette = "오드뚜왈렛(EDT)"
-        nonisolated static let eauDeCologne = "오드콜로뉴(EDC)"
-        nonisolated static let eauFraiche = "오프레시"
+        nonisolated static let eauDeParfum = "오 드 퍼퓸"
+        nonisolated static let eauDeToilette = "오 드 뚜왈렛"
+        nonisolated static let eauDeCologne = "오 드 코롱"
+        nonisolated static let eauFraiche = "오 프레쉬"
 
         nonisolated static let spring = "봄"
         nonisolated static let summer = "여름"
         nonisolated static let fall = "가을"
         nonisolated static let winter = "겨울"
 
-        nonisolated static let parfumDescription = "오일 함량이 가장 높아 향이 진하고 오래 유지되는 편이에요."
-        nonisolated static let eauDeParfumDescription = "일상에서 가장 무난하게 쓰기 좋고 지속력도 비교적 안정적이에요."
-        nonisolated static let eauDeToiletteDescription = "EDP보다 가볍고 산뜻해서 데일리로 부담 없이 쓰기 좋아요."
-        nonisolated static let eauDeCologneDescription = "향이 가장 가볍고 지속 시간이 짧아 리프레시용에 가까워요."
-        nonisolated static let eauFraicheDescription = "아주 옅고 가벼운 타입으로 짧게 향을 더하는 느낌에 가까워요."
+        nonisolated static let parfumDescription = "오일 함량이 가장 높아 향이 진하고 오래 유지돼요.\n8시간 이상 지속되는 편이에요."
+        nonisolated static let eauDeParfumDescription = "일상에서 가장 무난하게 쓰기 좋고 지속력도 안정적이에요.\n5~8시간 정도 유지돼요."
+        nonisolated static let eauDeToiletteDescription = "EDP보다 가볍고 산뜻해서 데일리로 부담 없이 쓰기 좋아요.\n3~5시간 정도 가는 편이에요."
+        nonisolated static let eauDeCologneDescription = "향이 가장 가볍고 지속 시간이 짧아 리프레시용에 가까워요.\n2~3시간 정도 유지돼요."
+        nonisolated static let eauFraicheDescription = "아주 옅고 가벼운 타입으로 짧게 향을 더하는 느낌에 가까워요.\n1~2시간 정도 지속돼요."
 
         nonisolated static let sortRecommended = "추천순"
-        nonisolated static let sortNameAsc = "이름순 (A-Z)"
-        nonisolated static let sortNameDesc = "이름역순 (Z-A)"
+        nonisolated static let sortNameAsc = "이름 순 (ㄱ~ㅎ)"
+        nonisolated static let sortNameDesc = "이름 역순 (ㅎ~ㄱ)"
 
         nonisolated static let citrusDescription = "레몬과 베르가못처럼 상큼하고 밝은 계열"
         nonisolated static let fruityDescription = "과즙감 있고 달콤한 생기가 느껴지는 계열"

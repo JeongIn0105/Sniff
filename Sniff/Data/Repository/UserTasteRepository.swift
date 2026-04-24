@@ -14,9 +14,15 @@ final class UserTasteRepository: UserTasteRepositoryType {
         static let latestTasteAnalysis = "sniff.latestTasteAnalysis"
     }
 
+    private enum NarrativeRefreshRule {
+        static let minimumRecordCount = 5
+        static let minimumMemoLength = 20
+    }
+
     private let geminiService: GeminiTasteAnalysisService?
     private let firestoreService: FirestoreService
     private let defaults: UserDefaults
+    private let aggregator = PreferenceAggregator()
 
     init(
         geminiService: GeminiTasteAnalysisService? = nil,
@@ -72,6 +78,50 @@ final class UserTasteRepository: UserTasteRepositoryType {
         return result
     }
 
+    func reanalyzeTasteFromHistory() async throws -> TasteAnalysisResult {
+        guard let geminiService else {
+            throw AppSecretsError.missingValue("GEMINI_API_KEY")
+        }
+
+        async let onboardingAnalysis = firestoreService.fetchTasteAnalysis()
+        async let collection = firestoreService.fetchCollection()
+        async let tastingRecords = firestoreService.fetchTastingRecords()
+        async let userProfile = firestoreService.fetchUserProfile()
+
+        let baseAnalysis = try await onboardingAnalysis
+        let collectionItems = try await collection
+        let recordItems = try await tastingRecords
+        let user = try await userProfile
+
+        let aggregatedProfile = aggregator.aggregate(
+            onboarding: baseAnalysis,
+            collection: collectionItems,
+            tastingRecords: recordItems
+        )
+
+        guard shouldRefreshNarrative(with: recordItems) else {
+            return baseAnalysis
+        }
+
+        let enrichedInput = TasteAnalysisInput(
+            experience: baseAnalysis.evidenceTags.experience,
+            vibes: baseAnalysis.evidenceTags.vibes,
+            images: baseAnalysis.evidenceTags.images,
+            aggregatedProfile: (!collectionItems.isEmpty || !recordItems.isEmpty)
+                ? AggregatedProfileForGemini(profile: aggregatedProfile)
+                : nil,
+            records: TastingRecordForGemini.supportingRecords(from: recordItems)
+        )
+
+        let refreshedAnalysis = try await geminiService.requestTasteAnalysis(input: enrichedInput)
+        try await saveUserProfile(
+            nickname: user.nickname,
+            tasteAnalysis: refreshedAnalysis,
+            experienceLevel: user.experienceLevel
+        )
+        return refreshedAnalysis
+    }
+
     func checkNicknameAvailability(_ nickname: String) async throws -> Bool {
         try await firestoreService.isNicknameAvailable(nickname)
     }
@@ -97,5 +147,16 @@ final class UserTasteRepository: UserTasteRepositoryType {
     private func cachedTasteAnalysis() -> TasteAnalysisResult? {
         guard let data = defaults.data(forKey: CacheKey.latestTasteAnalysis) else { return nil }
         return try? JSONDecoder().decode(TasteAnalysisResult.self, from: data)
+    }
+
+    private func shouldRefreshNarrative(with records: [TastingRecord]) -> Bool {
+        guard records.count >= NarrativeRefreshRule.minimumRecordCount else { return false }
+
+        return records.contains { record in
+            let memoLength = record.memo?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .count ?? 0
+            return memoLength >= NarrativeRefreshRule.minimumMemoLength
+        }
     }
 }

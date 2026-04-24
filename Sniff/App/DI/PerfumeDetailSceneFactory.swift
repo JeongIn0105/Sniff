@@ -18,13 +18,15 @@ enum PerfumeDetailSceneFactory {
         dependencyContainer: AppDependencyContainer
     ) -> PerfumeDetailViewController {
         let collectionRepository = dependencyContainer.makeCollectionRepository()
+        let tastingRecordRepository = dependencyContainer.makeTastingRecordRepository()
         let viewModel = PerfumeDetailViewModel(
             perfume: perfume,
             perfumeCatalogRepository: dependencyContainer.makePerfumeCatalogRepository()
         )
         return PerfumeDetailViewController(
             viewModel: viewModel,
-            collectionRepository: collectionRepository
+            collectionRepository: collectionRepository,
+            tastingRecordRepository: tastingRecordRepository
         )
     }
 
@@ -37,13 +39,15 @@ enum PerfumeDetailSceneFactory {
         dependencyContainer: AppDependencyContainer
     ) -> PerfumeDetailViewController {
         let collectionRepository = dependencyContainer.makeCollectionRepository()
+        let tastingRecordRepository = dependencyContainer.makeTastingRecordRepository()
         let viewModel = PerfumeDetailViewModel(
             perfumeId: perfumeId,
             perfumeCatalogRepository: dependencyContainer.makePerfumeCatalogRepository()
         )
         return PerfumeDetailViewController(
             viewModel: viewModel,
-            collectionRepository: collectionRepository
+            collectionRepository: collectionRepository,
+            tastingRecordRepository: tastingRecordRepository
         )
     }
 }

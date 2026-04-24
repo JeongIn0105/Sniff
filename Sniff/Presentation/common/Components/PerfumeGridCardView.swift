@@ -288,14 +288,10 @@ struct PerfumeGridCardView: View {
             if hasTastingRecord {
                 Text(AppStrings.TastingNoteUI.tastingRecordBadge)
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(style == .listThumbnail ? Color(.systemGray) : .white)
+                    .foregroundColor(Color(uiColor: UIColor(red: 0.47, green: 0.39, blue: 0.31, alpha: 1)))
                     .padding(.horizontal, 12)
                     .frame(height: style.badgeHeight)
-                    .background(
-                        style == .listThumbnail
-                        ? Color(red: 0.97, green: 0.95, blue: 0.92)
-                        : Color(.systemGray)
-                    )
+                    .background(Color.white.opacity(0.92))
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                     .padding(.top, style.badgeTopInset)
                     .padding(.leading, style.badgeLeadingInset)
@@ -303,9 +299,9 @@ struct PerfumeGridCardView: View {
         }
         .overlay(alignment: .bottomTrailing) {
             if showsHeartIcon {
-                Image(systemName: isLiked ? "heart.fill" : "heart")
+                Image(systemName: "heart.fill")
                     .font(.system(size: style.likeIconSize, weight: .semibold))
-                    .foregroundColor(isLiked ? Color(.systemGray) : Color(.systemGray2))
+                    .foregroundColor(isLiked ? PerfumeHeartStyle.activeColor : PerfumeHeartStyle.inactiveColor)
                     .padding(.trailing, style.likeIconInset)
                     .padding(.bottom, style.likeIconInset)
             }
@@ -322,9 +318,9 @@ struct PerfumeCardHeartButton: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: isLiked ? "heart.fill" : "heart")
+            Image(systemName: "heart.fill")
                 .font(.system(size: style.likeIconSize, weight: .semibold))
-                .foregroundColor(isLiked ? Color(.systemGray) : Color(.systemGray2))
+                .foregroundColor(isLiked ? PerfumeHeartStyle.activeColor : PerfumeHeartStyle.inactiveColor)
                 .frame(width: 32, height: 32)
                 .contentShape(Rectangle())
         }
@@ -447,7 +443,7 @@ struct PerfumeGridCardAccordLine: View {
             ForEach(Array(displayAccords.enumerated()), id: \.offset) { index, accord in
                 HStack(spacing: 4) {
                     Circle()
-                        .fill(index == 0 ? Color(red: 0.97, green: 0.67, blue: 0.67) : Color(.systemGray3))
+                        .fill(Color(uiColor: ScentFamilyColor.color(for: accords[index])))
                         .frame(width: style.accordDotSize, height: style.accordDotSize)
 
                     Text(accord)

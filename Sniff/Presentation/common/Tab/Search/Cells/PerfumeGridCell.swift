@@ -42,11 +42,8 @@ final class PerfumeGridCell: UICollectionViewCell {
     }
 
     let wishlistButton = UIButton(type: .custom).then {
-        $0.setImage(UIImage(systemName: "heart")?.withRenderingMode(.alwaysTemplate), for: .normal)
-        $0.setImage(UIImage(systemName: "heart.fill")?.withRenderingMode(.alwaysTemplate), for: .selected)
-        $0.tintColor = .white
-        $0.backgroundColor = UIColor.black.withAlphaComponent(0.18)
-        $0.layer.cornerRadius = 14
+        PerfumeHeartStyle.configure($0)
+        PerfumeHeartStyle.applyState(to: $0, isLiked: false)
     }
 
     private let brandLabel = UILabel().then {
@@ -116,8 +113,8 @@ final class PerfumeGridCell: UICollectionViewCell {
         }
 
         wishlistButton.snp.makeConstraints {
-            $0.trailing.bottom.equalToSuperview().inset(8)
-            $0.size.equalTo(28)
+            $0.trailing.bottom.equalToSuperview().inset(10)
+            $0.size.equalTo(32)
         }
 
         brandLabel.snp.makeConstraints {
@@ -143,7 +140,7 @@ final class PerfumeGridCell: UICollectionViewCell {
     func configure(with perfume: Perfume, isLiked: Bool = false) {
         brandLabel.text = PerfumePresentationSupport.displayBrand(perfume.brand)
         nameLabel.text = PerfumePresentationSupport.displayPerfumeName(perfume.name)
-        wishlistButton.isSelected = isLiked
+        PerfumeHeartStyle.applyState(to: wishlistButton, isLiked: isLiked)
         placeholderLabel.isHidden = false
 
         if let urlStr = perfume.imageUrl, let url = URL(string: urlStr) {
@@ -192,7 +189,7 @@ private final class AccordPillView: UIView {
 
         let label = UILabel().then {
             $0.text = displayAccord
-            $0.font = .systemFont(ofSize: 11)
+            $0.font = .systemFont(ofSize: 12)
             $0.textColor = .secondaryLabel
         }
 

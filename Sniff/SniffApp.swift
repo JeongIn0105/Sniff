@@ -26,7 +26,6 @@ struct SniffApp: App {
 
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var appStateManager = AppStateManager()
-    @State private var didResolveInitialRoute = false
     private let dependencyContainer = AppDependencyContainer.shared
 
     // MARK: - Firebase 초기화
@@ -38,6 +37,11 @@ struct SniffApp: App {
         WindowGroup {
             contentView
                 .environmentObject(appStateManager)
+                .task {
+                    appStateManager.startObservingAuth(
+                        userProfileStatusRepository: dependencyContainer.makeUserProfileStatusRepository()
+                    )
+                }
         }
     }
 
@@ -47,17 +51,9 @@ struct SniffApp: App {
         case .splash:
             SplashView()
                 .onAppear {
-                    guard !didResolveInitialRoute else { return }
-                    didResolveInitialRoute = true
-
                     Task {
                         try? await Task.sleep(nanoseconds: 2_000_000_000)
-                        let nextState = await resolveInitialState()
-                        await MainActor.run {
-                            withAnimation(.easeInOut) {
-                                appStateManager.state = nextState
-                            }
-                        }
+                        await appStateManager.completeSplash()
                     }
                 }
         case .login:
@@ -76,21 +72,6 @@ struct SniffApp: App {
             )
         case .main:
             MainTabView()
-        }
-    }
-
-    private func resolveInitialState() async -> AppState {
-        guard let userID = Auth.auth().currentUser?.uid else {
-            return .login
-        }
-
-        do {
-            let hasProfile = try await dependencyContainer
-                .makeUserProfileStatusRepository()
-                .hasUserProfile(userID: userID)
-            return hasProfile ? .main : .onboardingIntro
-        } catch {
-            return .login
         }
     }
 }
