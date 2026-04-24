@@ -172,7 +172,7 @@ final class TastingNoteViewModel: ObservableObject {
             noteToDelete = nil
             isDeleteMode = false
         } catch {
-            errorMessage = "삭제 중 오류가 발생했어요"
+            errorMessage = AppStrings.ViewModelMessages.TastingNote.deleteFailed
         }
     }
  
@@ -183,7 +183,7 @@ final class TastingNoteViewModel: ObservableObject {
             try await localRepository.delete(note)
             notes = try localRepository.loadNotes()
         } catch {
-            errorMessage = "삭제 중 오류가 발생했어요"
+            errorMessage = AppStrings.ViewModelMessages.TastingNote.deleteFailed
         }
     }
  
@@ -214,7 +214,7 @@ final class TastingNoteViewModel: ObservableObject {
     // MARK: - 저장 완료 토스트
  
     func showToast(perfumeName: String) {
-        toastMessage = "\(perfumeName) 시향기가 등록되었습니다"
+        toastMessage = AppStrings.ViewModelMessages.TastingNote.saved(perfumeName)
         toastTask?.cancel()
         toastTask = Task {
             try? await Task.sleep(nanoseconds: 2_500_000_000)

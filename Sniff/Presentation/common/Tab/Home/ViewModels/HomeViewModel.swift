@@ -66,9 +66,9 @@ final class HomeViewModel {
         let quickActions = input.viewDidLoad
             .map {
                 [
-                    HomeQuickAction(type: .perfumeRegister, title: "향수 등록",   systemImageName: "square.stack.3d.down.right.fill"),
-                    HomeQuickAction(type: .tastingNote,     title: "시향기 등록", systemImageName: "square.stack.3d.down.right.fill"),
-                    HomeQuickAction(type: .report,          title: "취향 리포트", systemImageName: "square.stack.3d.down.right.fill")
+                    HomeQuickAction(type: .perfumeRegister, title: AppStrings.Home.shortcutPerfume, systemImageName: "square.stack.3d.down.right.fill"),
+                    HomeQuickAction(type: .tastingNote, title: AppStrings.Home.shortcutTasting, systemImageName: "square.stack.3d.down.right.fill"),
+                    HomeQuickAction(type: .report, title: AppStrings.Home.shortcutReport, systemImageName: "square.stack.3d.down.right.fill")
                 ]
             }
             .asDriver(onErrorJustReturn: [])
@@ -201,7 +201,7 @@ private func mapToHomePerfumeItem(
 private func makeHomeAccordText(_ perfume: Perfume, profile: UserTasteProfile) -> String {
     let accords = prioritizedHomeAccords(perfume, profile: profile)
     return accords.isEmpty
-        ? "• Floral  • Musk"
+        ? AppStrings.Home.fallbackAccords
         : accords.map { "• \($0)" }.joined(separator: "  ")
 }
 
@@ -272,9 +272,9 @@ private func makeHomeBanner(from profile: UserTasteProfile) -> HomeTasteBannerIt
     } else if !profile.analysisSummary.isEmpty {
         summary = profile.analysisSummary
     } else if !familyText.isEmpty {
-        summary = "\(familyText) 계열을 중심으로 추천을 이어가고 있어요"
+        summary = AppStrings.Home.familySummary(familyText)
     } else {
-        summary = "나에게 맞는 향수를 찾아가요"
+        summary = AppStrings.Home.emptySummary
     }
     return HomeTasteBannerItem(
         title: profile.displayTitle,
@@ -285,8 +285,8 @@ private func makeHomeBanner(from profile: UserTasteProfile) -> HomeTasteBannerIt
 
 private func defaultHomeBanner() -> HomeTasteBannerItem {
     HomeTasteBannerItem(
-        title: "현재 취향을 찾는 중이에요",
-        summary: "나에게 맞는 향수를 찾아가요",
+        title: AppStrings.Home.pendingTitle,
+        summary: AppStrings.Home.emptySummary,
         familyText: ""
     )
 }

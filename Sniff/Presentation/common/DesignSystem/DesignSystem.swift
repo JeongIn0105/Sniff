@@ -9,6 +9,7 @@ import SwiftUI
 import Combine
 
 extension Color {
+    static let sniffBeige = Color(hex: "#F1E8DF")
     static let scentFloral  = Color(hex: "#e8a4b8")
     static let scentFresh   = Color(hex: "#7ecbb8")
     static let scentWoody   = Color(hex: "#a07850")

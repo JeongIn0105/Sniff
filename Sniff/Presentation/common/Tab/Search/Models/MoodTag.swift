@@ -35,33 +35,33 @@ enum ScentFamilyFilter: String, CaseIterable, Codable {
     nonisolated var descriptionText: String {
         switch self {
         case .citrus:
-            return "레몬과 베르가못처럼 상큼하고 밝은 계열"
+            return AppStrings.DomainDisplay.SearchFilters.citrusDescription
         case .fruity:
-            return "과즙감 있고 달콤한 생기가 느껴지는 계열"
+            return AppStrings.DomainDisplay.SearchFilters.fruityDescription
         case .green:
-            return "풀잎과 허브처럼 싱그럽고 내추럴한 계열"
+            return AppStrings.DomainDisplay.SearchFilters.greenDescription
         case .water:
-            return "물기 어린 시원함과 맑은 공기가 느껴지는 계열"
+            return AppStrings.DomainDisplay.SearchFilters.waterDescription
         case .aromatic:
-            return "허브와 잎사귀처럼 산뜻하고 깔끔한 계열"
+            return AppStrings.DomainDisplay.SearchFilters.aromaticDescription
         case .floral:
-            return "꽃향 중심의 화사하고 우아한 계열"
+            return AppStrings.DomainDisplay.SearchFilters.floralDescription
         case .softFloral:
-            return "보송하고 부드러운 꽃향이 감도는 계열"
+            return AppStrings.DomainDisplay.SearchFilters.softFloralDescription
         case .floralAmber:
-            return "꽃향에 따뜻한 앰버 기운이 더해진 계열"
+            return AppStrings.DomainDisplay.SearchFilters.floralAmberDescription
         case .softAmber:
-            return "부드럽고 달콤하게 감도는 앰버 계열"
+            return AppStrings.DomainDisplay.SearchFilters.softAmberDescription
         case .amber:
-            return "따뜻하고 묵직한 잔향이 느껴지는 계열"
+            return AppStrings.DomainDisplay.SearchFilters.amberDescription
         case .woods:
-            return "나무결처럼 차분하고 자연스러운 우디 계열"
+            return AppStrings.DomainDisplay.SearchFilters.woodsDescription
         case .woodyAmber:
-            return "우디와 앰버가 겹쳐 따뜻하고 고급스러운 계열"
+            return AppStrings.DomainDisplay.SearchFilters.woodyAmberDescription
         case .mossyWoods:
-            return "이끼와 흙내음이 감도는 깊고 차분한 우디 계열"
+            return AppStrings.DomainDisplay.SearchFilters.mossyWoodsDescription
         case .dryWoods:
-            return "건조하고 또렷한 나무 향이 중심인 우디 계열"
+            return AppStrings.DomainDisplay.SearchFilters.dryWoodsDescription
         }
     }
 
@@ -134,7 +134,20 @@ enum Concentration: String, CaseIterable, Codable {
     case edc       = "오드콜로뉴(EDC)"
     case eauFraiche = "오프레시"
 
-    nonisolated var displayName: String { rawValue }
+    nonisolated var displayName: String {
+        switch self {
+        case .parfum:
+            return AppStrings.DomainDisplay.SearchFilters.parfum
+        case .edp:
+            return AppStrings.DomainDisplay.SearchFilters.eauDeParfum
+        case .edt:
+            return AppStrings.DomainDisplay.SearchFilters.eauDeToilette
+        case .edc:
+            return AppStrings.DomainDisplay.SearchFilters.eauDeCologne
+        case .eauFraiche:
+            return AppStrings.DomainDisplay.SearchFilters.eauFraiche
+        }
+    }
 
         // Fragella API 값 매핑
     nonisolated var fragellaValues: [String] {
@@ -156,7 +169,18 @@ enum Season: String, CaseIterable, Codable {
     case fall      = "가을"
     case winter    = "겨울"
 
-    nonisolated var displayName: String { rawValue }
+    nonisolated var displayName: String {
+        switch self {
+        case .spring:
+            return AppStrings.DomainDisplay.SearchFilters.spring
+        case .summer:
+            return AppStrings.DomainDisplay.SearchFilters.summer
+        case .fall:
+            return AppStrings.DomainDisplay.SearchFilters.fall
+        case .winter:
+            return AppStrings.DomainDisplay.SearchFilters.winter
+        }
+    }
 
     nonisolated var fragellaValue: String? {
         switch self {
@@ -193,7 +217,7 @@ struct SearchFilter: Equatable {
         ?? seasons.first?.displayName
         ?? ""
         let remaining = totalCount - 1
-        return remaining > 0 ? "\(first) 외 \(remaining)개" : first
+        return remaining > 0 ? AppStrings.DomainDisplay.SearchFilters.summaryLabel(first, remaining) : first
     }
 
     mutating func reset() {
@@ -211,5 +235,14 @@ enum SortOption: String, CaseIterable {
     case nameAsc     = "이름순 (A-Z)"
     case nameDesc    = "이름역순 (Z-A)"
 
-    var displayName: String { rawValue }
+    var displayName: String {
+        switch self {
+        case .recommended:
+            return AppStrings.DomainDisplay.SearchFilters.sortRecommended
+        case .nameAsc:
+            return AppStrings.DomainDisplay.SearchFilters.sortNameAsc
+        case .nameDesc:
+            return AppStrings.DomainDisplay.SearchFilters.sortNameDesc
+        }
+    }
 }

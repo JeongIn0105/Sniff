@@ -35,25 +35,25 @@ extension RecommendationEngine {
             }
 
         if let strongestMatchedFamily {
-            return "\(strongestMatchedFamily) 계열 선호가 반영된 추천이에요"
+            return AppStrings.Recommendation.familyPreference(strongestMatchedFamily)
         }
 
         if let impression = profile.preferredImpressions.first {
-            return "\(impression) 인상을 살리기 좋은 추천이에요"
+            return AppStrings.Recommendation.impressionPreference(impression)
         }
 
         if profile.intensityLevel.contains("강") {
-            return "진하고 존재감 있는 무드 선호를 반영한 추천이에요"
+            return AppStrings.Recommendation.strongPresence
         }
 
         if profile.intensityLevel.contains("약") {
-            return "가볍고 산뜻한 무드 선호를 반영한 추천이에요"
+            return AppStrings.Recommendation.lightFresh
         }
 
         if let fallbackFamily = families.first {
-            return "\(fallbackFamily) 무드가 현재 취향과 잘 맞아요"
+            return AppStrings.Recommendation.familyMoodMatch(fallbackFamily)
         }
 
-        return "\(profile.displayTitle) 흐름을 반영한 추천이에요"
+        return AppStrings.Recommendation.profileFlow(profile.displayTitle)
     }
 }

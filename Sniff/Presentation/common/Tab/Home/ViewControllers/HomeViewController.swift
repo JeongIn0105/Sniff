@@ -35,7 +35,7 @@ final class HomeViewController: UIViewController {
 
     private let titleLabel: UILabel = {
         let l = UILabel()
-        l.text = "킁킁"
+        l.text = AppStrings.UIKitScreens.Home.title
         l.font = .systemFont(ofSize: 24, weight: .bold)
         l.textColor = .label
         return l
@@ -68,13 +68,13 @@ final class HomeViewController: UIViewController {
         let l = UILabel()
         l.font = .systemFont(ofSize: 18)
         l.textAlignment = .center
-        l.text = "✨"
+        l.text = ""
         return l
     }()
 
     private let profileCategoryLabel: UILabel = {
         let l = UILabel()
-        l.text = "취향 프로필"
+        l.text = AppStrings.UIKitScreens.Home.profile
         l.font = .systemFont(ofSize: 10, weight: .medium)
         l.textColor = .tertiaryLabel
         return l
@@ -82,7 +82,7 @@ final class HomeViewController: UIViewController {
 
     private let profileNameLabel: UILabel = {
         let l = UILabel()
-        l.text = "분석 중..."
+        l.text = AppStrings.UIKitScreens.Home.profileLoading
         l.font = .systemFont(ofSize: 16, weight: .semibold)
         l.textColor = .label
         return l
@@ -107,7 +107,7 @@ final class HomeViewController: UIViewController {
 
     private let recommendationTitleLabel: UILabel = {
         let l = UILabel()
-        l.text = "베스트"
+        l.text = AppStrings.UIKitScreens.Home.best
         l.font = .systemFont(ofSize: 17, weight: .bold)
         l.textColor = .label
         return l
@@ -133,7 +133,7 @@ final class HomeViewController: UIViewController {
 
     private let moreRecommendationTitleLabel: UILabel = {
         let l = UILabel()
-        l.text = "추천 향수"
+        l.text = AppStrings.UIKitScreens.Home.recommendations
         l.font = .systemFont(ofSize: 17, weight: .bold)
         l.textColor = .label
         return l
@@ -155,7 +155,7 @@ final class HomeViewController: UIViewController {
 
     private let guideLabel: UILabel = {
         let l = UILabel()
-        l.text = "추천은 취향 분석과 시향 기록, 등록한 향수를 기반으로 계속 업데이트돼요."
+        l.text = AppStrings.UIKitScreens.Home.guide
         l.font = .systemFont(ofSize: 11)
         l.textColor = .quaternaryLabel
         l.numberOfLines = 0
@@ -404,11 +404,11 @@ private extension HomeViewController {
     func handleRoute(_ route: HomeRoute) {
         switch route {
         case .perfumeRegister:
-            presentAlert("향수 등록 화면으로 연결할 수 있어요.")
+            presentAlert(AppStrings.UIKitScreens.Home.routePerfumeRegister)
         case .tastingNoteWrite:
-            presentAlert("시향기 작성 화면으로 연결할 수 있어요.")
+            presentAlert(AppStrings.UIKitScreens.Home.routeTastingNote)
         case .tasteReport:
-            presentAlert("취향 리포트 화면으로 연결할 수 있어요.")
+            presentAlert(AppStrings.UIKitScreens.Home.routeTasteReport)
         case .perfumeDetail(let perfume):
             navigateToPerfumeDetail(perfume)
         }
@@ -416,7 +416,7 @@ private extension HomeViewController {
 
     func navigateToPerfumeDetail(_ perfume: Perfume) {
         if perfume.id.hasPrefix("local-") {
-            presentAlert("현재 카드는 샘플 데이터예요.")
+            presentAlert(AppStrings.UIKitScreens.Home.sampleCard)
             return
         }
 
@@ -426,7 +426,7 @@ private extension HomeViewController {
 
     func presentAlert(_ message: String) {
         let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "확인", style: .default))
+        alert.addAction(UIAlertAction(title: AppStrings.UIKitScreens.confirm, style: .default))
         present(alert, animated: true)
     }
 }
@@ -487,12 +487,12 @@ private extension HomeViewController {
     func presentLikeSavedAlert(perfumeName: String) {
         let alert = UIAlertController(
             title: nil,
-            message: "\(PerfumePresentationSupport.displayPerfumeName(perfumeName))을 LIKE 향수에 저장했어요.",
+            message: AppStrings.UIKitScreens.Home.likeSaved(PerfumePresentationSupport.displayPerfumeName(perfumeName)),
             preferredStyle: .alert
         )
 
-        alert.addAction(UIAlertAction(title: "닫기", style: .cancel))
-        alert.addAction(UIAlertAction(title: "LIKE 향수 보기", style: .default) { [weak self] _ in
+        alert.addAction(UIAlertAction(title: AppStrings.UIKitScreens.Home.likeSavedClose, style: .cancel))
+        alert.addAction(UIAlertAction(title: AppStrings.UIKitScreens.Home.likeSavedOpen, style: .default) { [weak self] _ in
             let likedView = TastingNoteSceneFactory.makeLikedPerfumeListView()
             let hostingController = UIHostingController(rootView: likedView)
             self?.navigationController?.pushViewController(hostingController, animated: true)

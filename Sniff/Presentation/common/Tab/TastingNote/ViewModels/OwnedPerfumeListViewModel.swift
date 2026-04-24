@@ -141,7 +141,7 @@ final class OwnedPerfumeListViewModel: ObservableObject {
             selectedPerfumeIDs.removeAll()
             isEditMode = false
             await load()
-            showToast(message: "\(deletedCount)개의 보유 향수가 삭제되었습니다")
+            showToast(message: AppStrings.ViewModelMessages.TastingNote.deletedOwnedCount(deletedCount))
         } catch {
             errorMessage = error.localizedDescription
         }

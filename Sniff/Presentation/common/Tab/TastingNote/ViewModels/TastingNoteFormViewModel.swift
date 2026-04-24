@@ -42,7 +42,7 @@ final class TastingNoteFormViewModel: ObservableObject {
     private var editingNote: TastingNote?
     private let localRepository: LocalTastingNoteRepository
     var isEditMode: Bool { editingNote != nil }
-    var navigationTitle: String { isEditMode ? "시향기 수정" : "시향기 등록" }
+    var navigationTitle: String { isEditMode ? AppStrings.TastingNoteUI.List.edit : AppStrings.TastingNoteUI.List.add }
 
     var canSave: Bool {
         !perfumeName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
@@ -174,7 +174,7 @@ final class TastingNoteFormViewModel: ObservableObject {
             savedPerfumeName = savedNote.perfumeName
             saveSuccess = true
         } catch {
-            errorMessage = "저장 중 오류가 발생했어요"
+            errorMessage = AppStrings.ViewModelMessages.TastingNoteForm.saveFailed
         }
         isSaving = false
     }

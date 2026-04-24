@@ -18,18 +18,17 @@ struct LoginView: View {
     
     var body: some View {
         ZStack {
-            // 배경 흰색
-            Color.white.ignoresSafeArea()
+            Color.sniffBeige.ignoresSafeArea()
             
             VStack(spacing: 0) {
                 Spacer()
                 
                 // 로고
                 VStack(spacing: 12) {
-                    Text("킁킁")
+                    Text(AppStrings.AppShell.Login.title)
                         .font(.system(size: 60, weight: .bold))
                         .foregroundStyle(.black)
-                    Text("나만의 향수 취향을 찾아보세요")
+                    Text(AppStrings.AppShell.Login.subtitle)
                         .font(.subheadline)
                         .foregroundStyle(.gray)
                 }
@@ -47,7 +46,7 @@ struct LoginView: View {
                         Image(systemName: "apple.logo")
                             .font(.system(size: 17, weight: .medium))
                             .foregroundStyle(.white)
-                        Text("Apple로 로그인")
+                        Text(AppStrings.AppShell.Login.appleButton)
                             .font(.system(size: 17, weight: .medium))
                             .foregroundStyle(.white)
                     }
@@ -69,7 +68,7 @@ struct LoginView: View {
             }
         }
         .toast(isPresented: $viewModel.showError,
-               message: viewModel.errorMessage ?? "로그인에 실패했습니다.")
+               message: viewModel.errorMessage ?? AppStrings.AppShell.Login.defaultError)
     }
 }
 

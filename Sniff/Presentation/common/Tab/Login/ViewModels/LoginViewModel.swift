@@ -57,12 +57,13 @@ final class LoginViewModel: ObservableObject {
 
     private func handleSignInSuccess(payload: AppleSignInPayload) async {
         do {
-            let userID = try await authService.signInWithApple(
+            let session = try await authService.signInWithApple(
                 identityToken: payload.identityToken,
                 rawNonce: payload.rawNonce
             )
             isLoading = false
-            if try await userProfileStatusRepository.hasUserProfile(userID: userID) {
+            let hasProfile = try await userProfileStatusRepository.hasUserProfile(userID: session.userID)
+            if hasProfile || !session.isNewUser {
                 onExistingUser()
             } else {
                 onNewUser()

@@ -53,7 +53,7 @@ final class SearchViewController: UIViewController {
 
         // 상단 검색바
     private let searchBar = UISearchBar().then {
-        $0.placeholder = "향수명 또는 브랜드를 검색하세요"
+        $0.placeholder = AppStrings.UIKitScreens.Search.placeholder
         $0.searchBarStyle = .minimal
         $0.returnKeyType = .search
     }
@@ -82,7 +82,7 @@ final class SearchViewController: UIViewController {
     }
 
     private let sortButton = UIButton(type: .system).then {
-        $0.setTitle("추천순 ▾", for: .normal)
+        $0.setTitle(AppStrings.UIKitScreens.Search.sortRecommended, for: .normal)
         $0.titleLabel?.font = .systemFont(ofSize: 13)
         $0.setTitleColor(.label, for: .normal)
     }
@@ -138,11 +138,11 @@ final class SearchViewController: UIViewController {
         // 최근 검색어 헤더 (초기 상태)
     private let recentHeaderView = UIView()
     private let recentTitleLabel = UILabel().then {
-        $0.text = "Recent"
+        $0.text = AppStrings.UIKitScreens.Search.recentTitle
         $0.font = .systemFont(ofSize: 16, weight: .semibold)
     }
     private let clearAllButton = UIButton(type: .system).then {
-        $0.setTitle("모두 지우기", for: .normal)
+        $0.setTitle(AppStrings.UIKitScreens.Search.clearAll, for: .normal)
         $0.setTitleColor(.systemRed, for: .normal)
         $0.titleLabel?.font = .systemFont(ofSize: 13)
         $0.isHidden = true
@@ -375,7 +375,7 @@ private extension SearchViewController {
             .subscribe(onNext: { [weak self] brands in
                 guard let self else { return }
                 self.brandResults = brands
-                self.brandSectionLabel.text = "브랜드 \(brands.count)개"
+                self.brandSectionLabel.text = AppStrings.UIKitScreens.Search.brandCount(brands.count)
                 self.brandSectionLabel.snp.updateConstraints {
                     $0.height.equalTo(brands.isEmpty ? 0 : 22)
                 }
@@ -413,7 +413,7 @@ private extension SearchViewController {
         resultCount
             .observe(on: MainScheduler.instance)
             .subscribe(onNext: { [weak self] count in
-                self?.resultCountLabel.text = "향수 \(count)개"
+                self?.resultCountLabel.text = AppStrings.UIKitScreens.Search.perfumeCount(count)
             })
             .disposed(by: disposeBag)
     }
@@ -580,7 +580,7 @@ private extension SearchViewController {
             }
             alert.addAction(action)
         }
-        alert.addAction(UIAlertAction(title: "취소", style: .cancel))
+        alert.addAction(UIAlertAction(title: AppStrings.UIKitScreens.cancel, style: .cancel))
         present(alert, animated: true)
     }
 
@@ -709,8 +709,8 @@ private extension SearchViewController {
     }
 
     private func presentSaveFailureAlert() {
-        let alert = UIAlertController(title: nil, message: "LIKE 향수 저장에 실패했어요.", preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "확인", style: .default))
+        let alert = UIAlertController(title: nil, message: AppStrings.UIKitScreens.Search.likeSaveFailed, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: AppStrings.UIKitScreens.confirm, style: .default))
         present(alert, animated: true)
     }
 }
@@ -755,7 +755,7 @@ extension SearchViewController: UITableViewDataSource, UITableViewDelegate {
                     // 빈 상태 안내
                 let cell = UITableViewCell()
                 cell.selectionStyle = .none
-                cell.textLabel?.text = "최근 검색어가 없어요"
+                cell.textLabel?.text = AppStrings.UIKitScreens.Search.noRecent
                 cell.textLabel?.textColor = .secondaryLabel
                 cell.textLabel?.font = .systemFont(ofSize: 14)
                 cell.textLabel?.textAlignment = .center
@@ -886,6 +886,6 @@ final class SearchEmptyView: UIView {
     required init?(coder: NSCoder) { fatalError() }
 
     func configure(query: String) {
-        label.text = "\"\(query)\"에 대한 검색 결과가 없어요"
+        label.text = AppStrings.UIKitScreens.Search.noResults(query)
     }
 }

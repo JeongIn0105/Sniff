@@ -15,106 +15,117 @@ struct OnboardingResultView: View {
     var body: some View {
         Group {
             if let result = viewModel.tasteResult {
-                VStack(spacing: 32) {
-
+                VStack(spacing: 0) {
                     Spacer()
+                        .frame(height: 72)
 
-                        // 타이틀
                     Text(AppStrings.Onboarding.Result.title(nickname: viewModel.nickname))
-                        .font(.title2)
-                        .bold()
+                        .font(.system(size: 24, weight: .bold))
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal)
+                        .lineSpacing(4)
+                        .padding(.horizontal, 32)
 
-                    Text(AppStrings.Onboarding.Result.subtitle)
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 28) {
+                            VStack(alignment: .leading, spacing: 20) {
+                                VStack(spacing: 0) {
+                                    Text(result.displayTitle)
+                                        .font(.system(size: 20, weight: .bold))
+                                        .foregroundColor(.black)
+                                        .multilineTextAlignment(.center)
+                                        .lineSpacing(2)
+                                        .frame(maxWidth: .infinity)
+                                }
+                                .frame(maxWidth: .infinity)
 
-                        // 취향 카드
-                    VStack(spacing: 20) {
+                                Divider()
 
-                            // 주 취향 유형명
-                        Text(result.displayTitle)
-                            .font(.title3)
-                            .bold()
+                                Text(result.analysisSummary)
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundColor(Color(.systemGray))
+                                    .lineSpacing(5)
+                                    .multilineTextAlignment(.leading)
 
-                        if !result.displayFamilySummary.isEmpty {
-                            Text(result.displayFamilySummary)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
+                                Divider()
 
-                        Divider()
+                                VStack(alignment: .leading, spacing: 12) {
+                                    Text(AppStrings.Onboarding.recommendationFamilies)
+                                        .font(.system(size: 15, weight: .semibold))
+                                        .foregroundColor(Color(.systemGray))
 
-                            // 분석 요약
-                        Text(result.analysisSummary)
-                            .font(.body)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
-
-                        Divider()
-
-                            // 추천 향 계열
-                        VStack(spacing: 8) {
-                            Text("추천 향 계열")
-                                .font(.caption)
-                                .foregroundColor(.gray)
-
-                            FlowLayout(spacing: 8) {
-                                ForEach(result.recommendationDirection.preferredFamilies, id: \.self) { family in
-                                    Text(family)
-                                        .font(.caption)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 6)
-                                        .background(Color.black.opacity(0.05))
-                                        .cornerRadius(20)
+                                    FlowLayout(spacing: 10) {
+                                        ForEach(result.recommendationDirection.preferredFamilies, id: \.self) { family in
+                                            RecommendedFamilyChip(title: family)
+                                        }
+                                    }
                                 }
                             }
+                            .padding(24)
+                            .background(
+                                RoundedRectangle(cornerRadius: 28)
+                                    .fill(Color.white.opacity(0.94))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 28)
+                                            .stroke(Color.black, lineWidth: 1.2)
+                                    )
+                            )
+                            .padding(.horizontal, 20)
                         }
-                    }
-                    .padding(24)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(Color.white)
-                            .shadow(color: .black.opacity(0.08), radius: 12)
-                    )
-                    .padding(.horizontal)
-
-                    if !result.displayMajorSummary.isEmpty {
-                        Text(result.displayMajorSummary)
-                            .font(.caption)
-                            .foregroundColor(.gray)
+                        .padding(.top, 34)
+                        .padding(.bottom, 24)
                     }
 
-                    Spacer()
+                    Spacer(minLength: 0)
 
-                        // CTA 버튼
                     Button {
-                        viewModel.completeOnboarding()
                         onComplete()
                     } label: {
                         Text(AppStrings.Onboarding.Result.cta)
+                            .font(.system(size: 17, weight: .semibold))
                             .frame(maxWidth: .infinity)
-                            .padding()
+                            .frame(height: 56)
                             .background(Color.black)
                             .foregroundColor(.white)
-                            .cornerRadius(12)
+                            .cornerRadius(16)
                     }
-                    .padding(.horizontal)
-                    .padding(.bottom)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 24)
                 }
-                .background(Color(.systemGroupedBackground))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color.sniffBeige.ignoresSafeArea())
             } else {
                 VStack(spacing: 16) {
                     Spacer()
-                    ProgressView("결과를 불러오는 중이에요")
+                    ProgressView(AppStrings.Onboarding.loadingResult)
                     Spacer()
                 }
-                .background(Color(.systemGroupedBackground))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color.sniffBeige.ignoresSafeArea())
             }
         }
+    }
+}
+
+private struct RecommendedFamilyChip: View {
+    let title: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(Color.scentFloral.opacity(0.75))
+                .frame(width: 7, height: 7)
+
+            Text(title)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(.black)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(Color.white.opacity(0.9))
+        .overlay(
+            Capsule()
+                .stroke(Color.gray.opacity(0.45), lineWidth: 1)
+        )
+        .clipShape(Capsule())
     }
 }

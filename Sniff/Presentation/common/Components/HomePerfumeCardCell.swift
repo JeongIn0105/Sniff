@@ -76,7 +76,7 @@ final class HomePerfumeCardCell: UICollectionViewCell {
 
     private let placeholderMessageLabel: UILabel = {
         let l = UILabel()
-        l.text = "이미지 준비중입니다"
+        l.text = AppStrings.UIKitScreens.PerfumeDetail.imagePlaceholder
         l.font = .systemFont(ofSize: 11, weight: .medium)
         l.textAlignment = .center
         l.numberOfLines = 2

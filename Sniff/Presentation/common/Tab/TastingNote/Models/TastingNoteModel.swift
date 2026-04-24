@@ -108,10 +108,10 @@ struct TastingNote: Identifiable, Codable {
 // MARK: - 다시 쓰고 싶은지 태그 목록 (4개, 단일 선택)
 
 let kRevisitDesireList: [String] = [
-    "매일 뿌리고 싶어",
-    "가끔 꺼내고 싶어",
-    "기억에 남아, 근데 내 향은 아니야",
-    "다시 맡고 싶지 않아"
+    AppStrings.DomainDisplay.TastingNoteData.revisitDesireList[0],
+    AppStrings.DomainDisplay.TastingNoteData.revisitDesireList[1],
+    AppStrings.DomainDisplay.TastingNoteData.revisitDesireList[2],
+    AppStrings.DomainDisplay.TastingNoteData.revisitDesireList[3]
 ]
 
 // MARK: - Fragella 향수 검색 결과 모델
@@ -139,11 +139,24 @@ struct FragellaFragrance: Identifiable {
 // MARK: - 분위기&이미지 태그 목록 (18개)
 
 let kMoodTagList: [String] = [
-    "따뜻한", "시원한", "은은한", "강렬한",
-    "상큼한", "달콤한", "보송보송한", "묵직한",
-    "가벼운", "깨끗한", "포근한", "세련된",
-    "고급스러운", "자연스러운", "신비로운",
-    "활기찬", "중성적인", "여유로운"
+    AppStrings.DomainDisplay.TastingNoteData.moodTagList[0],
+    AppStrings.DomainDisplay.TastingNoteData.moodTagList[1],
+    AppStrings.DomainDisplay.TastingNoteData.moodTagList[2],
+    AppStrings.DomainDisplay.TastingNoteData.moodTagList[3],
+    AppStrings.DomainDisplay.TastingNoteData.moodTagList[4],
+    AppStrings.DomainDisplay.TastingNoteData.moodTagList[5],
+    AppStrings.DomainDisplay.TastingNoteData.moodTagList[6],
+    AppStrings.DomainDisplay.TastingNoteData.moodTagList[7],
+    AppStrings.DomainDisplay.TastingNoteData.moodTagList[8],
+    AppStrings.DomainDisplay.TastingNoteData.moodTagList[9],
+    AppStrings.DomainDisplay.TastingNoteData.moodTagList[10],
+    AppStrings.DomainDisplay.TastingNoteData.moodTagList[11],
+    AppStrings.DomainDisplay.TastingNoteData.moodTagList[12],
+    AppStrings.DomainDisplay.TastingNoteData.moodTagList[13],
+    AppStrings.DomainDisplay.TastingNoteData.moodTagList[14],
+    AppStrings.DomainDisplay.TastingNoteData.moodTagList[15],
+    AppStrings.DomainDisplay.TastingNoteData.moodTagList[16],
+    AppStrings.DomainDisplay.TastingNoteData.moodTagList[17]
 ]
 
 // MARK: - 향 계열(Accord) 색상
@@ -207,14 +220,7 @@ let kLegacyTagToKorean: [String: String] = [
 
 extension Int {
     var ratingLabel: String {
-        switch self {
-        case 1: return "나와 맞지 않는 향이에요"
-        case 2: return "조금 아쉬운 편이에요"
-        case 3: return "보통이에요"
-        case 4: return "나와 잘 맞는 향이에요"
-        case 5: return "나와 매우 잘 맞는 향이에요"
-        default: return ""
-        }
+        AppStrings.DomainDisplay.TastingNoteData.ratingLabel(self)
     }
 }
 

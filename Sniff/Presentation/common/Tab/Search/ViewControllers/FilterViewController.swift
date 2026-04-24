@@ -66,7 +66,7 @@ final class FilterViewController: UIViewController {
     }
 
     private let titleLabel = UILabel().then {
-        $0.text = "필터"
+        $0.text = AppStrings.UIKitScreens.Filter.title
         $0.font = .systemFont(ofSize: 18, weight: .semibold)
     }
 
@@ -97,7 +97,7 @@ final class FilterViewController: UIViewController {
     }
 
     private let resetButton = UIButton(type: .system).then {
-        $0.setTitle("초기화", for: .normal)
+        $0.setTitle(AppStrings.UIKitScreens.Filter.reset, for: .normal)
         $0.titleLabel?.font = .systemFont(ofSize: 16, weight: .medium)
         $0.setTitleColor(.label, for: .normal)
         $0.backgroundColor = .systemGray5
@@ -105,7 +105,7 @@ final class FilterViewController: UIViewController {
     }
 
     private let applyButton = UIButton(type: .system).then {
-        $0.setTitle("향수 보기", for: .normal)
+        $0.setTitle(AppStrings.UIKitScreens.Filter.apply, for: .normal)
         $0.titleLabel?.font = .systemFont(ofSize: 16, weight: .semibold)
         $0.setTitleColor(.white, for: .normal)
         $0.setTitleColor(.systemGray3, for: .disabled)
@@ -231,7 +231,7 @@ final class FilterViewController: UIViewController {
         output.resultCount
             .observe(on: MainScheduler.instance)
             .subscribe(onNext: { [weak self] count in
-                self?.applyButton.setTitle("향수 \(count)개 보기", for: .normal)
+                self?.applyButton.setTitle(AppStrings.UIKitScreens.Filter.applyCount(count), for: .normal)
             })
             .disposed(by: disposeBag)
 
@@ -376,7 +376,7 @@ final class FilterViewController: UIViewController {
         // 섹션 간격은 topInset / bottomInset으로 관리해서 화면에서 직접 조정하기 쉽게 둔다.
         let sections: [SectionSpec] = [
             .init(
-                title: "향 계열",
+                title: AppStrings.UIKitScreens.Filter.scentFamily,
                 subtitle: nil,
                 tags: ScentFamilyFilter.allCases.map(\.displayName),
                 type: .scentFamily,
@@ -384,7 +384,7 @@ final class FilterViewController: UIViewController {
                 bottomInset: 25
             ),
             .init(
-                title: "분위기 / 이미지",
+                title: AppStrings.UIKitScreens.Filter.moodImage,
                 subtitle: nil,
                 tags: MoodTag.imageTags.map(\.displayName) + MoodTag.vibeTags.map(\.displayName),
                 type: .mood,
@@ -392,7 +392,7 @@ final class FilterViewController: UIViewController {
                 bottomInset: 25
             ),
             .init(
-                title: "농도",
+                title: AppStrings.UIKitScreens.Filter.concentration,
                 subtitle: nil,
                 tags: Concentration.allCases.map(\.displayName),
                 type: .concentration,
@@ -400,7 +400,7 @@ final class FilterViewController: UIViewController {
                 bottomInset: 25
             ),
             .init(
-                title: "계절",
+                title: AppStrings.UIKitScreens.Filter.season,
                 subtitle: nil,
                 tags: Season.allCases.map(\.displayName),
                 type: .season,
@@ -699,15 +699,30 @@ private final class ConcentrationInfoViewController: UIViewController {
     }
 
     private let items: [ConcentrationDescription] = [
-        .init(title: "퍼퓸", description: "오일 함량이 가장 높아 향이 진하고 오래 유지되는 편이에요."),
-        .init(title: "오드퍼퓸(EDP)", description: "일상에서 가장 무난하게 쓰기 좋고 지속력도 비교적 안정적이에요."),
-        .init(title: "오드뚜왈렛(EDT)", description: "EDP보다 가볍고 산뜻해서 데일리로 부담 없이 쓰기 좋아요."),
-        .init(title: "오드콜로뉴(EDC)", description: "향이 가장 가볍고 지속 시간이 짧아 리프레시용에 가까워요."),
-        .init(title: "오프레시", description: "아주 옅고 가벼운 타입으로 짧게 향을 더하는 느낌에 가까워요.")
+        .init(
+            title: AppStrings.DomainDisplay.SearchFilters.parfum,
+            description: AppStrings.DomainDisplay.SearchFilters.parfumDescription
+        ),
+        .init(
+            title: AppStrings.DomainDisplay.SearchFilters.eauDeParfum,
+            description: AppStrings.DomainDisplay.SearchFilters.eauDeParfumDescription
+        ),
+        .init(
+            title: AppStrings.DomainDisplay.SearchFilters.eauDeToilette,
+            description: AppStrings.DomainDisplay.SearchFilters.eauDeToiletteDescription
+        ),
+        .init(
+            title: AppStrings.DomainDisplay.SearchFilters.eauDeCologne,
+            description: AppStrings.DomainDisplay.SearchFilters.eauDeCologneDescription
+        ),
+        .init(
+            title: AppStrings.DomainDisplay.SearchFilters.eauFraiche,
+            description: AppStrings.DomainDisplay.SearchFilters.eauFraicheDescription
+        )
     ]
 
     private let titleLabel = UILabel().then {
-        $0.text = "농도 설명"
+        $0.text = AppStrings.UIKitScreens.Filter.concentrationInfoTitle
         $0.font = .systemFont(ofSize: 18, weight: .semibold)
     }
 
@@ -778,12 +793,12 @@ private final class ConcentrationInfoRowView: UIView {
 
 private final class ScentFamilyInfoViewController: UIViewController {
     private let titleLabel = UILabel().then {
-        $0.text = "향 계열 설명"
+        $0.text = AppStrings.UIKitScreens.Filter.scentFamilyInfoTitle
         $0.font = .systemFont(ofSize: 18, weight: .semibold)
     }
 
     private let descriptionLabel = UILabel().then {
-        $0.text = "Fragrance Wheel 기준 계열이에요. 각 계열이 어떤 향인지 빠르게 확인할 수 있어요."
+        $0.text = AppStrings.UIKitScreens.Filter.scentFamilyInfoBody
         $0.font = .systemFont(ofSize: 13)
         $0.textColor = .secondaryLabel
         $0.numberOfLines = 0

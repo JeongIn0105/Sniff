@@ -43,7 +43,7 @@ struct TastingNoteDetailView: View {
                         .padding(.vertical, 20)
 
                     ratingDisplaySection(
-                        title: "향 선호도",
+                        title: AppStrings.TastingNoteDetailUI.ratingTitle,
                         rating: currentNote.rating,
                         label: currentNote.rating.ratingLabel
                     )
@@ -82,22 +82,22 @@ struct TastingNoteDetailView: View {
         .fullScreenCover(isPresented: $showEditSheet) {
             TastingNoteSceneFactory.makeFormView(editingNote: currentNote)
         }
-        .alert("시향 기록 삭제", isPresented: $showDeleteAlert) {
-            Button("삭제", role: .destructive) {
+        .alert(AppStrings.TastingNoteDetailUI.deleteAlertTitle, isPresented: $showDeleteAlert) {
+            Button(AppStrings.TastingNoteDetailUI.delete, role: .destructive) {
                 Task {
                     await viewModel.deleteNote(currentNote)
                     dismiss()
                 }
             }
-            Button("취소", role: .cancel) { }
+            Button(AppStrings.TastingNoteDetailUI.cancel, role: .cancel) { }
         } message: {
-            Text("이 시향 기록을 삭제할까요?\n삭제 후 복구할 수 없어요.")
+            Text(AppStrings.TastingNoteDetailUI.deleteAlertMessage)
         }
     }
 
     private var headerView: some View {
         ZStack {
-            Text("\(PerfumePresentationSupport.displayPerfumeName(currentNote.perfumeName)) 시향 기록")
+            Text(AppStrings.TastingNoteDetailUI.title(PerfumePresentationSupport.displayPerfumeName(currentNote.perfumeName)))
                 .font(.system(size: 17, weight: .semibold))
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
@@ -122,13 +122,13 @@ struct TastingNoteDetailView: View {
                     Button {
                         showEditSheet = true
                     } label: {
-                        Label("수정", systemImage: "pencil")
+                        Label(AppStrings.TastingNoteDetailUI.edit, systemImage: "pencil")
                     }
 
                     Button(role: .destructive) {
                         showDeleteAlert = true
                     } label: {
-                        Label("삭제", systemImage: "trash")
+                        Label(AppStrings.TastingNoteDetailUI.delete, systemImage: "trash")
                     }
                 } label: {
                     Image(systemName: "ellipsis")
@@ -213,7 +213,7 @@ struct TastingNoteDetailView: View {
 
     private var moodTagDisplaySection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("분위기&이미지")
+            Text(AppStrings.TastingNoteDetailUI.moodTitle)
                 .font(.system(size: 17, weight: .semibold))
 
             ChipFlowLayout(spacing: 8) {
@@ -232,7 +232,7 @@ struct TastingNoteDetailView: View {
 
     private func revisitDesireDisplaySection(_ desire: String) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("다시 쓰고 싶은지")
+            Text(AppStrings.TastingNoteDetailUI.revisitTitle)
                 .font(.system(size: 17, weight: .semibold))
 
             Text(desire)
@@ -247,7 +247,7 @@ struct TastingNoteDetailView: View {
 
     private var memoDisplaySection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("시향 메모")
+            Text(AppStrings.TastingNoteDetailUI.memoTitle)
                 .font(.system(size: 17, weight: .semibold))
 
             ZStack(alignment: .bottomTrailing) {
