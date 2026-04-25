@@ -37,7 +37,7 @@ struct RecommendationQueryBuilder {
     private func buildSearchTerms(from profile: UserTasteProfile) -> [String] {
         let mapped = profile.preferredFamilies.flatMap(mapFamilyToSearchQueries(_:))
         let unique = uniquePreservingOrder(mapped)
-        let terms = Array(unique.prefix(5))
+        let terms = Array(unique.prefix(3))
 
         if !terms.isEmpty {
             return terms

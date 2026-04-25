@@ -60,7 +60,8 @@ final class AppDependencyContainer {
         MyPageViewModel(
             firestoreService: firestoreService,
             collectionRepository: makeCollectionRepository(),
-            tastingRepository: makeTastingRecordRepository()
+            tastingRepository: makeTastingRecordRepository(),
+            localTastingNoteRepository: localTastingNoteRepository
         )
     }
 
@@ -79,7 +80,8 @@ final class AppDependencyContainer {
     func makeOwnedPerfumeListViewModel() -> OwnedPerfumeListViewModel {
         OwnedPerfumeListViewModel(
             collectionRepository: makeCollectionRepository(),
-            tastingRepository: makeTastingRecordRepository()
+            tastingRepository: makeTastingRecordRepository(),
+            localTastingNoteRepository: localTastingNoteRepository
         )
     }
 
@@ -87,7 +89,8 @@ final class AppDependencyContainer {
     func makeLikedPerfumeListViewModel() -> LikedPerfumeListViewModel {
         LikedPerfumeListViewModel(
             firestoreService: firestoreService,
-            tastingRepository: makeTastingRecordRepository()
+            tastingRepository: makeTastingRecordRepository(),
+            localTastingNoteRepository: localTastingNoteRepository
         )
     }
 

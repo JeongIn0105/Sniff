@@ -45,6 +45,7 @@ final class SearchViewModel {
         // MARK: - Dependencies
     private let perfumeCatalogRepository: PerfumeCatalogRepositoryType
     private let recentSearchStore: RecentSearchStoreType
+    private let localSearch: LocalPerfumeSearchService
     private let disposeBag = DisposeBag()
     private let initialState: SearchState
 
@@ -61,19 +62,24 @@ final class SearchViewModel {
     init(
         perfumeCatalogRepository: PerfumeCatalogRepositoryType,
         recentSearchStore: RecentSearchStoreType,
+        localSearch: LocalPerfumeSearchService = LocalPerfumeSearchService(),
         initialState: SearchState = .landing
     ) {
         self.perfumeCatalogRepository = perfumeCatalogRepository
         self.recentSearchStore = recentSearchStore
+        self.localSearch = localSearch
         self.initialState = initialState
         self.stateRelay = BehaviorRelay<SearchState>(value: initialState)
+        // 로컬 검색 인덱스를 백그라운드에서 미리 구축 (API 호출 없음)
+        localSearch.buildIndex()
     }
 
         // MARK: - Transform
     func transform(input: Input) -> Output {
 
-            // 텍스트 입력 → 상태 전환
+            // 텍스트 입력 → 상태 전환 + 로컬 자동완성
         input.searchText
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .debounce(.milliseconds(300), scheduler: MainScheduler.instance)
             .distinctUntilChanged()
             .subscribe(onNext: { [weak self] text in
@@ -83,9 +89,14 @@ final class SearchViewModel {
                         self.stateRelay.accept(.initial)
                     }
                     self.suggestionsRelay.accept([])
+                } else if text.count < 2 {
+                    self.stateRelay.accept(.suggesting(query: text))
+                    self.suggestionsRelay.accept([])
                 } else {
                     self.stateRelay.accept(.suggesting(query: text))
-                    self.fetchSuggestions(query: text)
+                    // 로컬 인덱스 기반 자동완성 (API 호출 없음)
+                    let items = self.localSearch.suggestions(for: text)
+                    self.suggestionsRelay.accept(items)
                 }
             })
             .disposed(by: disposeBag)
@@ -105,6 +116,7 @@ final class SearchViewModel {
             input.recentSearchTap,
             input.suggestionTap.map { $0.displayName }
         )
+        .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
         .filter { !$0.isEmpty }
         .subscribe(onNext: { [weak self] query in
             guard let self else { return }
@@ -176,28 +188,9 @@ final class SearchViewModel {
 
         // MARK: - Private
 
-    private func fetchSuggestions(query: String) {
-        perfumeCatalogRepository.search(query: query, limit: 5)
-            .subscribe(onSuccess: { [weak self] perfumes in
-                guard let self else { return }
-                let rankedPerfumes = self.rankMatchingPerfumes(perfumes, for: query)
-                var items: [SuggestionItem] = []
-
-                let brands = self.makeBrandResults(from: rankedPerfumes, query: query).prefix(3)
-                items += brands.map { .brand(name: $0.brand) }
-
-                items += rankedPerfumes.prefix(5).map {
-                    .perfume(name: $0.name, brand: $0.brand)
-                }
-
-                self.suggestionsRelay.accept(items)
-            }, onFailure: { _ in })
-            .disposed(by: disposeBag)
-    }
-
     private func fetchResults(query: String) {
         isLoadingRelay.accept(true)
-        perfumeCatalogRepository.search(query: query, limit: 1_000)
+        perfumeCatalogRepository.search(query: query, limit: 200)
             .subscribe(
                 onSuccess: { [weak self] perfumes in
                     guard let self else { return }

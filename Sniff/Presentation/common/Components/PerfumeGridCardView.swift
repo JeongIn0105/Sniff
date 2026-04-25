@@ -32,7 +32,9 @@ enum PerfumeCardStyle: Equatable {
 
     var imagePadding: CGFloat {
         switch self {
-        case .preview, .grid:
+        case .preview:
+            return 0
+        case .grid:
             return 4
         case .listThumbnail:
             return 6
@@ -42,7 +44,7 @@ enum PerfumeCardStyle: Equatable {
     var innerCanvasInset: CGFloat {
         switch self {
         case .preview:
-            return 10
+            return 0
         case .grid:
             return 11
         case .listThumbnail:
@@ -157,7 +159,9 @@ enum PerfumeCardStyle: Equatable {
 
     var likeIconSize: CGFloat {
         switch self {
-        case .preview, .grid:
+        case .preview:
+            return 18
+        case .grid:
             return 20
         case .listThumbnail:
             return 18
@@ -166,7 +170,9 @@ enum PerfumeCardStyle: Equatable {
 
     var likeIconInset: CGFloat {
         switch self {
-        case .preview, .grid:
+        case .preview:
+            return 0
+        case .grid:
             return 10
         case .listThumbnail:
             return 8
@@ -176,7 +182,7 @@ enum PerfumeCardStyle: Equatable {
     var artworkWidthRatio: CGFloat {
         switch self {
         case .preview:
-            return 0.84
+            return 1
         case .grid:
             return 0.86
         case .listThumbnail:
@@ -187,7 +193,7 @@ enum PerfumeCardStyle: Equatable {
     var artworkHeightRatio: CGFloat {
         switch self {
         case .preview:
-            return 0.88
+            return 1
         case .grid:
             return 0.88
         case .listThumbnail:
@@ -197,7 +203,9 @@ enum PerfumeCardStyle: Equatable {
 
     var badgeTopInset: CGFloat {
         switch self {
-        case .preview, .grid:
+        case .preview:
+            return 6
+        case .grid:
             return 10
         case .listThumbnail:
             return 8
@@ -206,7 +214,9 @@ enum PerfumeCardStyle: Equatable {
 
     var badgeLeadingInset: CGFloat {
         switch self {
-        case .preview, .grid:
+        case .preview:
+            return 6
+        case .grid:
             return 10
         case .listThumbnail:
             return 8
@@ -216,9 +226,27 @@ enum PerfumeCardStyle: Equatable {
     var badgeHeight: CGFloat {
         switch self {
         case .preview, .grid:
-            return 34
+            return 23
         case .listThumbnail:
             return 30
+        }
+    }
+
+    var artworkTopReservedInset: CGFloat {
+        switch self {
+        case .preview:
+            return badgeHeight + 4
+        case .grid, .listThumbnail:
+            return 0
+        }
+    }
+
+    var imageSectionAspectRatio: CGFloat {
+        switch self {
+        case .preview:
+            return 0.92
+        case .grid, .listThumbnail:
+            return 1
         }
     }
 
@@ -274,25 +302,42 @@ struct PerfumeGridCardView: View {
             )
             .padding(.top, style.contentTopSpacing)
         }
+        .padding(style == .preview ? 8 : 0)
         .frame(width: resolvedCardWidth, alignment: .topLeading)
         .frame(maxWidth: resolvedCardWidth == nil ? .infinity : nil, alignment: .topLeading)
+        .background {
+            if style == .preview {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color(.systemBackground))
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: style == .preview ? 16 : 0, style: .continuous))
+        .overlay {
+            if style == .preview {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(Color(uiColor: UIColor.separator.withAlphaComponent(0.12)), lineWidth: 1)
+            }
+        }
     }
 
     private var imageSection: some View {
         ZStack(alignment: .topLeading) {
             PerfumeCardArtworkView(
                 imageURL: imageURL,
+                perfumeName: name,
                 style: style
             )
 
             if hasTastingRecord {
                 Text(AppStrings.TastingNoteUI.tastingRecordBadge)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(Color(uiColor: UIColor(red: 0.47, green: 0.39, blue: 0.31, alpha: 1)))
-                    .padding(.horizontal, 12)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(Color(uiColor: UIColor(red: 0.43, green: 0.32, blue: 0.22, alpha: 1)))
+                    .padding(.horizontal, 8)
                     .frame(height: style.badgeHeight)
-                    .background(Color.white.opacity(0.92))
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .background(
+                        Capsule()
+                            .fill(Color(uiColor: UIColor(red: 0.91, green: 0.83, blue: 0.73, alpha: 1)))
+                    )
                     .padding(.top, style.badgeTopInset)
                     .padding(.leading, style.badgeLeadingInset)
             }
@@ -307,7 +352,7 @@ struct PerfumeGridCardView: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .aspectRatio(1, contentMode: .fit)
+        .aspectRatio(style.imageSectionAspectRatio, contentMode: .fit)
     }
 }
 
@@ -330,27 +375,39 @@ struct PerfumeCardHeartButton: View {
 
 struct PerfumeCardArtworkView: View {
     let imageURL: String?
+    var perfumeName: String = ""
     var style: PerfumeCardStyle = .grid
+
+    private var artworkScale: CGFloat {
+        let normalizedName = perfumeName.lowercased()
+        if normalizedName.contains("another 13") || normalizedName.contains("어나더 13") {
+            return 1.4
+        }
+        return 1
+    }
 
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: style.cornerRadius)
-                .fill(PerfumeGridCardLayout.cardBackgroundColor)
+                .fill(style == .preview ? Color(.systemBackground) : PerfumeGridCardLayout.cardBackgroundColor)
 
-            RoundedRectangle(cornerRadius: style.innerCanvasCornerRadius)
-                .fill(Color.white)
-                .padding(style.innerCanvasInset)
+            if style != .preview {
+                RoundedRectangle(cornerRadius: style.innerCanvasCornerRadius)
+                    .fill(Color.white)
+                    .padding(style.innerCanvasInset)
+            }
 
             GeometryReader { geometry in
                 let canvasWidth = geometry.size.width - (style.innerCanvasInset * 2)
-                let canvasHeight = geometry.size.height - (style.innerCanvasInset * 2)
+                let canvasHeight = geometry.size.height - (style.innerCanvasInset * 2) - style.artworkTopReservedInset
 
                 artworkContent
                     .frame(
                         width: max(0, canvasWidth * style.artworkWidthRatio),
                         height: max(0, canvasHeight * style.artworkHeightRatio)
                     )
-                    .frame(width: geometry.size.width, height: geometry.size.height)
+                    .frame(width: geometry.size.width, height: max(0, geometry.size.height - style.artworkTopReservedInset))
+                    .padding(.top, style.artworkTopReservedInset)
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: style.cornerRadius))
@@ -370,6 +427,7 @@ struct PerfumeCardArtworkView: View {
                 .resizable()
                 .scaledToFit()
                 .padding(style.imagePadding)
+                .scaleEffect(artworkScale)
         } else {
             placeholderView
         }
@@ -460,7 +518,7 @@ struct PerfumeGridCardAccordLine: View {
 }
 
 private struct PerfumeArtworkBackgroundCleanupProcessor: ImageProcessor {
-    let identifier = "com.sniff.perfume-artwork-background-cleanup.v2"
+    let identifier = "com.sniff.perfume-artwork-background-cleanup.v4"
 
     func process(item: ImageProcessItem, options: KingfisherParsedOptionsInfo) -> KFCrossPlatformImage? {
         switch item {
@@ -509,7 +567,73 @@ private extension UIImage {
             index * bytesPerPixel
         }
 
-        func isSoftWhite(pixelIndex: Int) -> Bool {
+        func pixelComponents(at index: Int) -> (red: UInt8, green: UInt8, blue: UInt8, alpha: UInt8) {
+            let pixelOffset = offset(for: index)
+            return (
+                pixels[pixelOffset],
+                pixels[pixelOffset + 1],
+                pixels[pixelOffset + 2],
+                pixels[pixelOffset + 3]
+            )
+        }
+
+        func brightness(red: UInt8, green: UInt8, blue: UInt8) -> Int {
+            (Int(red) + Int(green) + Int(blue)) / 3
+        }
+
+        func channelDiff(red: UInt8, green: UInt8, blue: UInt8) -> UInt8 {
+            let maxValue = max(red, max(green, blue))
+            let minValue = min(red, min(green, blue))
+            return maxValue - minValue
+        }
+
+        func colorDistanceSquared(
+            red: UInt8,
+            green: UInt8,
+            blue: UInt8,
+            targetRed: Int,
+            targetGreen: Int,
+            targetBlue: Int
+        ) -> Int {
+            let redDelta = Int(red) - targetRed
+            let greenDelta = Int(green) - targetGreen
+            let blueDelta = Int(blue) - targetBlue
+            return redDelta * redDelta + greenDelta * greenDelta + blueDelta * blueDelta
+        }
+
+        var edgeRedSum = 0
+        var edgeGreenSum = 0
+        var edgeBlueSum = 0
+        var edgeSampleCount = 0
+
+        func collectEdgeSample(_ index: Int) {
+            let pixel = pixelComponents(at: index)
+            guard pixel.alpha > 0 else { return }
+            let pixelBrightness = brightness(red: pixel.red, green: pixel.green, blue: pixel.blue)
+            let pixelChannelDiff = channelDiff(red: pixel.red, green: pixel.green, blue: pixel.blue)
+            guard pixelBrightness >= 210, pixelChannelDiff <= 42 else { return }
+
+            edgeRedSum += Int(pixel.red)
+            edgeGreenSum += Int(pixel.green)
+            edgeBlueSum += Int(pixel.blue)
+            edgeSampleCount += 1
+        }
+
+        for x in 0..<width {
+            collectEdgeSample(x)
+            collectEdgeSample((height - 1) * width + x)
+        }
+
+        for y in 0..<height {
+            collectEdgeSample(y * width)
+            collectEdgeSample(y * width + (width - 1))
+        }
+
+        let sampledRed = edgeSampleCount > 0 ? edgeRedSum / edgeSampleCount : 255
+        let sampledGreen = edgeSampleCount > 0 ? edgeGreenSum / edgeSampleCount : 255
+        let sampledBlue = edgeSampleCount > 0 ? edgeBlueSum / edgeSampleCount : 255
+
+        func isEdgeConnectedBackground(pixelIndex: Int) -> Bool {
             let pixelOffset = offset(for: pixelIndex)
             let red = pixels[pixelOffset]
             let green = pixels[pixelOffset + 1]
@@ -518,15 +642,23 @@ private extension UIImage {
 
             guard alpha > 0 else { return false }
 
-            let maxValue = max(red, max(green, blue))
-            let minValue = min(red, min(green, blue))
-            let channelDiff = maxValue - minValue
+            let pixelBrightness = brightness(red: red, green: green, blue: blue)
+            let pixelChannelDiff = channelDiff(red: red, green: green, blue: blue)
+            let distanceSquared = colorDistanceSquared(
+                red: red,
+                green: green,
+                blue: blue,
+                targetRed: sampledRed,
+                targetGreen: sampledGreen,
+                targetBlue: sampledBlue
+            )
 
-            return red >= 244 && green >= 244 && blue >= 244 && channelDiff <= 10
+            return (pixelBrightness >= 232 && pixelChannelDiff <= 34)
+                || (pixelBrightness >= 205 && pixelChannelDiff <= 48 && distanceSquared <= 2304)
         }
 
         func enqueueIfNeeded(_ index: Int) {
-            guard index >= 0, index < width * height, !visited[index], isSoftWhite(pixelIndex: index) else {
+            guard index >= 0, index < width * height, !visited[index], isEdgeConnectedBackground(pixelIndex: index) else {
                 return
             }
 
@@ -561,13 +693,7 @@ private extension UIImage {
 
         for index in queue {
             let pixelOffset = offset(for: index)
-            let red = pixels[pixelOffset]
-            let green = pixels[pixelOffset + 1]
-            let blue = pixels[pixelOffset + 2]
-            let alpha = pixels[pixelOffset + 3]
-
-            let isHardWhite = red >= 250 && green >= 250 && blue >= 250
-            pixels[pixelOffset + 3] = isHardWhite ? 0 : min(alpha, 24)
+            pixels[pixelOffset + 3] = 0
         }
 
         guard let outputImage = context.makeImage() else { return self }

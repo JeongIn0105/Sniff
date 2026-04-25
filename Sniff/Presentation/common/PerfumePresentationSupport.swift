@@ -50,12 +50,26 @@ enum PerfumePresentationSupport {
     }
 
     nonisolated static func recordKey(perfumeName: String, brandName: String) -> String {
-        let normalizedBrand = displayBrand(brandName)
+        primaryRecordKey(
+            perfumeName: displayPerfumeName(perfumeName),
+            brandName: displayBrand(brandName)
+        )
+    }
+
+    nonisolated static func recordMatchingKeys(perfumeName: String, brandName: String) -> Set<String> {
+        [
+            primaryRecordKey(perfumeName: perfumeName, brandName: brandName),
+            recordKey(perfumeName: perfumeName, brandName: brandName)
+        ]
+    }
+
+    private nonisolated static func primaryRecordKey(perfumeName: String, brandName: String) -> String {
+        let normalizedBrand = brandName
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "en_US_POSIX"))
             .lowercased()
 
-        let normalizedPerfume = displayPerfumeName(perfumeName)
+        let normalizedPerfume = perfumeName
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "en_US_POSIX"))
             .lowercased()

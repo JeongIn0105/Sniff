@@ -99,7 +99,7 @@ extension PerfumeKoreanTranslator {
         "Clean": "클린",
         "Soapy": "소피",
     ]
-
+    
     nonisolated static let noteToKorean: [String: String] = [
         "Bergamot": "베르가못",
         "Lemon": "레몬",
@@ -170,7 +170,7 @@ extension PerfumeKoreanTranslator {
         "Saffron": "사프란",
         "Ginger": "진저",
     ]
-
+    
     nonisolated static let concentrationToKorean: [String: String] = [
         "parfum": "퍼퓸",
         "perfume": "퍼퓸",
@@ -187,7 +187,7 @@ extension PerfumeKoreanTranslator {
         "eau fraiche": "오 프레쉬",
         "oil": "오일",
     ]
-
+    
     nonisolated static let longevityToKorean: [String: String] = [
         "very weak": "매우 약함",
         "weak": "약함",
@@ -195,7 +195,7 @@ extension PerfumeKoreanTranslator {
         "long lasting": "오래 지속됨",
         "very long lasting": "매우 오래 지속됨",
     ]
-
+    
     nonisolated static let sillageToKorean: [String: String] = [
         "intimate": "은은함",
         "soft": "약함",
@@ -204,7 +204,7 @@ extension PerfumeKoreanTranslator {
         "enormous": "매우 강함",
         "overwhelming": "압도적",
     ]
-
+    
     nonisolated static let seasonToKorean: [String: String] = [
         "spring": "봄",
         "summer": "여름",
@@ -2625,9 +2625,5 @@ extension PerfumeKoreanTranslator {
                 options: [.caseInsensitive, .diacriticInsensitive]
             )
         }
-
-        return result
-            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
-}
+
