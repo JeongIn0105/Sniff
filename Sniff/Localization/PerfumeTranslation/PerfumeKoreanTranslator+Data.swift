@@ -292,7 +292,7 @@ extension PerfumeKoreanTranslator {
         "L'Occitane": 75,
         "Aesop": 75,
         "Fresh": 70,
-
+        
         // ── 추가 브랜드 우선순위 (신세계·현대·롯데 입점 기준) ──
         "Thierry Mugler": 80,
         "Carolina Herrera": 80,
@@ -371,26 +371,26 @@ extension PerfumeKoreanTranslator {
         "Rancé": 70,
         "Aveda": 70,
     ]
-
+    
     nonisolated static let lowerAccordToKorean: [String: String] = {
-
+        
         Dictionary(accordToKorean.map { ($0.key.lowercased(), $0.value) },
                    uniquingKeysWith: { _, last in last })
     }()
-
+    
     nonisolated static let lowerNoteToKorean: [String: String] = {
         Dictionary(noteToKorean.map { ($0.key.lowercased(), $0.value) },
                    uniquingKeysWith: { _, last in last })
     }()
-
+    
     nonisolated static let koreanToAccord: [String: String] = {
         Dictionary(accordToKorean.map { ($1, $0) }, uniquingKeysWith: { _, last in last })
     }()
-
+    
     nonisolated static let brandToKorean: [String: String] = {
         Dictionary(brandKoreanEntries, uniquingKeysWith: { _, last in last })
     }()
-
+    
     nonisolated private static let brandKoreanEntries: [(String, String)] = [
         ("Le Labo", "르 라보"),
         ("Chanel", "샤넬"),
@@ -495,7 +495,7 @@ extension PerfumeKoreanTranslator {
         ("Floral Street", "플로럴 스트리트"),
         ("Bdk Parfums", "비디케이 퍼퓸즈"),
         ("Snif", "스니프"),
-
+        
         // ── 추가 브랜드 (신세계·현대·롯데 백화점 입점 기준) ──
         ("Paco Rabanne", "파코 라반"),
         ("Jean Paul Gaultier", "장 폴 고티에"),
@@ -604,22 +604,22 @@ extension PerfumeKoreanTranslator {
         ("Rancé", "랑세"),
         ("Aveda", "아베다"),
     ]
-
+    
     nonisolated static let lowerBrandToKorean: [String: String] = {
         Dictionary(brandToKorean.map { ($0.key.lowercased(), $0.value) },
                    uniquingKeysWith: { _, last in last })
     }()
- 
+    
     nonisolated static let normalizedBrandToKorean: [String: String] = {
         Dictionary(brandToKorean.map { (normalizeBrandKey($0.key), $0.value) },
                    uniquingKeysWith: { _, last in last })
     }()
-
+    
     nonisolated static let normalizedDomesticRetailBrandPriority: [String: Int] = {
         Dictionary(domesticRetailBrandPriority.map { (normalizeBrandKey($0.key), $0.value) },
                    uniquingKeysWith: max)
     }()
-
+    
     nonisolated static let perfumeNameToKorean: [String: String] = [
         "Hermes Barenia": "에르메스 바레니아",
         "Hermès Barenia": "에르메스 바레니아",
@@ -688,7 +688,7 @@ extension PerfumeKoreanTranslator {
         "Gucci Rush": "구찌 러쉬",
         "Gucci Rush Summer": "구찌 러쉬 썸머",
         "Gucci Variety": "구찌 버라이어티",
-
+        
         // ── 샤넬 ──
         "Chanel No. 5": "샤넬 No.5",
         "Chanel No.5": "샤넬 No.5",
@@ -740,7 +740,7 @@ extension PerfumeKoreanTranslator {
         "Chanel Cristalle": "샤넬 크리스탈",
         "Chanel N°5 L'Eau": "샤넬 No.5 로",
         "N°5 L'Eau": "No.5 로",
-
+        
         // ── 디올 ──
         "Dior Sauvage": "디올 소바쥬",
         "Sauvage": "소바쥬",
@@ -786,7 +786,7 @@ extension PerfumeKoreanTranslator {
         "Dior Joy": "디올 조이",
         "Miss Dior Cherie": "미스 디올 쉐리",
         "Miss Dior Blooming Bouquet": "미스 디올 블루밍 부케",
-
+        
         // ── 에르메스 (에르메스 공식 한국어 표기 기준) ──
         "Hermes Terre d'Hermes": "에르메스 떼르 데르메스",
         "Hermès Terre d'Hermès": "에르메스 떼르 데르메스",
@@ -860,7 +860,7 @@ extension PerfumeKoreanTranslator {
         "Hermes 24 Faubourg": "에르메스 뱅꺄트르 포부르",
         "Hermès 24 Faubourg": "에르메스 뱅꺄트르 포부르",
         "24 Faubourg": "뱅꺄트르 포부르",
-
+        
         // ── 톰 포드 ──
         "Tom Ford Black Orchid": "톰 포드 블랙 오키드",
         "Black Orchid": "블랙 오키드",
@@ -898,7 +898,7 @@ extension PerfumeKoreanTranslator {
         "Tom Ford Noir Pour Femme": "톰 포드 누아르 뿌르 팜므",
         "Tom Ford Fucking Fabulous": "톰 포드 퍼킹 파뷸러스",
         "Fucking Fabulous": "퍼킹 파뷸러스",
-
+        
         // ── 조 말론 런던 ──
         "Jo Malone 154": "154 코롱",
         "Jo Malone #154": "154 코롱",
@@ -974,7 +974,7 @@ extension PerfumeKoreanTranslator {
         "Earl Grey & Cucumber": "얼 그레이 앤 큐컴버 코롱",
         "Jo Malone Dark Amber & Ginger Lily": "다크 앰버 앤 진저 릴리 코롱 인텐스",
         "Dark Amber & Ginger Lily": "다크 앰버 앤 진저 릴리 코롱 인텐스",
-
+        
         // ── 신세계백화점 향수 카테고리 주요 판매명 ──
         "Chanel Bleu de Chanel Eau de Parfum": "블루 드 샤넬 오 드 빠르펭",
         "Bleu de Chanel Eau de Parfum": "블루 드 샤넬 오 드 빠르펭",
@@ -1174,7 +1174,7 @@ extension PerfumeKoreanTranslator {
         "Estee Lauder Pleasures": "에스티로더 플레저 오 드 퍼퓸 스프레이",
         "Estée Lauder Pleasures": "에스티로더 플레저 오 드 퍼퓸 스프레이",
         "Pleasures": "플레저 오 드 퍼퓸 스프레이",
-
+        
         // ── 겔랑 ──
         "Guerlain Shalimar": "겔랑 샬리마르",
         "Shalimar": "샬리마르",
@@ -1204,7 +1204,7 @@ extension PerfumeKoreanTranslator {
         "Guerlain Idylle": "겔랑 이딜",
         "Guerlain Insolence": "겔랑 인솔랑스",
         "Guerlain Mon Guerlain Bloom of Rose": "겔랑 몽 겔랑 블룸 오브 로즈",
-
+        
         // ── 메종 마르지엘라 레플리카 ──
         "Maison Margiela Replica By the Fireplace": "메종 마르지엘라 레플리카 바이 더 파이어플레이스",
         "Replica By the Fireplace": "레플리카 바이 더 파이어플레이스",
@@ -1251,7 +1251,7 @@ extension PerfumeKoreanTranslator {
         "Maison Margiela Replica Afternoon Delight": "메종 마르지엘라 레플리카 애프터눈 딜라이트",
         "Replica Afternoon Delight": "레플리카 애프터눈 딜라이트",
         "Afternoon Delight": "애프터눈 딜라이트",
-
+        
         // ── 르 라보 (lelabofragrances.co.kr 공식 한국어 표기 기준) ──
         "Le Labo Santal 33": "상탈 33",
         "Santal 33": "상탈 33",
@@ -1301,7 +1301,7 @@ extension PerfumeKoreanTranslator {
         "Tonka 25": "통카 25",
         "Le Labo Geranium 30": "제라늄 30",
         "Geranium 30": "제라늄 30",
-
+        
         // ── 딥티크 ──
         "Diptyque Baies": "딥티크 베이",
         "Baies": "베이",
@@ -1314,7 +1314,7 @@ extension PerfumeKoreanTranslator {
         "L'Ombre dans l'Eau": "롬브르 당 로",
         "Diptyque Eau Duelle": "딥티크 오 뒤엘",
         "Eau Duelle": "오 뒤엘",
-
+        
         // ── 바이레도 ──
         "Byredo Gypsy Water": "바이레도 집시워터 오드퍼퓸",
         "Gypsy Water": "집시워터 오드퍼퓸",
@@ -1330,7 +1330,7 @@ extension PerfumeKoreanTranslator {
         "Byredo Oud Immortel": "바이레도 우드 이모르텔",
         "Oud Immortel": "우드 이모르텔",
         "Byredo Pulp": "바이레도 펄프",
-
+        
         // ── 아쿠아 디 파르마 ──
         "Acqua di Parma Colonia": "콜로니아",
         "Colonia": "콜로니아",
@@ -1348,7 +1348,7 @@ extension PerfumeKoreanTranslator {
         "Peonia Nobile": "페오니아 노빌레",
         "Acqua di Parma Blu Mediterraneo": "아쿠아 디 파르마 블루 메디테라네오",
         "Blu Mediterraneo": "블루 메디테라네오",
-
+        
         // ── 메종 프란시스 커정 ──
         "Maison Francis Kurkdjian Baccarat Rouge 540": "바카라 루쥬 540 오 드 퍼퓸",
         "Baccarat Rouge 540": "바카라 루쥬 540 오 드 퍼퓸",
@@ -1373,7 +1373,7 @@ extension PerfumeKoreanTranslator {
         "Maison Francis Kurkdjian À la Rose": "메종 프란시스 커정 아 라 로즈",
         "À la Rose": "아 라 로즈",
         "a la Rose": "아 라 로즈",
-
+        
         // ── 바이 킬리안 ──
         "Kilian Apple Brandy": "킬리안 애플 브랜디",
         "By Kilian Apple Brandy": "킬리안 애플 브랜디",
@@ -1396,7 +1396,7 @@ extension PerfumeKoreanTranslator {
         "Kilian Single Malt": "킬리안 싱글 몰트",
         "By Kilian Single Malt": "킬리안 싱글 몰트",
         "Kilian Playing with the Devil": "킬리안 플레잉 위드 더 데블",
-
+        
         // ── 조르지오 아르마니 ──
         "Giorgio Armani Acqua di Gio": "조르지오 아르마니 아쿠아 디 지오",
         "Acqua di Gio": "아쿠아 디 지오",
@@ -1421,7 +1421,7 @@ extension PerfumeKoreanTranslator {
         "Armani Code": "아르마니 코드",
         "Giorgio Armani Stronger with You": "조르지오 아르마니 스트롱거 위드 유",
         "Stronger with You": "스트롱거 위드 유",
-
+        
         // ── 입생로랑 ──
         "Yves Saint Laurent Black Opium": "입생로랑 블랙 오피움",
         "Black Opium": "블랙 오피움",
@@ -1447,7 +1447,7 @@ extension PerfumeKoreanTranslator {
         "Yves Saint Laurent Rive Gauche": "입생로랑 리브 고쉬",
         "Rive Gauche": "리브 고쉬",
         "Yves Saint Laurent Opium Black": "입생로랑 오피움 블랙",
-
+        
         // ── 랑콤 ──
         "Lancome La Vie est Belle": "랑콤 라 비 에 벨",
         "Lancôme La Vie est Belle": "랑콤 라 비 에 벨",
@@ -1469,7 +1469,7 @@ extension PerfumeKoreanTranslator {
         "Lancôme La Nuit Trésor": "랑콤 라 뉘 트레조르",
         "La Nuit Tresor": "라 뉘 트레조르",
         "La Nuit Trésor": "라 뉘 트레조르",
-
+        
         // ── 프라다 ──
         "Prada Luna Rossa": "프라다 루나 로사",
         "Luna Rossa": "루나 로사",
@@ -1491,7 +1491,7 @@ extension PerfumeKoreanTranslator {
         "Paradoxe Intense": "프라다 패러독스 인텐스 오 드 퍼퓸",
         "Paradoxe": "파라독스",
         "Prada Amber": "프라다 앰버",
-
+        
         // ── 지방시 ──
         "Givenchy L'Interdit": "랑떼르디",
         "L'Interdit": "랑떼르디",
@@ -1548,7 +1548,7 @@ extension PerfumeKoreanTranslator {
         "Very Irrésistible Givenchy": "베리 이레지스터블 지방시",
         "Very Irresistible Givenchy L'Intense": "베리 이레지스터블 지방시 랭땅스",
         "Very Irrésistible Givenchy L'Intense": "베리 이레지스터블 지방시 랭땅스",
-
+        
         // ── 베르사체 ──
         "Versace Eros": "베르사체 에로스",
         "Eros": "에로스",
@@ -1565,7 +1565,7 @@ extension PerfumeKoreanTranslator {
         "Versace Vanitas": "베르사체 바니타스",
         "Versace Eros Pour Femme": "베르사체 에로스 뿌르 팜므",
         "Eros Pour Femme": "에로스 뿌르 팜므",
-
+        
         // ── 나르시소 로드리게스 ──
         "Narciso Rodriguez For Her": "나르시소 로드리게스 포 허",
         "For Her": "포 허",
@@ -1574,7 +1574,7 @@ extension PerfumeKoreanTranslator {
         "Musc Noir Rose": "뮈스크 누아르 로즈",
         "Musc Noir": "뮈스크 누아르",
         "Narciso Rodriguez For Him": "나르시소 로드리게스 포 힘",
-
+        
         // ── 빅터 앤 롤프 ──
         "Viktor & Rolf Flowerbomb": "빅터앤롤프 플라워밤",
         "Flowerbomb": "플라워밤",
@@ -1583,7 +1583,7 @@ extension PerfumeKoreanTranslator {
         "Viktor & Rolf Good Fortune": "빅터앤롤프 굿 포춘",
         "Good Fortune": "굿 포춘",
         "Viktor & Rolf Bonbon": "빅터앤롤프 봉봉",
-
+        
         // ── 파코 라반 ──
         "Paco Rabanne Olympea": "파코 라반 올림피아",
         "Paco Rabanne Olympéa": "파코 라반 올림피아",
@@ -1598,7 +1598,7 @@ extension PerfumeKoreanTranslator {
         "Paco Rabanne Black XS": "파코 라반 블랙 XS",
         "Paco Rabanne Fame": "파코 라반 페임",
         "Fame": "페임",
-
+        
         // ── 티에리 뮈글러 ──
         "Thierry Mugler Angel": "티에리 뮈글러 엔젤",
         "Mugler Angel": "뮈글러 엔젤",
@@ -1612,7 +1612,7 @@ extension PerfumeKoreanTranslator {
         "Mugler Womanity": "뮈글러 우머니티",
         "Angel Nova": "엔젤 노바",
         "Alien Goddess": "에일리언 가디스",
-
+        
         // ── 캐롤리나 헤레라 ──
         "Carolina Herrera Good Girl": "캐롤리나 헤레라 굿 걸",
         "Good Girl": "굿 걸",
@@ -1626,7 +1626,7 @@ extension PerfumeKoreanTranslator {
         "212 VIP Rose": "212 VIP 로즈",
         "Carolina Herrera Very Good Girl": "캐롤리나 헤레라 베리 굿 걸",
         "Very Good Girl": "베리 굿 걸",
-
+        
         // ── 버버리 ──
         "Burberry Her": "버버리 허",
         "Burberry Mr. Burberry": "버버리 미스터 버버리",
@@ -1640,7 +1640,7 @@ extension PerfumeKoreanTranslator {
         "Hero": "히어로",
         "Burberry Goddess": "버버리 가디스",
         "Goddess": "가디스",
-
+        
         // ── 이세이 미야케 ──
         "Issey Miyake L'Eau d'Issey Pour Homme": "이세이 미야케 로 디세이 뿌르 옴므",
         "L'Eau d'Issey Pour Homme": "로 디세이 뿌르 옴므",
@@ -1648,7 +1648,7 @@ extension PerfumeKoreanTranslator {
         "A Drop d'Issey": "드롭 디세이",
         "Issey Miyake Fusion d'Issey": "이세이 미야케 퓨전 디세이",
         "Fusion d'Issey": "퓨전 디세이",
-
+        
         // ── 돌체 앤 가바나 ──
         "Dolce & Gabbana Light Blue": "돌체앤가바나 라이트 블루",
         "Light Blue": "라이트 블루",
@@ -1657,7 +1657,7 @@ extension PerfumeKoreanTranslator {
         "Dolce & Gabbana K": "돌체앤가바나 K",
         "Dolce & Gabbana Q": "돌체앤가바나 Q",
         "Dolce & Gabbana Devotion": "돌체앤가바나 디보션",
-
+        
         // ── 불가리 ──
         "Bulgari Omnia": "불가리 옴니아",
         "Bvlgari Omnia": "불가리 옴니아",
@@ -1681,7 +1681,7 @@ extension PerfumeKoreanTranslator {
         "Rose Goldea": "로즈 골데아",
         "Bvlgari Splendida": "불가리 스플렌디다",
         "Splendida": "스플렌디다",
-
+        
         // ── 까르띠에 ──
         "Cartier La Panthere": "까르띠에 라 팡테르",
         "Cartier La Panthère": "까르띠에 라 팡테르",
@@ -1700,7 +1700,7 @@ extension PerfumeKoreanTranslator {
         "L'Envol": "랑볼",
         "Cartier Pasha": "까르띠에 파샤",
         "Pasha de Cartier": "파샤 드 까르띠에",
-
+        
         // ── 크리드 ──
         "Aventus": "어벤투스",
         "Creed Himalaya": "크리드 히말라야",
@@ -1717,7 +1717,7 @@ extension PerfumeKoreanTranslator {
         "Viking": "바이킹",
         "Creed Erolfa": "크리드 에롤파",
         "Erolfa": "에롤파",
-
+        
         // ── 휴고 보스 ──
         "Hugo Boss Bottled": "휴고 보스 보틀드",
         "Boss Bottled": "보스 보틀드",
@@ -1727,7 +1727,7 @@ extension PerfumeKoreanTranslator {
         "Boss The Scent": "보스 더 센트",
         "Hugo": "휴고",
         "Hugo Boss Ma Vie": "휴고 보스 마 비",
-
+        
         // ── 캘빈 클라인 ──
         "Calvin Klein CK One": "캘빈 클라인 CK 원",
         "CK One": "CK 원",
@@ -1737,7 +1737,7 @@ extension PerfumeKoreanTranslator {
         "Euphoria": "유포리아",
         "Calvin Klein Obsession": "캘빈 클라인 옵세션",
         "Obsession": "옵세션",
-
+        
         // ── 랄프 로렌 ──
         "Ralph Lauren Polo": "랄프 로렌 폴로",
         "Ralph Lauren Romance": "랄프 로렌 로맨스",
@@ -1749,14 +1749,14 @@ extension PerfumeKoreanTranslator {
         "Ralph Lauren Polo Red": "랄프 로렌 폴로 레드",
         "Polo Red": "폴로 레드",
         "Ralph Lauren Ralph": "랄프 로렌 랄프",
-
+        
         // ── 몽블랑 ──
         "Montblanc Explorer": "몽블랑 익스플로러",
         "Explorer": "익스플로러",
         "Montblanc Legend": "몽블랑 레전드",
         "Montblanc Individuel": "몽블랑 앙디비뒤엘",
         "Montblanc Presence": "몽블랑 프레상스",
-
+        
         // ── 장 폴 고티에 ──
         "Jean Paul Gaultier Le Male": "장 폴 고티에 르 말",
         "Le Male": "르 말",
@@ -1767,14 +1767,14 @@ extension PerfumeKoreanTranslator {
         "Jean Paul Gaultier Classique": "장 폴 고티에 클라시크",
         "Classique": "클라시크",
         "Jean Paul Gaultier Scandal": "장 폴 고티에 스캔들",
-
+        
         // ── 겐조 ──
         "Kenzo Flower by Kenzo": "겐조 플라워 바이 겐조",
         "Flower by Kenzo": "플라워 바이 겐조",
         "Kenzo World": "겐조 월드",
         "Kenzo L'Eau": "겐조 로",
         "L'Eau Kenzo": "겐조 로",
-
+        
         // ── 랑방 ──
         "Lanvin Eclat d'Arpege": "랑방 에끌라 드 아르페쥬",
         "Lanvin Éclat d'Arpège": "랑방 에끌라 드 아르페쥬",
@@ -1782,39 +1782,39 @@ extension PerfumeKoreanTranslator {
         "Éclat d'Arpège": "에끌라 드 아르페쥬",
         "Lanvin Jeanne Lanvin": "랑방 쟌느 랑방",
         "Lanvin Rumeur": "랑방 뤼뫼르",
-
+        
         // ── 다비도프 ──
         "Davidoff Cool Water": "다비도프 쿨 워터",
         "Cool Water": "쿨 워터",
         "Davidoff Cool Water Woman": "다비도프 쿨 워터 우먼",
         "Davidoff The Game": "다비도프 더 게임",
-
+        
         // ── 지미추 ──
         "Jimmy Choo Man": "지미추 맨",
         "Jimmy Choo I Want Choo": "지미추 아이 원트 추",
         "I Want Choo": "아이 원트 추",
         "Jimmy Choo Floral": "지미추 플로럴",
         "Jimmy Choo Blossom": "지미추 블로섬",
-
+        
         // ── 아자로 ──
         "Azzaro Chrome": "아자로 크롬",
         "Chrome": "크롬",
         "Azzaro Wanted": "아자로 원티드",
         "Azzaro Wanted by Night": "아자로 원티드 바이 나이트",
-
+        
         // ── 반 클리프 앤 아펠스 ──
         "Van Cleef & Arpels Midnight in Paris": "반 클리프 앤 아펠스 미드나잇 인 파리",
         "Midnight in Paris": "미드나잇 인 파리",
         "Van Cleef & Arpels First": "반 클리프 앤 아펠스 퍼스트",
         "Van Cleef & Arpels Feerie": "반 클리프 앤 아펠스 페리",
         "Van Cleef & Arpels Oriens": "반 클리프 앤 아펠스 오리앙",
-
+        
         // ── 부쉐롱 ──
         "Boucheron Quatre": "부쉐롱 꽤뜨르",
         "Quatre": "꽤뜨르",
         "Boucheron Jaipur": "부쉐롱 쟈이푸르",
         "Boucheron Jaipur Bracelet": "부쉐롱 쟈이푸르 브레이슬렛",
-
+        
         // ── 엠포리오 아르마니 ──
         "Emporio Armani Because It's You": "엠포리오 아르마니 비코즈 잇츠 유",
         "Because It's You": "비코즈 잇츠 유",
@@ -1822,7 +1822,7 @@ extension PerfumeKoreanTranslator {
         "Emporio Armani Diamonds": "엠포리오 아르마니 다이아몬즈",
         "Emporio Armani She": "엠포리오 아르마니 쉬",
         "Emporio Armani He": "엠포리오 아르마니 히",
-
+        
         // ── 펜할리곤스 ──
         "Penhaligon's Duchess Rose": "펜할리곤스 더치스 로즈",
         "Duchess Rose": "더치스 로즈",
@@ -1835,7 +1835,7 @@ extension PerfumeKoreanTranslator {
         "Lord George": "로드 조지",
         "Penhaligon's Highgrove Bouquet": "펜할리곤스 하이그로브 부케",
         "Highgrove Bouquet": "하이그로브 부케",
-
+        
         // ── 구딸(구탈) ──
         "Goutal Petite Cherie": "구딸 쁘띠 쉐리",
         "Petite Cherie": "쁘띠 쉐리",
@@ -1843,7 +1843,7 @@ extension PerfumeKoreanTranslator {
         "Mon Amour": "몽 아무르",
         "Goutal Eau d'Hadrien": "구딸 오 다드리앙",
         "Eau d'Hadrien": "오 다드리앙",
-
+        
         // ── 프레데릭 말 ──
         "Frederic Malle Carnal Flower": "프레데릭 말 카날 플라워",
         "Carnal Flower": "카날 플라워",
@@ -1855,7 +1855,7 @@ extension PerfumeKoreanTranslator {
         "Dans Tes Bras": "당 테 브라",
         "Frederic Malle Dries Van Noten": "프레데릭 말 드리스 반 노튼",
         "Frederic Malle L'Au d'Hiver": "프레데릭 말 로 디베르",
-
+        
         // ── 로에베 ──
         "Loewe Aura": "로에베 오라",
         "Loewe Esencia": "로에베 에센시아",
@@ -1865,13 +1865,13 @@ extension PerfumeKoreanTranslator {
         "Loewe Solo": "로에베 솔로",
         "Loewe Agua de Loewe": "로에베 아구아 드 로에베",
         "Agua de Loewe": "아구아 드 로에베",
-
+        
         // ── 셀린느 ──
         "Celine Parade": "셀린느 파라드",
         "Celine Nightclubbing": "셀린느 나이트클럽빙",
         "Celine Saint-Germain-des-Pres": "셀린느 생 제르맹 데 프레",
         "Celine High Fantasy": "셀린느 하이 판타지",
-
+        
         // ── 퍼퓸 드 말리 ──
         "Parfums de Marly Percival": "퍼퓸 드 말리 퍼시벌",
         "Percival": "퍼시벌",
@@ -1884,12 +1884,12 @@ extension PerfumeKoreanTranslator {
         "Parfums de Marly Sedley": "퍼퓸 드 말리 세들리",
         "Parfums de Marly Greenley": "퍼퓸 드 말리 그린리",
     ]
-
+    
     nonisolated static let normalizedPerfumeNameToKorean: [String: String] = {
         Dictionary(perfumeNameToKorean.map { (normalizeBrandKey($0.key), $0.value) },
                    uniquingKeysWith: { _, last in last })
     }()
-
+    
     nonisolated static let domesticPerfumeNameReplacements: [(english: String, korean: String)] = [
         // ── 에르메스 기존 항목 (공식 한국어 표기 기준) ──
         ("Hermes Eau d'Orange Verte", "에르메스 오 도랑쥬 베르트"),
@@ -1947,7 +1947,7 @@ extension PerfumeKoreanTranslator {
         ("Gucci Nobile", "구찌 노빌레"),
         ("Gucci Variety", "구찌 버라이어티"),
         ("Gucci Oud", "구찌 우드"),
-
+        
         // ── 샤넬 ──
         ("Coco Mademoiselle", "코코 마드모아젤"),
         ("Chanel No. 5 L'Eau", "샤넬 No.5 로"),
@@ -1983,7 +1983,7 @@ extension PerfumeKoreanTranslator {
         ("Allure Sensuelle", "알뤼르 상쉬엘"),
         ("Allure", "알뤼르"),
         ("Gabrielle", "가브리엘"),
-
+        
         // ── 디올 ──
         ("Dior Sauvage", "디올 소바쥬"),
         ("Sauvage", "소바쥬"),
@@ -2002,7 +2002,7 @@ extension PerfumeKoreanTranslator {
         ("Hypnotic Poison", "이프노틱 프와종"),
         ("Pure Poison", "퓨어 프와종"),
         ("Poison", "프와종"),
-
+        
         // ── 에르메스 (공식 한국어 표기 기준) ──
         ("Hermès Terre d'Hermès", "에르메스 떼르 데르메스"),
         ("Hermes Terre d'Hermes", "에르메스 떼르 데르메스"),
@@ -2034,7 +2034,7 @@ extension PerfumeKoreanTranslator {
         ("Kelly Caleche", "켈리 칼레쉬"),
         ("Rose Ikebana", "로즈 이케바나"),
         ("Osmanthe Yunnan", "오스만뜨 유난"),
-
+        
         // ── 톰 포드 ──
         ("Tom Ford Black Orchid", "톰 포드 블랙 오키드"),
         ("Black Orchid", "블랙 오키드"),
@@ -2055,7 +2055,7 @@ extension PerfumeKoreanTranslator {
         ("Jasmin Rouge", "재스민 루즈"),
         ("Tuscan Leather", "투스칸 레더"),
         ("Fucking Fabulous", "퍼킹 파뷸러스"),
-
+        
         // ── ──
         ("Jo Malone Hinoki & Cedarwood", "히노키 앤 시더우드 코롱 인텐스"),
         ("Hinoki & Cedarwood", "히노키 앤 시더우드 코롱 인텐스"),
@@ -2118,7 +2118,7 @@ extension PerfumeKoreanTranslator {
         ("Jo Malone #154", "154 코롱"),
         ("Jo Malone 154", "154 코롱"),
         ("#154", "154 코롱"),
-
+        
         // ── 겔랑 ──
         ("Shalimar", "샬리마르"),
         ("La Petite Robe Noire", "라 쁘띠 로브 누아르"),
@@ -2129,7 +2129,7 @@ extension PerfumeKoreanTranslator {
         ("Aqua Allegoria", "아쿠아 알레고리아"),
         ("Mitsouko", "미쓰코"),
         ("Champs-Elysées", "샹젤리제"),
-
+        
         // ── 메종 마르지엘라 레플리카 ──
         ("Replica By the Fireplace", "레플리카 바이 더 파이어플레이스"),
         ("By the Fireplace", "바이 더 파이어플레이스"),
@@ -2151,7 +2151,7 @@ extension PerfumeKoreanTranslator {
         ("Matcha Meditation", "마차 메디테이션"),
         ("Replica At the Barber's", "레플리카 앳 더 바버스"),
         ("Replica Under the Lemon Trees", "레플리카 언더 더 레몬 트리즈"),
-
+        
         // ── 르 라보 (lelabofragrances.co.kr 공식 한국어 표기 기준) ──
         ("Santal 33", "상탈 33"),
         ("Rose 31", "로즈 31"),
@@ -2176,7 +2176,7 @@ extension PerfumeKoreanTranslator {
         ("Patchouli 24", "파출리 24"),
         ("Lys 41", "리스 41"),
         ("Vetiver 46", "베티버 46"),
-
+        
         // ── 딥티크 ──
         ("Diptyque Baies", "딥티크 베이"),
         ("Baies", "베이"),
@@ -2188,7 +2188,7 @@ extension PerfumeKoreanTranslator {
         ("Eau des Sens", "오 데 상스"),
         ("34 Boulevard Saint Germain", "34번가 생제르망"),
         ("Eau Duelle", "오 뒤엘"),
-
+        
         // ── 바이레도 ──
         ("Gypsy Water", "집시 워터"),
         ("Bal d'Afrique", "발 다프리크"),
@@ -2201,7 +2201,7 @@ extension PerfumeKoreanTranslator {
         ("Mixed Emotions", "믹스드 이모션스"),
         ("Oud Immortel", "우드 이모르텔"),
         ("Rose of No Man's Land", "로즈 오브 노 맨스 랜드"),
-
+        
         // ── 아쿠아 디 파르마 ──
         ("Colonia Assoluta", "콜로니아 아쏠루타"),
         ("Colonia Pura", "콜로니아 퓨라"),
@@ -2211,7 +2211,7 @@ extension PerfumeKoreanTranslator {
         ("Magnolia Nobile", "마그놀리아 노빌레"),
         ("Peonia Nobile", "페오니아 노빌레"),
         ("Blu Mediterraneo", "블루 메디테라네오"),
-
+        
         // ── 메종 프란시스 커정 ──
         ("Baccarat Rouge 540", "바카라 루쥬 540"),
         ("Aqua Universalis", "아쿠아 유니버셜"),
@@ -2221,7 +2221,7 @@ extension PerfumeKoreanTranslator {
         ("Oud Satin Mood", "우드 사틴 무드"),
         ("À la Rose", "아 라 로즈"),
         ("a la Rose", "아 라 로즈"),
-
+        
         // ── 바이 킬리안 ──
         ("Good Girl Gone Bad", "굿 걸 곤 배드"),
         ("Angels' Share", "엔젤스 쉐어"),
@@ -2231,7 +2231,7 @@ extension PerfumeKoreanTranslator {
         ("Roses on Ice", "로지스 온 아이스"),
         ("Black Phantom", "블랙 팬텀"),
         ("Apple Brandy", "애플 브랜디"),
-
+        
         // ── 조르지오 아르마니 ──
         ("Acqua di Giò Profondo", "아쿠아 디 지오 프로폰도"),
         ("Acqua di Gio Profondo", "아쿠아 디 지오 프로폰도"),
@@ -2246,7 +2246,7 @@ extension PerfumeKoreanTranslator {
         ("My Way", "마이 웨이"),
         ("Armani Code", "아르마니 코드"),
         ("Stronger with You", "스트롱거 위드 유"),
-
+        
         // ── 입생로랑 ──
         ("Black Opium", "블랙 오피움"),
         ("Mon Paris", "몽 파리"),
@@ -2254,7 +2254,7 @@ extension PerfumeKoreanTranslator {
         ("La Nuit de l'Homme", "라 뉘 드 롬므"),
         ("Rive Gauche", "리브 고쉬"),
         ("Opium", "오피움"),
-
+        
         // ── 랑콤 ──
         ("La Vie Est Belle", "라 비 에 벨"),
         ("La Vie est Belle", "라 비 에 벨"),
@@ -2267,7 +2267,7 @@ extension PerfumeKoreanTranslator {
         ("Miracle", "미라클"),
         ("Hypnôse", "이프노즈"),
         ("Hypnose", "이프노즈"),
-
+        
         // ── 프라다 ──
         ("Luna Rossa Black", "루나 로사 블랙"),
         ("Luna Rossa", "루나 로사"),
@@ -2276,7 +2276,7 @@ extension PerfumeKoreanTranslator {
         ("Candy", "캔디"),
         ("Infusion d'Iris", "앵퓨지옹 디리스"),
         ("Paradoxe", "파라독스"),
-
+        
         // ── 지방시 ──
         ("L'Interdit", "랑떼르디"),
         ("Gentleman Society", "젠틀맨 소사이어티"),
@@ -2287,7 +2287,7 @@ extension PerfumeKoreanTranslator {
         ("Dahlia Divin", "달리아 디방"),
         ("Amarige", "아마리쥬"),
         ("Organza", "오르간자"),
-
+        
         // ── 베르사체 ──
         ("Eros Pour Femme", "에로스 뿌르 팜므"),
         ("Eros", "에로스"),
@@ -2295,17 +2295,17 @@ extension PerfumeKoreanTranslator {
         ("Dylan Blue", "딜런 블루"),
         ("Crystal Noir", "크리스탈 누아르"),
         ("Yellow Diamond", "옐로우 다이아몬드"),
-
+        
         // ── 나르시소 로드리게스 ──
         ("Musc Noir Rose", "뮈스크 누아르 로즈"),
         ("Musc Noir", "뮈스크 누아르"),
         ("For Her", "포 허"),
-
+        
         // ── 빅터앤롤프 ──
         ("Flowerbomb", "플라워밤"),
         ("Spicebomb", "스파이스밤"),
         ("Good Fortune", "굿 포춘"),
-
+        
         // ── 파코 라반 ──
         ("Olympéa", "올림피아"),
         ("Olympea", "올림피아"),
@@ -2313,41 +2313,41 @@ extension PerfumeKoreanTranslator {
         ("1 Million", "원 밀리언"),
         ("Lady Million", "레이디 밀리언"),
         ("Fame", "페임"),
-
+        
         // ── 티에리 뮈글러 ──
         ("Alien Goddess", "에일리언 가디스"),
         ("Angel Nova", "엔젤 노바"),
         ("Angel", "엔젤"),
         ("Alien", "에일리언"),
-
+        
         // ── 캐롤리나 헤레라 ──
         ("Good Girl", "굿 걸"),
         ("Bad Boy", "배드 보이"),
         ("Very Good Girl", "베리 굿 걸"),
         ("212 VIP Rose", "212 VIP 로즈"),
         ("212 VIP", "212 VIP"),
-
+        
         // ── 버버리 ──
         ("Mr. Burberry", "미스터 버버리"),
         ("My Burberry", "마이 버버리"),
         ("Brit", "브릿"),
         ("Hero", "히어로"),
         ("Goddess", "가디스"),
-
+        
         // ── 이세이 미야케 ──
         ("L'Eau d'Issey Pour Homme", "로 디세이 뿌르 옴므"),
         ("L'Eau d'Issey", "로 디세이"),
         ("A Drop d'Issey", "드롭 디세이"),
         ("Fusion d'Issey", "퓨전 디세이"),
-
+        
         // ── 돌체앤가바나 ──
         ("Light Blue", "라이트 블루"),
         ("The One", "더 원"),
-
+        
         // ── 불가리 ──
         ("Omnia", "옴니아"),
         ("Splendida", "스플렌디다"),
-
+        
         // ── 까르띠에 ──
         ("La Panthère", "라 팡테르"),
         ("La Panthere", "라 팡테르"),
@@ -2357,7 +2357,7 @@ extension PerfumeKoreanTranslator {
         ("Baiser Vole", "베제 볼레"),
         ("L'Envol", "랑볼"),
         ("Pasha de Cartier", "파샤 드 까르띠에"),
-
+        
         // ── 크리드 ──
         ("Green Irish Tweed", "그린 아이리쉬 트위드"),
         ("Silver Mountain Water", "실버 마운틴 워터"),
@@ -2368,77 +2368,77 @@ extension PerfumeKoreanTranslator {
         ("Viking", "바이킹"),
         ("Erolfa", "에롤파"),
         ("Original Vetiver", "오리지날 베티버"),
-
+        
         // ── 휴고 보스 ──
         ("Boss Bottled", "보스 보틀드"),
         ("Boss Alive", "보스 얼라이브"),
         ("Boss The Scent", "보스 더 센트"),
-
+        
         // ── 캘빈 클라인 ──
         ("CK One", "CK 원"),
         ("Eternity", "이터니티"),
         ("Euphoria", "유포리아"),
         ("Obsession", "옵세션"),
-
+        
         // ── 랄프 로렌 ──
         ("Romance", "로맨스"),
         ("Polo Blue", "폴로 블루"),
         ("Polo Black", "폴로 블랙"),
         ("Polo Red", "폴로 레드"),
-
+        
         // ── 장 폴 고티에 ──
         ("Le Male Le Parfum", "르 말 르 퍼퓸"),
         ("Le Male", "르 말"),
         ("Le Beau", "르보"),
         ("Classique", "클라시크"),
-
+        
         // ── 겐조 ──
         ("Flower by Kenzo", "플라워 바이 겐조"),
         ("Kenzo World", "겐조 월드"),
-
+        
         // ── 랑방 ──
         ("Éclat d'Arpège", "에끌라 드 아르페쥬"),
         ("Eclat d'Arpege", "에끌라 드 아르페쥬"),
-
+        
         // ── 다비도프 ──
         ("Cool Water", "쿨 워터"),
-
+        
         // ── 지미추 ──
         ("I Want Choo", "아이 원트 추"),
-
+        
         // ── 아자로 ──
         ("Chrome", "크롬"),
         ("Wanted by Night", "원티드 바이 나이트"),
         ("Wanted", "원티드"),
-
+        
         // ── 반 클리프 앤 아펠스 ──
         ("Midnight in Paris", "미드나잇 인 파리"),
-
+        
         // ── 부쉐롱 ──
         ("Jaipur Bracelet", "쟈이푸르 브레이슬렛"),
         ("Jaipur", "쟈이푸르"),
         ("Quatre", "꽤뜨르"),
-
+        
         // ── 엠포리오 아르마니 ──
         ("Because It's You", "비코즈 잇츠 유"),
         ("Diamonds", "다이아몬즈"),
-
+        
         // ── 프레데릭 말 ──
         ("Portrait of a Lady", "포트레이트 오브 어 레이디"),
         ("Carnal Flower", "카날 플라워"),
         ("Musc Ravageur", "뮤스크 라바줴"),
         ("Lipstick Rose", "립스틱 로즈"),
         ("Dans Tes Bras", "당 테 브라"),
-
+        
         // ── 로에베 ──
         ("Agua de Loewe", "아구아 드 로에베"),
-
+        
         // ── 퍼퓸 드 말리 ──
         ("Percival", "퍼시벌"),
         ("Delina", "델리나"),
         ("Layton", "레이튼"),
         ("Herod", "헤로드"),
-
+        
         // ── 신세계백화점 브랜드명 치환 (상품명 안에 브랜드가 포함되어 내려오는 경우) ──
         ("TOM FORD BEAUTY", "톰 포드 뷰티"),
         ("Tom Ford Beauty", "톰 포드 뷰티"),
@@ -2492,7 +2492,7 @@ extension PerfumeKoreanTranslator {
         ("Nonfiction", "논픽션"),
         ("Estée Lauder", "에스티로더"),
         ("Estee Lauder", "에스티로더"),
-
+        
         // ── 농도·제형 제네릭 정리 (Fragella API 접미사 제거용, 반드시 배열 맨 끝에 위치) ──
         // 복합 농도 (긴 것 먼저)
         ("Extrait de Parfum", "엑스트레 드 퍼퓸"),
@@ -2518,11 +2518,11 @@ extension PerfumeKoreanTranslator {
         (" for Women", ""),
         (" for Men", ""),
     ]
-
+    
     nonisolated static let koreanToBrand: [String: String] = {
         Dictionary(brandToKorean.map { ($1, $0) }, uniquingKeysWith: { _, last in last })
     }()
-
+    
     nonisolated static let koreanWordToEnglish: [String: String] = [
         "어벤투스": "aventus", "히말라야": "himalaya", "카르미나": "carmina",
         "타바롬": "tabarome", "에롤파": "erolfa", "델피너스": "delphinus",
@@ -2614,10 +2614,10 @@ extension PerfumeKoreanTranslator {
             .components(separatedBy: CharacterSet.alphanumerics.inverted)
             .joined()
     }
-
+    
     nonisolated static func applyDomesticPerfumeNameReplacements(to value: String) -> String {
         var result = value
-
+        
         for replacement in domesticPerfumeNameReplacements {
             result = result.replacingOccurrences(
                 of: replacement.english,
@@ -2625,5 +2625,7 @@ extension PerfumeKoreanTranslator {
                 options: [.caseInsensitive, .diacriticInsensitive]
             )
         }
-    }
 
+        return result
+    }
+}

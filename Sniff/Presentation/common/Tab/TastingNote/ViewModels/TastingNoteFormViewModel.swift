@@ -46,12 +46,45 @@ final class TastingNoteFormViewModel: ObservableObject {
     var canSave: Bool {
         !perfumeName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         !brandName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        memo.trimmingCharacters(in: .whitespacesAndNewlines).count >= 20
+        isMemoValid
     }
 
     var memoCount: Int { memo.count }
+    var maxMemoCount: Int { Self.maxMemoCount }
+
+    var isMemoValid: Bool {
+        let trimmedMemo = memo.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmedMemo.count >= Self.minMemoCount,
+              trimmedMemo.count <= Self.maxMemoCount else {
+            return false
+        }
+
+        var containsLetter = false
+
+        for scalar in trimmedMemo.unicodeScalars {
+            if Self.isKoreanScalar(scalar) || Self.isEnglishScalar(scalar) {
+                containsLetter = true
+                continue
+            }
+
+            if Self.isNumberScalar(scalar) ||
+                Self.allowedWhitespaceScalars.contains(scalar) ||
+                Self.allowedPunctuationScalars.contains(scalar) {
+                continue
+            }
+
+            return false
+        }
+
+        return containsLetter
+    }
 
     // MARK: - Private
+
+    private static let minMemoCount = 20
+    private static let maxMemoCount = 2000
+    private static let allowedWhitespaceScalars = CharacterSet.whitespacesAndNewlines
+    private static let allowedPunctuationScalars = CharacterSet(charactersIn: ".,!?~")
 
     private var perfumeImageURL: String?
 
@@ -177,4 +210,51 @@ final class TastingNoteFormViewModel: ObservableObject {
         }
     }
 
+    private func findDuplicateNote(in ref: CollectionReference) async throws -> TastingNoteDocument? {
+        let snapshot = try await ref.getDocuments()
+        let currentKey = duplicateKey(perfumeName: perfumeName, brandName: brandName)
+
+        let matches: [TastingNoteDocument] = snapshot.documents.compactMap { document -> TastingNoteDocument? in
+            guard var note = try? document.data(as: TastingNote.self),
+                  duplicateKey(perfumeName: note.perfumeName, brandName: note.brandName) == currentKey else {
+                return nil
+            }
+            note.id = document.documentID
+            return TastingNoteDocument(id: document.documentID, note: note)
+        }
+
+        return matches
+            .sorted { lhs, rhs in lhs.note.createdAt > rhs.note.createdAt }
+            .first
+    }
+
+    private func duplicateKey(perfumeName: String, brandName: String) -> String {
+        let normalizedName = perfumeName
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+        let normalizedBrand = brandName
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+        return "\(normalizedBrand)|\(normalizedName)"
+    }
+
+    private static func isKoreanScalar(_ scalar: UnicodeScalar) -> Bool {
+        (0xAC00...0xD7A3).contains(Int(scalar.value))
+    }
+
+    private static func isEnglishScalar(_ scalar: UnicodeScalar) -> Bool {
+        (0x41...0x5A).contains(Int(scalar.value)) ||
+        (0x61...0x7A).contains(Int(scalar.value))
+    }
+
+    private static func isNumberScalar(_ scalar: UnicodeScalar) -> Bool {
+        (0x30...0x39).contains(Int(scalar.value))
+    }
+}
+
+private struct TastingNoteDocument {
+    let id: String
+    let note: TastingNote
+
+    var createdAt: Date { note.createdAt }
 }

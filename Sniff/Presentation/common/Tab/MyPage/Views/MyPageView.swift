@@ -336,6 +336,7 @@ private struct CheckerboardProfilePlaceholder: View {
     }
 }
 
+#if DEBUG
 #Preview("데이터 없음") {
     MyPageView(viewModel: .mock())
 }
@@ -343,3 +344,4 @@ private struct CheckerboardProfilePlaceholder: View {
 #Preview("데이터 있음") {
     MyPageView(viewModel: .mock())
 }
+#endif

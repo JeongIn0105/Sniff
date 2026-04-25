@@ -204,11 +204,13 @@ struct TastingNoteFormView: View {
                         .frame(minHeight: 138)
                         .padding(.horizontal, 8).padding(.top, 8)
                         .onChange(of: vm.memo) { v in
-                            if v.count > 2000 { vm.memo = String(v.prefix(2000)) }
+                            if v.count > vm.maxMemoCount {
+                                vm.memo = String(v.prefix(vm.maxMemoCount))
+                            }
                         }
                 }
 
-                Text("\(vm.memoCount)/2000")
+                Text("\(vm.memoCount)/\(vm.maxMemoCount)")
                     .font(.system(size: 12))
                     .foregroundColor(vm.memoCount < 20 ? Color(.systemGray3) : .secondary)
                     .padding(.trailing, 12).padding(.bottom, 10)
