@@ -517,7 +517,7 @@ final class PerfumeDetailViewController: UIViewController {
         UIView.animate(withDuration: 0.2) {
             container.alpha = 1
         } completion: { _ in
-            UIView.animate(withDuration: 0.2, delay: 1.8, options: [.curveEaseInOut]) {
+            UIView.animate(withDuration: 0.2, delay: 2.8, options: [.curveEaseInOut]) {
                 container.alpha = 0
             } completion: { [weak container] _ in
                 container?.removeFromSuperview()
@@ -596,7 +596,7 @@ final class PerfumeDetailViewController: UIViewController {
                 }, onError: { [weak self] error in
                     self?.likeButton.isEnabled = true
                     self?.updateLikeState(for: perfume.id, isLiked: wasLiked)
-                    self?.showErrorAlert(message: error.localizedDescription)
+                    self?.presentMutationError(error)
                 })
                 .disposed(by: disposeBag)
         }
@@ -626,7 +626,7 @@ final class PerfumeDetailViewController: UIViewController {
                 }, onError: { [weak self] error in
                     self?.addCollectionButton.isEnabled = true
                     self?.updateOwnedState(for: perfume.id, isOwned: wasOwned)
-                    self?.showErrorAlert(message: error.localizedDescription)
+                    self?.presentMutationError(error)
                 })
                 .disposed(by: disposeBag)
         } else {
@@ -637,7 +637,7 @@ final class PerfumeDetailViewController: UIViewController {
                 }, onError: { [weak self] error in
                     self?.addCollectionButton.isEnabled = true
                     self?.updateOwnedState(for: perfume.id, isOwned: wasOwned)
-                    self?.showErrorAlert(message: error.localizedDescription)
+                    self?.presentMutationError(error)
                 })
                 .disposed(by: disposeBag)
         }
@@ -686,5 +686,13 @@ final class PerfumeDetailViewController: UIViewController {
     private func updateTastingButtonUI() {
         let title = hasTastingRecord ? "시향기로 이동" : AppStrings.UIKitScreens.PerfumeDetail.addTasting
         addTastingButton.setTitle(title, for: .normal)
+    }
+
+    private func presentMutationError(_ error: Error) {
+        if let limitError = error as? CollectionUsageLimitError {
+            showToast(message: limitError.localizedDescription)
+        } else {
+            showErrorAlert(message: error.localizedDescription)
+        }
     }
 }

@@ -510,6 +510,8 @@ private extension HomeViewController {
             .subscribe(onCompleted: { [weak self] in
                 self?.likedPerfumeIDs.insert(item.id)
                 self?.recommendationCollectionView.reloadData()
+            }, onError: { [weak self] error in
+                self?.presentLikeMutationError(error)
             })
             .disposed(by: disposeBag)
     }
@@ -520,8 +522,18 @@ private extension HomeViewController {
             .subscribe(onCompleted: { [weak self] in
                 self?.likedPerfumeIDs.remove(id)
                 self?.recommendationCollectionView.reloadData()
+            }, onError: { [weak self] error in
+                self?.presentLikeMutationError(error)
             })
             .disposed(by: disposeBag)
+    }
+
+    func presentLikeMutationError(_ error: Error) {
+        if let limitError = error as? CollectionUsageLimitError {
+            showAppToast(message: limitError.localizedDescription, bottomOffset: 84)
+        } else {
+            presentAlert(error.localizedDescription)
+        }
     }
 
     var visibleRecommendations: [HomePerfumeItem] {

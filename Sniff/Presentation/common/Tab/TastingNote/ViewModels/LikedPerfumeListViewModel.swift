@@ -97,16 +97,16 @@ final class LikedPerfumeListViewModel: ObservableObject {
                     rawMainAccords: liked.mainAccords,
                     mainAccords: liked.mainAccords,
                     mainAccordStrengths: [:],
-                    topNotes: nil,
-                    middleNotes: nil,
-                    baseNotes: nil,
-                    concentration: nil,
+                    topNotes: liked.topNotes,
+                    middleNotes: liked.middleNotes,
+                    baseNotes: liked.baseNotes,
+                    concentration: liked.concentration,
                     gender: nil,
                     season: nil,
-                    seasonRanking: [],
+                    seasonRanking: liked.seasonRanking,
                     situation: nil,
-                    longevity: nil,
-                    sillage: nil
+                    longevity: liked.longevity,
+                    sillage: liked.sillage
                 )
 
                 return PerfumeRowItem(

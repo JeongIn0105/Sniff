@@ -803,8 +803,8 @@ private extension SearchViewController {
             .subscribe(onCompleted: { [weak self] in
                 self?.likedPerfumeIDs.insert(perfume.id)
                 self?.reloadPerfumeResults()
-            }, onError: { [weak self] _ in
-                self?.presentSaveFailureAlert()
+            }, onError: { [weak self] error in
+                self?.presentSaveFailure(error)
             })
             .disposed(by: disposeBag)
     }
@@ -817,13 +817,18 @@ private extension SearchViewController {
             .subscribe(onCompleted: { [weak self] in
                 self?.likedPerfumeIDs.remove(id)
                 self?.reloadPerfumeResults()
-            }, onError: { [weak self] _ in
-                self?.presentSaveFailureAlert()
+            }, onError: { [weak self] error in
+                self?.presentSaveFailure(error)
             })
             .disposed(by: disposeBag)
     }
 
-    private func presentSaveFailureAlert() {
+    private func presentSaveFailure(_ error: Error) {
+        if let limitError = error as? CollectionUsageLimitError {
+            showAppToast(message: limitError.localizedDescription)
+            return
+        }
+
         let alert = UIAlertController(title: nil, message: AppStrings.UIKitScreens.Search.likeSaveFailed, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: AppStrings.UIKitScreens.confirm, style: .default))
         present(alert, animated: true)

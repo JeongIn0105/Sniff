@@ -46,6 +46,7 @@ final class MyPageViewModel: ObservableObject {
     @Published private(set) var likedCount: Int = 0
     @Published private(set) var isLoading = false
     @Published var errorMessage: String?
+    @Published var toastMessage: String?
 
     private enum DisplayLimit {
         static let ownedPreview = 5
@@ -61,6 +62,7 @@ final class MyPageViewModel: ObservableObject {
     private let localTastingNoteRepository: LocalTastingNoteRepository
     private var allOwnedPerfumes: [OwnedPreviewItem] = []
     private var allLikedPerfumes: [LikedPreviewItem] = []
+    private var toastTask: Task<Void, Never>?
 
     init(
         firestoreService: FirestoreService,
@@ -72,6 +74,10 @@ final class MyPageViewModel: ObservableObject {
         self.collectionRepository = collectionRepository
         self.tastingRepository = tastingRepository
         self.localTastingNoteRepository = localTastingNoteRepository
+    }
+
+    deinit {
+        toastTask?.cancel()
     }
 
     func load() async {
@@ -240,7 +246,7 @@ final class MyPageViewModel: ObservableObject {
             allLikedPerfumes = previousLiked
             likedCount = previousLikedCount
             applyPreviewLimits()
-            errorMessage = error.localizedDescription
+            handleError(error)
         }
     }
 
@@ -274,7 +280,7 @@ final class MyPageViewModel: ObservableObject {
             likedCount = previousLikedCount
             allOwnedPerfumes = previousOwned
             applyPreviewLimits()
-            errorMessage = error.localizedDescription
+            handleError(error)
         }
     }
 }
@@ -533,6 +539,24 @@ private extension MyPageViewModel {
     func applyPreviewLimits() {
         ownedPerfumes = Array(allOwnedPerfumes.prefix(DisplayLimit.ownedPreview))
         likedPerfumes = Array(allLikedPerfumes.prefix(DisplayLimit.likedPreview))
+    }
+
+    func handleError(_ error: Error) {
+        if let limitError = error as? CollectionUsageLimitError {
+            showToast(message: limitError.localizedDescription)
+        } else {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func showToast(message: String) {
+        toastMessage = message
+        toastTask?.cancel()
+        toastTask = Task {
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            guard !Task.isCancelled else { return }
+            toastMessage = nil
+        }
     }
 }
 
