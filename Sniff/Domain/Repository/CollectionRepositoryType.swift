@@ -10,6 +10,8 @@ import RxSwift
 
 protocol CollectionRepositoryType {
     func fetchCollection() -> Single<[CollectedPerfume]>
+    func currentMonthlyCollectionUsage() -> Int
+    var monthlyCollectionLimit: Int { get }
     func saveCollectedPerfume(_ perfume: Perfume, memo: String?) -> Completable
     func deleteCollectedPerfume(id: String) -> Completable
     func fetchLikedPerfumes() -> Single<[LikedPerfume]>

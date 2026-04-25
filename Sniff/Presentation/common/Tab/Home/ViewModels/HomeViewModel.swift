@@ -44,6 +44,9 @@ final class HomeViewModel {
     private let routeRelay = PublishRelay<HomeRoute>()
     private let recommendationItemsRelay = BehaviorRelay<[HomePerfumeItem]>(value: [])
 
+    private var cachedFeedData: HomeFeedData?
+    private let updateTracker = RecommendationUpdateTracker()
+
     private let userTasteRepository: UserTasteRepositoryType
     private let collectionRepository: CollectionRepositoryType
     private let tastingRecordRepository: TastingRecordRepositoryType
@@ -76,7 +79,7 @@ final class HomeViewModel {
         let sourceData = input.viewDidLoad
             .flatMapLatest { [weak self] _ -> Observable<HomeFeedData?> in
                 guard let self else { return .just(nil) }
-                return self.fetchHomeFeed()
+                return self.fetchHomeFeedIfNeeded()
                     .map(Optional.some)
                     .catchAndReturn(nil)
                     .asObservable()
@@ -178,6 +181,25 @@ final class HomeViewModel {
 }
 
 private extension HomeViewModel {
+
+    func fetchHomeFeedIfNeeded() -> Single<HomeFeedData> {
+        // 당일 한도(2회) 소진 + 캐시 있음 → Firestore 재조회 없이 캐시 반환
+        if updateTracker.todayUpdateCount >= 2, let cached = cachedFeedData {
+            return .just(cached)
+        }
+
+        return fetchHomeFeed()
+            .do(onSuccess: { [weak self] data in
+                guard let self else { return }
+                self.cachedFeedData = data
+                if self.updateTracker.canRecord(
+                    collectionCount: data.collection.count,
+                    tastingCount: data.tastingRecords.count
+                ) {
+                    self.updateTracker.recordUpdate()
+                }
+            })
+    }
 
     func fetchHomeFeed() -> Single<HomeFeedData> {
         Single.zip(

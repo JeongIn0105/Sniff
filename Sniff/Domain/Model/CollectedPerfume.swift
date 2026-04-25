@@ -16,6 +16,13 @@ struct CollectedPerfume {
     let accordStrengths: [String: AccordStrength]
     let memo: String?
     let createdAt: Date?
+    let topNotes: [String]?
+    let middleNotes: [String]?
+    let baseNotes: [String]?
+    let seasonRanking: [SeasonRankingEntry]
+    let concentration: String?
+    let longevity: String?
+    let sillage: String?
 
     var scentFamilies: [String] {
         mainAccords.filter { !$0.isEmpty }
@@ -94,6 +101,40 @@ extension CollectedPerfume {
 }
 
 extension CollectedPerfume {
+    nonisolated init(
+        id: String,
+        name: String,
+        brand: String,
+        imageUrl: String? = nil,
+        mainAccords: [String],
+        accordStrengths: [String: AccordStrength],
+        memo: String?,
+        createdAt: Date?,
+        topNotes: [String]? = nil,
+        middleNotes: [String]? = nil,
+        baseNotes: [String]? = nil,
+        seasonRanking: [SeasonRankingEntry] = [],
+        concentration: String? = nil,
+        longevity: String? = nil,
+        sillage: String? = nil
+    ) {
+        self.id = id
+        self.name = name
+        self.brand = brand
+        self.imageUrl = imageUrl
+        self.mainAccords = mainAccords
+        self.accordStrengths = accordStrengths
+        self.memo = memo
+        self.createdAt = createdAt
+        self.topNotes = topNotes
+        self.middleNotes = middleNotes
+        self.baseNotes = baseNotes
+        self.seasonRanking = seasonRanking
+        self.concentration = concentration
+        self.longevity = longevity
+        self.sillage = sillage
+    }
+
     nonisolated func toPerfume() -> Perfume {
         Perfume(
             id: id,
@@ -103,16 +144,16 @@ extension CollectedPerfume {
             rawMainAccords: mainAccords,
             mainAccords: mainAccords,
             mainAccordStrengths: accordStrengths,
-            topNotes: nil,
-            middleNotes: nil,
-            baseNotes: nil,
-            concentration: nil,
+            topNotes: topNotes,
+            middleNotes: middleNotes,
+            baseNotes: baseNotes,
+            concentration: concentration,
             gender: nil,
             season: nil,
-            seasonRanking: [],
+            seasonRanking: seasonRanking,
             situation: nil,
-            longevity: nil,
-            sillage: nil
+            longevity: longevity,
+            sillage: sillage
         )
     }
 }

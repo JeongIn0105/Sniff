@@ -8,7 +8,6 @@
 // MARK: - 등록 로직
 import Foundation
 import FirebaseAuth
-import FirebaseFirestore
 import Combine
 
 @MainActor
@@ -55,15 +54,6 @@ final class TastingNoteFormViewModel: ObservableObject {
     // MARK: - Private
 
     private var perfumeImageURL: String?
-
-    private var uid: String? { Auth.auth().currentUser?.uid }
-
-    private var collectionRef: CollectionReference? {
-        guard let uid else { return nil }
-        return Firestore.firestore()
-            .collection("users").document(uid)
-            .collection("tastingRecords")
-    }
 
     // MARK: - Init
 
@@ -187,38 +177,4 @@ final class TastingNoteFormViewModel: ObservableObject {
         }
     }
 
-    private func findDuplicateNote(in ref: CollectionReference) async throws -> TastingNoteDocument? {
-        let snapshot = try await ref.getDocuments()
-        let currentKey = duplicateKey(perfumeName: perfumeName, brandName: brandName)
-
-        let matches: [TastingNoteDocument] = snapshot.documents.compactMap { document -> TastingNoteDocument? in
-            guard var note = try? document.data(as: TastingNote.self),
-                  duplicateKey(perfumeName: note.perfumeName, brandName: note.brandName) == currentKey else {
-                return nil
-            }
-            note.id = document.documentID
-            return TastingNoteDocument(id: document.documentID, note: note)
-        }
-
-        return matches
-            .sorted { lhs, rhs in lhs.note.createdAt > rhs.note.createdAt }
-            .first
-    }
-
-    private func duplicateKey(perfumeName: String, brandName: String) -> String {
-        let normalizedName = perfumeName
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .lowercased()
-        let normalizedBrand = brandName
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .lowercased()
-        return "\(normalizedBrand)|\(normalizedName)"
-    }
-}
-
-private struct TastingNoteDocument {
-    let id: String
-    let note: TastingNote
-
-    var createdAt: Date { note.createdAt }
 }

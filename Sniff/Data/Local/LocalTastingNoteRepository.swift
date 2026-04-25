@@ -187,10 +187,6 @@ final class LocalTastingNoteRepository {
             return existing
         }
 
-        if let duplicate = try findLatestDuplicate(perfumeName: note.perfumeName, brandName: note.brandName) {
-            return duplicate
-        }
-
         let entity = LocalTastingNoteEntity(context: context)
         entity.id = note.id ?? UUID().uuidString
         return entity
@@ -206,20 +202,6 @@ final class LocalTastingNoteRepository {
     private func findEntity(remoteID: String) throws -> LocalTastingNoteEntity? {
         let request = LocalTastingNoteEntity.fetchRequest()
         request.predicate = NSPredicate(format: "remoteID == %@", remoteID)
-        request.fetchLimit = 1
-        return try context.fetch(request).first
-    }
-
-    private func findLatestDuplicate(perfumeName: String, brandName: String) throws -> LocalTastingNoteEntity? {
-        let request = LocalTastingNoteEntity.fetchRequest()
-        request.predicate = NSPredicate(
-            format: "isDeletedPending == NO AND perfumeName ==[c] %@ AND brandName ==[c] %@",
-            perfumeName.trimmingCharacters(in: .whitespacesAndNewlines),
-            brandName.trimmingCharacters(in: .whitespacesAndNewlines)
-        )
-        request.sortDescriptors = [
-            NSSortDescriptor(key: #keyPath(LocalTastingNoteEntity.createdAt), ascending: false)
-        ]
         request.fetchLimit = 1
         return try context.fetch(request).first
     }

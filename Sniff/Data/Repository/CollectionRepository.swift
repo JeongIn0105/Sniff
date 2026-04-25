@@ -10,13 +10,24 @@ import RxSwift
 final class CollectionRepository: CollectionRepositoryType {
     private let firestoreService: FirestoreService
     private let cacheStore: CollectedPerfumeCacheStore
+    private let usageLimiter: CollectionUsageLimiter
 
     init(
         firestoreService: FirestoreService? = nil,
-        cacheStore: CollectedPerfumeCacheStore = CollectedPerfumeCacheStore()
+        cacheStore: CollectedPerfumeCacheStore = CollectedPerfumeCacheStore(),
+        usageLimiter: CollectionUsageLimiter = .shared
     ) {
         self.firestoreService = firestoreService ?? .shared
         self.cacheStore = cacheStore
+        self.usageLimiter = usageLimiter
+    }
+
+    var monthlyCollectionLimit: Int {
+        usageLimiter.monthlyCollectionLimit
+    }
+
+    func currentMonthlyCollectionUsage() -> Int {
+        usageLimiter.currentMonthlyCollectionUsage()
     }
 
     func fetchCollection() -> Single<[CollectedPerfume]> {
@@ -51,7 +62,9 @@ final class CollectionRepository: CollectionRepositoryType {
             }
             let task = Task {
                 do {
+                    try self.usageLimiter.validateCollectionChange()
                     try await self.firestoreService.saveCollectedPerfume(perfume, memo: memo)
+                    self.usageLimiter.recordCollectionChange()
                     self.cacheStore.upsert(
                         CollectedPerfume(
                             id: perfume.id,
@@ -118,7 +131,16 @@ final class CollectionRepository: CollectionRepositoryType {
             }
             let task = Task {
                 do {
+                    let likedPerfumes = try await self.firestoreService.fetchLikedPerfumes()
+                    if likedPerfumes.contains(where: { $0.id == perfume.id }) {
+                        try await self.firestoreService.saveLikedPerfume(perfume)
+                        completable(.completed)
+                        return
+                    }
+
+                    try self.usageLimiter.validateLikeAddition(currentTotalLikes: likedPerfumes.count)
                     try await self.firestoreService.saveLikedPerfume(perfume)
+                    self.usageLimiter.recordLikeAddition()
                     completable(.completed)
                 } catch {
                     completable(.error(error))

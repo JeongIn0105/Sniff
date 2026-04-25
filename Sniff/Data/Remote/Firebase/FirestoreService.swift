@@ -203,6 +203,21 @@ final class FirestoreService {
         ]
 
         if let imageUrl = perfume.imageUrl { data["imageUrl"] = imageUrl }
+        if let topNotes = perfume.topNotes, !topNotes.isEmpty { data["topNotes"] = topNotes }
+        if let middleNotes = perfume.middleNotes, !middleNotes.isEmpty { data["middleNotes"] = middleNotes }
+        if let baseNotes = perfume.baseNotes, !baseNotes.isEmpty { data["baseNotes"] = baseNotes }
+        if !perfume.seasonRanking.isEmpty {
+            data["seasonRanking"] = perfume.seasonRanking.map { ["name": $0.name, "score": $0.score] }
+        }
+        if let concentration = perfume.concentration, !concentration.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            data["concentration"] = concentration
+        }
+        if let longevity = perfume.longevity, !longevity.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            data["longevity"] = longevity
+        }
+        if let sillage = perfume.sillage, !sillage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            data["sillage"] = sillage
+        }
 
         try await ref.setData(data, merge: true)
     }
@@ -239,10 +254,24 @@ final class FirestoreService {
         ]
 
         if let imageUrl = perfume.imageUrl { data["imageUrl"] = imageUrl }
-        if let concentration = perfume.concentration { data["concentration"] = concentration }
+        if let concentration = perfume.concentration, !concentration.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            data["concentration"] = concentration
+        }
         if let gender = perfume.gender { data["gender"] = gender }
         if let memo, !memo.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             data["memo"] = memo
+        }
+        if let topNotes = perfume.topNotes, !topNotes.isEmpty { data["topNotes"] = topNotes }
+        if let middleNotes = perfume.middleNotes, !middleNotes.isEmpty { data["middleNotes"] = middleNotes }
+        if let baseNotes = perfume.baseNotes, !baseNotes.isEmpty { data["baseNotes"] = baseNotes }
+        if !perfume.seasonRanking.isEmpty {
+            data["seasonRanking"] = perfume.seasonRanking.map { ["name": $0.name, "score": $0.score] }
+        }
+        if let longevity = perfume.longevity, !longevity.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            data["longevity"] = longevity
+        }
+        if let sillage = perfume.sillage, !sillage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            data["sillage"] = sillage
         }
 
         try await ref.setData(data, merge: true)
@@ -343,6 +372,12 @@ private extension FirestoreService {
         let mainAccords = ScentFamilyNormalizer.canonicalNames(
             for: rawMainAccords.isEmpty ? legacyAccords : rawMainAccords
         )
+        let seasonRanking: [SeasonRankingEntry] = (data["seasonRanking"] as? [[String: Any]] ?? [])
+            .compactMap { entry in
+                guard let name = entry["name"] as? String, let score = entry["score"] as? Double else { return nil }
+                return SeasonRankingEntry(name: name, score: score)
+            }
+
         return LikedPerfume(
             id: document.documentID,
             name: name,
@@ -351,7 +386,14 @@ private extension FirestoreService {
             scentFamily2: data["scentFamily2"] as? String,
             imageURL: data["imageUrl"] as? String ?? data["imageURL"] as? String,
             mainAccords: mainAccords,
-            likedAt: timestamp?.dateValue()
+            likedAt: timestamp?.dateValue(),
+            topNotes: data["topNotes"] as? [String],
+            middleNotes: data["middleNotes"] as? [String],
+            baseNotes: data["baseNotes"] as? [String],
+            seasonRanking: seasonRanking,
+            concentration: data["concentration"] as? String,
+            longevity: data["longevity"] as? String,
+            sillage: data["sillage"] as? String
         )
     }
 

@@ -77,7 +77,7 @@ final class TastingNoteViewModel: ObservableObject {
             filtered = scopedNotes.filter { !noteKeys($0).isDisjoint(with: likedKeys) }
         }
 
-        return uniqueLatestNotes(from: filtered)
+        return filtered
     }
 
     /// 전체 목록이 비어있는지 (삭제 버튼 활성화 기준)
@@ -279,14 +279,6 @@ final class TastingNoteViewModel: ObservableObject {
 
     private func noteKeys(_ note: TastingNote) -> Set<String> {
         perfumeKeys(perfumeName: note.perfumeName, brandName: note.brandName)
-    }
-
-    private func uniqueLatestNotes(from notes: [TastingNote]) -> [TastingNote] {
-        var seenKeys = Set<String>()
-        return notes.filter { note in
-            let key = primaryPerfumeKey(perfumeName: note.perfumeName, brandName: note.brandName)
-            return seenKeys.insert(key).inserted
-        }
     }
 
     private func perfumeKeys(perfumeName: String, brandName: String) -> Set<String> {

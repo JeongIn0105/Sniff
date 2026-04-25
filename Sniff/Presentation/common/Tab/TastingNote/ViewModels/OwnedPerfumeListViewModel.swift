@@ -32,10 +32,12 @@ final class OwnedPerfumeListViewModel: ObservableObject {
     @Published var isEditMode = false
     @Published private(set) var selectedPerfumeIDs = Set<String>()
     @Published var toastMessage: String?
+    @Published private(set) var monthlyUsageCount: Int = 0
 
     var isEmpty: Bool { perfumes.isEmpty }
     var perfumeCount: Int { perfumes.count }
     var hasSelection: Bool { !selectedPerfumeIDs.isEmpty }
+    var monthlyUsageLimit: Int { collectionRepository.monthlyCollectionLimit }
 
     private let collectionRepository: CollectionRepositoryType
     private let tastingRepository: TastingRecordRepositoryType
@@ -61,6 +63,7 @@ final class OwnedPerfumeListViewModel: ObservableObject {
         defer { isLoading = false }
 
         do {
+            monthlyUsageCount = collectionRepository.currentMonthlyCollectionUsage()
             let collection = try await fetchCollection()
 
             let tastingKeys = await fetchTastingKeys()
@@ -101,7 +104,7 @@ final class OwnedPerfumeListViewModel: ObservableObject {
 
             selectedPerfumeIDs = selectedPerfumeIDs.intersection(Set(perfumes.map(\.id)))
         } catch {
-            errorMessage = error.localizedDescription
+            handleError(error)
         }
     }
 
@@ -136,7 +139,7 @@ final class OwnedPerfumeListViewModel: ObservableObject {
             await load()
             showToast(message: AppStrings.ViewModelMessages.TastingNote.deletedOwnedCount(deletedCount))
         } catch {
-            errorMessage = error.localizedDescription
+            handleError(error)
         }
     }
 
@@ -170,7 +173,7 @@ final class OwnedPerfumeListViewModel: ObservableObject {
             }
         } catch {
             perfumes = previousPerfumes
-            errorMessage = error.localizedDescription
+            handleError(error)
         }
     }
 }
@@ -219,9 +222,17 @@ private extension OwnedPerfumeListViewModel {
         toastMessage = message
         toastTask?.cancel()
         toastTask = Task {
-            try? await Task.sleep(nanoseconds: 2_500_000_000)
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
             guard !Task.isCancelled else { return }
             toastMessage = nil
+        }
+    }
+
+    func handleError(_ error: Error) {
+        if let limitError = error as? CollectionUsageLimitError {
+            showToast(message: limitError.localizedDescription)
+        } else {
+            errorMessage = error.localizedDescription
         }
     }
 }
