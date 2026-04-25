@@ -58,17 +58,20 @@ final class MyPageViewModel: ObservableObject {
     private let firestoreService: FirestoreService
     private let collectionRepository: CollectionRepositoryType
     private let tastingRepository: TastingRecordRepositoryType
+    private let localTastingNoteRepository: LocalTastingNoteRepository
     private var allOwnedPerfumes: [OwnedPreviewItem] = []
     private var allLikedPerfumes: [LikedPreviewItem] = []
 
     init(
         firestoreService: FirestoreService,
         collectionRepository: CollectionRepositoryType,
-        tastingRepository: TastingRecordRepositoryType
+        tastingRepository: TastingRecordRepositoryType,
+        localTastingNoteRepository: LocalTastingNoteRepository
     ) {
         self.firestoreService = firestoreService
         self.collectionRepository = collectionRepository
         self.tastingRepository = tastingRepository
+        self.localTastingNoteRepository = localTastingNoteRepository
     }
 
     func load() async {
@@ -81,28 +84,92 @@ final class MyPageViewModel: ObservableObject {
         do {
             profileInfo = try await fetchProfileInfo()
 
-            do {
-                let collection = try await fetchCollectionItems()
-                let tastingKeys = await fetchTastingKeys()
-                let likedIDs = await fetchLikedIDs()
+            async let collectionFetch = fetchCollectionResult()
+            async let likedFetch = fetchLikedPerfumesResult()
+            async let tastingKeyFetch = fetchTastingKeys()
+            async let tastingImageURLFetch = fetchTastingImageURLs()
+
+            let collectionResult = await collectionFetch
+            let likedResult = await likedFetch
+            let tastingKeys = await tastingKeyFetch
+            let tastingImageURLs = await tastingImageURLFetch
+
+            switch collectionResult {
+            case .success(let collection):
+                let likedIDs = likedResult.likedIDs
                 allOwnedPerfumes = collection.map {
                     makeOwnedPreviewItem(from: $0, tastingKeys: tastingKeys, likedIDs: likedIDs)
                 }
                 ownedCount = allOwnedPerfumes.count
                 ownedPerfumes = Array(allOwnedPerfumes.prefix(DisplayLimit.ownedPreview))
-            } catch {
+            case .failure:
                 ownedCount = 0
                 allOwnedPerfumes = []
                 ownedPerfumes = []
             }
 
-            do {
-                let liked = try await collectionRepository.fetchLikedPerfumes().async()
-                let tastingKeys = await fetchTastingKeys()
-                allLikedPerfumes = liked.map { makeLikedPreviewItem(from: $0.toPerfume(), tastingKeys: tastingKeys) }
+            switch likedResult {
+            case .success(let liked):
+                let collection = collectionResult.collectionItems
+                var fallbackImageURLs = collectionResult.collectionImageURLs
+                tastingImageURLs.forEach { key, value in
+                    fallbackImageURLs[key] = fallbackImageURLs[key] ?? value
+                }
+
+                // collection에서 직접 이미지 URL 매핑 (raw string)
+                // makeOwnedPreviewItem이 perfume.imageUrl을 직접 쓰는 것과 동일한 방식
+                let collectionImageByID: [String: String] = collection.reduce(into: [:]) { map, item in
+                    guard let url = item.imageUrl else { return }
+                    map[item.id] = url
+                }
+                let collectionImageByRecordKey: [String: String] = collection.reduce(into: [:]) { map, item in
+                    guard let url = item.imageUrl else { return }
+                    PerfumePresentationSupport.recordMatchingKeys(
+                        perfumeName: item.name,
+                        brandName: item.brand
+                    ).forEach { key in if map[key] == nil { map[key] = url } }
+                }
+
+                allLikedPerfumes = liked.map { likedPerfume in
+                    // 이미지 URL 우선순위: likes doc → collection ID 매칭 → 이름+브랜드 매칭
+                    let resolvedImageURL: String? = likedPerfume.imageURL
+                        ?? collectionImageByID[likedPerfume.id]
+                        ?? PerfumePresentationSupport.recordMatchingKeys(
+                            perfumeName: likedPerfume.name,
+                            brandName: likedPerfume.brand
+                        ).compactMap { collectionImageByRecordKey[$0] }.first
+
+                    // sourcePerfume은 상세 화면 진입 등 내비게이션에 사용
+                    let sourcePerfume = likedPerfume.toPerfume()
+
+                    // hasTastingRecord 계산
+                    let hasTasting = tastingKeys.contains(
+                        PerfumePresentationSupport.recordKey(
+                            perfumeName: likedPerfume.name,
+                            brandName: likedPerfume.brand
+                        )
+                    ) || !tastingKeys.isDisjoint(with: PerfumePresentationSupport.recordMatchingKeys(
+                        perfumeName: likedPerfume.name,
+                        brandName: likedPerfume.brand
+                    ))
+
+                    // imageURL을 resolvedImageURL로 직접 주입 (resolvedImageURL() 함수 우회)
+                    return LikedPreviewItem(
+                        id: likedPerfume.id,
+                        name: likedPerfume.name,
+                        brand: likedPerfume.brand,
+                        imageURL: resolvedImageURL,
+                        accordTags: PerfumePresentationSupport.previewAccords(
+                            mainAccords: likedPerfume.mainAccords,
+                            fallback: likedPerfume.scentFamilies
+                        ),
+                        hasTastingRecord: hasTasting,
+                        sourcePerfume: sourcePerfume
+                    )
+                }
                 likedCount = allLikedPerfumes.count
                 likedPerfumes = Array(allLikedPerfumes.prefix(DisplayLimit.likedPreview))
-            } catch {
+            case .failure:
                 likedCount = 0
                 allLikedPerfumes = []
                 likedPerfumes = []
@@ -236,6 +303,22 @@ private extension MyPageViewModel {
         try await collectionRepository.fetchCollection().async()
     }
 
+    func fetchCollectionResult() async -> Result<[CollectedPerfume], Error> {
+        do {
+            return .success(try await fetchCollectionItems())
+        } catch {
+            return .failure(error)
+        }
+    }
+
+    func fetchLikedPerfumesResult() async -> Result<[LikedPerfume], Error> {
+        do {
+            return .success(try await collectionRepository.fetchLikedPerfumes().async())
+        } catch {
+            return .failure(error)
+        }
+    }
+
     func makeOwnedPreviewItem(from perfume: CollectedPerfume) -> OwnedPreviewItem {
         makeOwnedPreviewItem(from: perfume, tastingKeys: [], likedIDs: [])
     }
@@ -261,7 +344,10 @@ private extension MyPageViewModel {
                     perfumeName: perfume.name,
                     brandName: perfume.brand
                 )
-            ),
+            ) || !tastingKeys.isDisjoint(with: PerfumePresentationSupport.recordMatchingKeys(
+                perfumeName: perfume.name,
+                brandName: perfume.brand
+            )),
             isLiked: likedIDs.contains(perfume.id),
             sourcePerfume: sourcePerfume
         )
@@ -271,12 +357,44 @@ private extension MyPageViewModel {
         makeLikedPreviewItem(from: perfume.toPerfume(), tastingKeys: [])
     }
 
-    func makeLikedPreviewItem(from perfume: Perfume, tastingKeys: Set<String>) -> LikedPreviewItem {
+    func makeLikedPreviewItem(
+        from perfume: Perfume,
+        tastingKeys: Set<String>,
+        collection: [CollectedPerfume] = [],
+        fallbackImageURLs: [String: String] = [:]
+    ) -> LikedPreviewItem {
+        let imageURL = resolvedImageURL(
+            for: perfume,
+            collection: collection,
+            fallbackImageURLs: fallbackImageURLs
+        )
+        let sourcePerfume = Perfume(
+            id: perfume.id,
+            name: perfume.name,
+            brand: perfume.brand,
+            nameAliases: perfume.nameAliases,
+            brandAliases: perfume.brandAliases,
+            imageUrl: imageURL,
+            rawMainAccords: perfume.rawMainAccords,
+            mainAccords: perfume.mainAccords,
+            mainAccordStrengths: perfume.mainAccordStrengths,
+            topNotes: perfume.topNotes,
+            middleNotes: perfume.middleNotes,
+            baseNotes: perfume.baseNotes,
+            concentration: perfume.concentration,
+            gender: perfume.gender,
+            season: perfume.season,
+            seasonRanking: perfume.seasonRanking,
+            situation: perfume.situation,
+            longevity: perfume.longevity,
+            sillage: perfume.sillage
+        )
+
         return LikedPreviewItem(
             id: perfume.id,
             name: perfume.name,
             brand: perfume.brand,
-            imageURL: perfume.imageUrl,
+            imageURL: imageURL,
             accordTags: PerfumePresentationSupport.previewAccords(
                 mainAccords: perfume.mainAccords,
                 fallback: perfume.mainAccords
@@ -286,40 +404,166 @@ private extension MyPageViewModel {
                     perfumeName: perfume.name,
                     brandName: perfume.brand
                 )
-            ),
-            sourcePerfume: perfume
+            ) || !tastingKeys.isDisjoint(with: PerfumePresentationSupport.recordMatchingKeys(
+                perfumeName: perfume.name,
+                brandName: perfume.brand
+            )),
+            sourcePerfume: sourcePerfume
         )
     }
 
+    func resolvedImageURL(
+        for perfume: Perfume,
+        collection: [CollectedPerfume],
+        fallbackImageURLs: [String: String]
+    ) -> String? {
+        if let imageURL = normalizedImageURL(perfume.imageUrl) {
+            return imageURL
+        }
+
+        if let matchedByID = collection.first(where: { $0.id == perfume.id }),
+           let imageURL = normalizedImageURL(matchedByID.imageUrl) {
+            return imageURL
+        }
+
+        let perfumeKeys = PerfumePresentationSupport.recordMatchingKeys(
+            perfumeName: perfume.name,
+            brandName: perfume.brand
+        )
+
+        if let matchedByRecordKey = collection.first(where: { item in
+            !perfumeKeys.isDisjoint(with: PerfumePresentationSupport.recordMatchingKeys(
+                perfumeName: item.name,
+                brandName: item.brand
+            ))
+        }),
+           let imageURL = normalizedImageURL(matchedByRecordKey.imageUrl) {
+            return imageURL
+        }
+
+        let displayBrand = normalizedDisplayValue(PerfumePresentationSupport.displayBrand(perfume.brand))
+        let displayName = normalizedDisplayValue(PerfumePresentationSupport.displayPerfumeName(perfume.name))
+
+        if let matchedByDisplay = collection.first(where: { item in
+            normalizedDisplayValue(PerfumePresentationSupport.displayBrand(item.brand)) == displayBrand
+            && normalizedDisplayValue(PerfumePresentationSupport.displayPerfumeName(item.name)) == displayName
+        }),
+           let imageURL = normalizedImageURL(matchedByDisplay.imageUrl) {
+            return imageURL
+        }
+
+        let nameOnlyMatches = collection.filter {
+            normalizedDisplayValue(PerfumePresentationSupport.displayPerfumeName($0.name)) == displayName
+        }
+        if nameOnlyMatches.count == 1,
+           let imageURL = normalizedImageURL(nameOnlyMatches[0].imageUrl) {
+            return imageURL
+        }
+
+        return perfumeKeys.compactMap { normalizedImageURL(fallbackImageURLs[$0]) }.first
+    }
+
+    func normalizedImageURL(_ imageURL: String?) -> String? {
+        guard let imageURL = imageURL?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !imageURL.isEmpty
+        else { return nil }
+        return imageURL
+    }
+
+    func normalizedDisplayValue(_ value: String) -> String {
+        value
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "ko_KR"))
+            .lowercased()
+    }
+
     func fetchTastingKeys() async -> Set<String> {
+        var keys = Set<String>()
+
+        do {
+            let localNotes = try localTastingNoteRepository.loadNotes()
+            keys.formUnion(localNotes.flatMap {
+                PerfumePresentationSupport.recordMatchingKeys(
+                    perfumeName: $0.perfumeName,
+                    brandName: $0.brandName
+                )
+            })
+        } catch {
+            // 로컬 시향 기록 로딩 실패 시 원격 기록으로 보완한다.
+        }
+
         do {
             let records = try await tastingRepository.fetchTastingRecords().async()
 
-            return Set(
-                records.map { record in
-                    PerfumePresentationSupport.recordKey(
+            keys.formUnion(
+                records.flatMap { record in
+                    PerfumePresentationSupport.recordMatchingKeys(
                         perfumeName: record.perfumeName,
                         brandName: record.brandName
                     )
                 }
             )
         } catch {
-            return []
+            return keys
         }
+
+        return keys
     }
 
-    func fetchLikedIDs() async -> Set<String> {
+    func fetchTastingImageURLs() async -> [String: String] {
         do {
-            let likedPerfumes = try await collectionRepository.fetchLikedPerfumes().async()
-            return Set(likedPerfumes.map(\.id))
+            let localNotes = try localTastingNoteRepository.loadNotes()
+            return localNotes.reduce(into: [String: String]()) { result, note in
+                guard let imageURL = note.perfumeImageURL?.trimmingCharacters(in: .whitespacesAndNewlines),
+                      !imageURL.isEmpty
+                else { return }
+
+                PerfumePresentationSupport.recordMatchingKeys(
+                    perfumeName: note.perfumeName,
+                    brandName: note.brandName
+                ).forEach { key in
+                    result[key] = result[key] ?? imageURL
+                }
+            }
         } catch {
-            return []
+            return [:]
         }
     }
 
     func applyPreviewLimits() {
         ownedPerfumes = Array(allOwnedPerfumes.prefix(DisplayLimit.ownedPreview))
         likedPerfumes = Array(allLikedPerfumes.prefix(DisplayLimit.likedPreview))
+    }
+}
+
+private extension Result where Success == [CollectedPerfume], Failure == Error {
+    var collectionItems: [CollectedPerfume] {
+        guard case .success(let collection) = self else { return [] }
+        return collection
+    }
+
+    var collectionImageURLs: [String: String] {
+        guard case .success(let collection) = self else { return [:] }
+
+        return collection.reduce(into: [String: String]()) { result, perfume in
+            guard let imageURL = perfume.imageUrl?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !imageURL.isEmpty
+            else { return }
+
+            PerfumePresentationSupport.recordMatchingKeys(
+                perfumeName: perfume.name,
+                brandName: perfume.brand
+            ).forEach { key in
+                result[key] = result[key] ?? imageURL
+            }
+        }
+    }
+}
+
+private extension Result where Success == [LikedPerfume], Failure == Error {
+    var likedIDs: Set<String> {
+        guard case .success(let likedPerfumes) = self else { return [] }
+        return Set(likedPerfumes.map(\.id))
     }
 }
 
@@ -335,7 +579,8 @@ extension MyPageViewModel {
         let vm = MyPageViewModel(
             firestoreService: dependencyContainer.firestoreService,
             collectionRepository: dependencyContainer.makeCollectionRepository(),
-            tastingRepository: dependencyContainer.makeTastingRecordRepository()
+            tastingRepository: dependencyContainer.makeTastingRecordRepository(),
+            localTastingNoteRepository: dependencyContainer.localTastingNoteRepository
         )
         vm.isMock = true
         vm.profileInfo = ProfileInfo(nickname: "강지수", email: "asdgh1423@gmail.com")

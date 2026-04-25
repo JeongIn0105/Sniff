@@ -14,7 +14,9 @@ final class FragellaService {
     private init() {}
 
     private let baseURL = "https://api.fragella.com/api/v1"
-    private let cacheTTL: TimeInterval = 300
+    private let cacheTTL: TimeInterval = 3_600
+    private let diskCacheTTL: TimeInterval = 604_800
+    private let defaults = UserDefaults.standard
     private let cacheLock = NSLock()
     private var searchCache: [String: CacheEntry<[Perfume]>] = [:]
     private var detailCache: [String: CacheEntry<Perfume>] = [:]
@@ -97,7 +99,7 @@ final class FragellaService {
         }
 
         let perfumes = try FragellaResponseParser.parsePerfumeList(from: data)
-        storeSearch(perfumes, for: cacheKey)
+        storeSearch(perfumes, responseData: data, for: cacheKey)
         log("RESPONSE search query=\"\(query)\" limit=\(limit) count=\(perfumes.count)")
         return perfumes
     }
@@ -123,7 +125,7 @@ final class FragellaService {
         }
 
         let perfume = try FragellaResponseParser.parsePerfumeDetail(from: data)
-        storeDetail(perfume, for: perfumeId)
+        storeDetail(perfume, responseData: data, for: perfumeId)
         log("RESPONSE detail perfumeId=\(perfumeId) name=\"\(perfume.name)\"")
         return perfume
     }
@@ -142,7 +144,7 @@ final class FragellaService {
 
         guard let entry = searchCache[key], !entry.isExpired(referenceDate: Date()) else {
             searchCache[key] = nil
-            return nil
+            return cachedDiskSearch(for: key)
         }
 
         return entry.value
@@ -154,31 +156,111 @@ final class FragellaService {
 
         guard let entry = detailCache[key], !entry.isExpired(referenceDate: Date()) else {
             detailCache[key] = nil
-            return nil
+            return cachedDiskDetail(for: key)
         }
 
         return entry.value
     }
 
-    private func storeSearch(_ perfumes: [Perfume], for key: String) {
+    private func storeSearch(_ perfumes: [Perfume], responseData: Data, for key: String) {
         cacheLock.lock()
         defer { cacheLock.unlock() }
         searchCache[key] = CacheEntry(value: perfumes, expiresAt: Date().addingTimeInterval(cacheTTL))
+        storeDiskResponse(responseData, for: key, storageKey: DiskCacheKey.searchResponses)
     }
 
-    private func storeDetail(_ perfume: Perfume, for key: String) {
+    private func storeDetail(_ perfume: Perfume, responseData: Data, for key: String) {
         cacheLock.lock()
         defer { cacheLock.unlock() }
         detailCache[key] = CacheEntry(value: perfume, expiresAt: Date().addingTimeInterval(cacheTTL))
+        storeDiskResponse(responseData, for: key, storageKey: DiskCacheKey.detailResponses)
+    }
+
+    private func cachedDiskSearch(for key: String) -> [Perfume]? {
+        guard let data = cachedDiskResponse(for: key, storageKey: DiskCacheKey.searchResponses),
+              let perfumes = try? FragellaResponseParser.parsePerfumeList(from: data)
+        else {
+            removeDiskResponse(for: key, storageKey: DiskCacheKey.searchResponses)
+            return nil
+        }
+
+        searchCache[key] = CacheEntry(value: perfumes, expiresAt: Date().addingTimeInterval(cacheTTL))
+        return perfumes
+    }
+
+    private func cachedDiskDetail(for key: String) -> Perfume? {
+        guard let data = cachedDiskResponse(for: key, storageKey: DiskCacheKey.detailResponses),
+              let perfume = try? FragellaResponseParser.parsePerfumeDetail(from: data)
+        else {
+            removeDiskResponse(for: key, storageKey: DiskCacheKey.detailResponses)
+            return nil
+        }
+
+        detailCache[key] = CacheEntry(value: perfume, expiresAt: Date().addingTimeInterval(cacheTTL))
+        return perfume
+    }
+
+    private func cachedDiskResponse(for key: String, storageKey: String) -> Data? {
+        var cache = diskCache(storageKey: storageKey)
+        guard let entry = cache[key] else { return nil }
+
+        if entry.isExpired(referenceDate: Date()) {
+            cache[key] = nil
+            saveDiskCache(cache, storageKey: storageKey)
+            return nil
+        }
+
+        return entry.data
+    }
+
+    private func storeDiskResponse(_ data: Data, for key: String, storageKey: String) {
+        var cache = diskCache(storageKey: storageKey)
+        cache[key] = DiskCacheEntry(data: data, expiresAt: Date().addingTimeInterval(diskCacheTTL))
+        saveDiskCache(cache, storageKey: storageKey)
+    }
+
+    private func removeDiskResponse(for key: String, storageKey: String) {
+        var cache = diskCache(storageKey: storageKey)
+        cache[key] = nil
+        saveDiskCache(cache, storageKey: storageKey)
+    }
+
+    private func diskCache(storageKey: String) -> [String: DiskCacheEntry] {
+        guard let data = defaults.data(forKey: storageKey),
+              let cache = try? JSONDecoder().decode([String: DiskCacheEntry].self, from: data)
+        else { return [:] }
+
+        return cache
+    }
+
+    private func saveDiskCache(_ cache: [String: DiskCacheEntry], storageKey: String) {
+        guard let data = try? JSONEncoder().encode(cache) else { return }
+        defaults.set(data, forKey: storageKey)
     }
 
     private func log(_ message: String) {
+        #if DEBUG
         print("[FragellaService] \(message)")
+        #endif
     }
+}
+
+private enum DiskCacheKey {
+    static let searchResponses = "sniff.fragella.searchResponses.v1"
+    static let detailResponses = "sniff.fragella.detailResponses.v1"
 }
 
 private struct CacheEntry<Value> {
     let value: Value
+    let expiresAt: Date
+
+    func isExpired(referenceDate: Date) -> Bool {
+        referenceDate >= expiresAt
+    }
+}
+
+private struct DiskCacheEntry: Codable {
+    let data: Data
     let expiresAt: Date
 
     func isExpired(referenceDate: Date) -> Bool {

@@ -12,14 +12,14 @@ struct LikedPerfumeListView: View {
     @Environment(\.dismiss) private var dismiss
     private enum Layout {
         static let horizontalPadding: CGFloat = PerfumeGridCardLayout.listHorizontalPadding
-        static let rowSpacing: CGFloat = 18
-        static let thumbnailSize: CGFloat = 68
-        static let rowVerticalPadding: CGFloat = 2
-        static let contentSpacing: CGFloat = 14
+        static let rowSpacing: CGFloat = 30
+        static let thumbnailSize: CGFloat = 92
+        static let rowVerticalPadding: CGFloat = 6
+        static let contentSpacing: CGFloat = 20
         static let inlineInfoSpacing: CGFloat = 8
         static let nameToMetaSpacing: CGFloat = 5
         static let badgeTopSpacing: CGFloat = 7
-        static let heartSize: CGFloat = 20
+        static let heartSize: CGFloat = 29
     }
 
     init(viewModel: LikedPerfumeListViewModel) {
@@ -44,6 +44,9 @@ struct LikedPerfumeListView: View {
         .toolbar(.hidden, for: .navigationBar)
         .task {
             await viewModel.load()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .tastingNotesDidChange)) { _ in
+            Task { await viewModel.load() }
         }
         .alert(AppStrings.TastingNoteUI.errorTitle, isPresented: Binding(
             get: { viewModel.errorMessage != nil },
@@ -178,12 +181,12 @@ struct LikedPerfumeListView: View {
 
     private var tastingRecordBadge: some View {
         Text(AppStrings.TastingNoteUI.tastingRecordBadge)
-            .font(.system(size: 11, weight: .semibold))
+            .font(.system(size: 11, weight: .medium))
             .foregroundColor(Color(uiColor: UIColor(red: 0.47, green: 0.39, blue: 0.31, alpha: 1)))
-            .padding(.horizontal, 10)
+            .padding(.horizontal, 9)
             .padding(.vertical, 5)
-            .background(Color.white.opacity(0.92))
-            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .background(Color(uiColor: UIColor(red: 0.95, green: 0.92, blue: 0.88, alpha: 1)))
+            .clipShape(RoundedRectangle(cornerRadius: 7))
     }
 
     private func likeMetaLine(brand: String, accords: [String]) -> some View {

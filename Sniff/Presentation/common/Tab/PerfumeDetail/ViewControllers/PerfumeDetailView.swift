@@ -34,6 +34,7 @@ final class PerfumeDetailViewController: UIViewController {
     private var ownedPerfumeIDs = Set<String>()
     private var hasTastingRecord = false
     private weak var presentedTastingFormController: UIViewController?
+    private weak var toastView: UIView?
 
     private let addCollectionRelay = PublishRelay<Void>()
     private let addTastingRecordRelay = PublishRelay<Void>()
@@ -458,6 +459,7 @@ final class PerfumeDetailViewController: UIViewController {
                 presentedTastingFormController.dismiss(animated: true) {
                     self.presentedTastingFormController = nil
                     self.refreshTastingRecordState()
+                    self.showToast(message: AppStrings.ViewModelMessages.TastingNote.saved(perfumeName))
                 }
             }
         }
@@ -481,6 +483,46 @@ final class PerfumeDetailViewController: UIViewController {
         let alert = UIAlertController(title: AppStrings.UIKitScreens.error, message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: AppStrings.UIKitScreens.confirm, style: .default))
         present(alert, animated: true)
+    }
+
+    private func showToast(message: String) {
+        toastView?.removeFromSuperview()
+
+        let container = UIView()
+        container.backgroundColor = UIColor.black.withAlphaComponent(0.86)
+        container.layer.cornerRadius = 12
+        container.layer.masksToBounds = true
+
+        let label = UILabel()
+        label.text = message
+        label.textColor = .white
+        label.font = .systemFont(ofSize: 15, weight: .medium)
+        label.textAlignment = .center
+        label.numberOfLines = 2
+
+        container.addSubview(label)
+        view.addSubview(container)
+        toastView = container
+
+        label.snp.makeConstraints {
+            $0.edges.equalToSuperview().inset(UIEdgeInsets(top: 13, left: 18, bottom: 13, right: 18))
+        }
+
+        container.snp.makeConstraints {
+            $0.leading.trailing.equalToSuperview().inset(24)
+            $0.bottom.equalTo(bottomBarView.snp.top).offset(-12)
+        }
+
+        container.alpha = 0
+        UIView.animate(withDuration: 0.2) {
+            container.alpha = 1
+        } completion: { _ in
+            UIView.animate(withDuration: 0.2, delay: 1.8, options: [.curveEaseInOut]) {
+                container.alpha = 0
+            } completion: { [weak container] _ in
+                container?.removeFromSuperview()
+            }
+        }
     }
 
     private func showCompletionAlert(title: String, message: String) {
