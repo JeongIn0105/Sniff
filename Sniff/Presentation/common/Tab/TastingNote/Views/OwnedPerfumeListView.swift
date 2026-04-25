@@ -10,6 +10,7 @@ struct OwnedPerfumeListView: View {
 
     @StateObject private var viewModel: OwnedPerfumeListViewModel
     @Environment(\.dismiss) private var dismiss
+    @State private var showsMonthlyUsageInfo = false
     private enum Layout {
         static let horizontalPadding: CGFloat = PerfumeGridCardLayout.gridHorizontalPadding
         static let columnSpacing: CGFloat = PerfumeGridCardLayout.gridColumnSpacing
@@ -95,6 +96,37 @@ struct OwnedPerfumeListView: View {
                     Text(AppStrings.TastingNoteUI.OwnedList.count(viewModel.perfumeCount))
                         .font(.system(size: 22, weight: .medium))
                         .foregroundColor(Color(.systemGray2))
+
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.22)) {
+                            showsMonthlyUsageInfo.toggle()
+                        }
+                    } label: {
+                        ZStack {
+                            if showsMonthlyUsageInfo {
+                                Text(AppStrings.CollectionUsageLimits.monthlyUsage(
+                                    viewModel.monthlyUsageCount,
+                                    limit: viewModel.monthlyUsageLimit
+                                ))
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(Color(.systemGray))
+                                .padding(.horizontal, 9)
+                                .frame(height: 26)
+                                .background(Color(.systemGray6))
+                                .clipShape(Capsule())
+                                .transition(.move(edge: .trailing).combined(with: .opacity))
+                            } else {
+                                Text("!")
+                                    .font(.system(size: 13, weight: .bold))
+                                    .foregroundColor(Color(.systemGray))
+                                    .frame(width: 22, height: 22)
+                                    .background(Color(.systemGray6))
+                                    .clipShape(Circle())
+                                    .transition(.move(edge: .trailing).combined(with: .opacity))
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
                 }
             }
 

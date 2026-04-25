@@ -40,16 +40,25 @@ struct MyPageView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: Layout.sectionSpacing) {
-                    headerSection
-                    profileSection
-                    ownedSection
-                    likedSection
+            ZStack(alignment: .bottom) {
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: Layout.sectionSpacing) {
+                        headerSection
+                        profileSection
+                        ownedSection
+                        likedSection
+                    }
+                    .padding(.horizontal, Layout.horizontalPadding)
+                    .padding(.top, Layout.headerTopPadding)
+                    .padding(.bottom, Layout.bottomContentPadding)
                 }
-                .padding(.horizontal, Layout.horizontalPadding)
-                .padding(.top, Layout.headerTopPadding)
-                .padding(.bottom, Layout.bottomContentPadding)
+
+                if let message = viewModel.toastMessage {
+                    toastView(message)
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 28)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
             }
             .background(Color(.systemBackground))
             .toolbar(.hidden, for: .navigationBar)
@@ -72,6 +81,7 @@ struct MyPageView: View {
             } message: {
                 Text(viewModel.errorMessage ?? "")
             }
+            .animation(.easeInOut(duration: 0.2), value: viewModel.toastMessage)
         }
     }
 
@@ -215,6 +225,17 @@ struct MyPageView: View {
             .buttonStyle(.plain)
         }
         .padding(.bottom, Layout.sectionHeaderBottomSpacing)
+    }
+
+    private func toastView(_ message: String) -> some View {
+        Text(message)
+            .font(.system(size: 15, weight: .medium))
+            .foregroundColor(.white)
+            .padding(.horizontal, 20)
+            .frame(maxWidth: .infinity)
+            .frame(height: 52)
+            .background(Color.black.opacity(0.85))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
     private func emptySection(title: String, message: String) -> some View {

@@ -8,7 +8,6 @@
 // MARK: - 등록 로직
 import Foundation
 import FirebaseAuth
-import FirebaseFirestore
 import Combine
 
 @MainActor
@@ -88,15 +87,6 @@ final class TastingNoteFormViewModel: ObservableObject {
     private static let allowedPunctuationScalars = CharacterSet(charactersIn: ".,!?~")
 
     private var perfumeImageURL: String?
-
-    private var uid: String? { Auth.auth().currentUser?.uid }
-
-    private var collectionRef: CollectionReference? {
-        guard let uid else { return nil }
-        return Firestore.firestore()
-            .collection("users").document(uid)
-            .collection("tastingRecords")
-    }
 
     // MARK: - Init
 

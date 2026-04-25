@@ -33,6 +33,12 @@ extension FirestoreService {
         let rawStrengths = data["accordStrengths"] as? [String: String] ?? [:]
         let accordStrengths = parseAccordStrengths(from: rawStrengths)
 
+        let seasonRanking: [SeasonRankingEntry] = (data["seasonRanking"] as? [[String: Any]] ?? [])
+            .compactMap { entry in
+                guard let name = entry["name"] as? String, let score = entry["score"] as? Double else { return nil }
+                return SeasonRankingEntry(name: name, score: score)
+            }
+
         return CollectedPerfume(
             id: document.documentID,
             name: name,
@@ -40,8 +46,15 @@ extension FirestoreService {
             imageUrl: data["imageUrl"] as? String ?? data["imageURL"] as? String,
             mainAccords: mainAccords,
             accordStrengths: accordStrengths,
-            memo: data["memo"] as? String,       // 신규
-            createdAt: timestamp?.dateValue()
+            memo: data["memo"] as? String,
+            createdAt: timestamp?.dateValue(),
+            topNotes: data["topNotes"] as? [String],
+            middleNotes: data["middleNotes"] as? [String],
+            baseNotes: data["baseNotes"] as? [String],
+            seasonRanking: seasonRanking,
+            concentration: data["concentration"] as? String,
+            longevity: data["longevity"] as? String,
+            sillage: data["sillage"] as? String
         )
     }
 

@@ -17,6 +17,13 @@ struct LikedPerfume: Identifiable {
     let imageURL: String?
     let mainAccords: [String]
     let likedAt: Date?
+    let topNotes: [String]?
+    let middleNotes: [String]?
+    let baseNotes: [String]?
+    let seasonRanking: [SeasonRankingEntry]
+    let concentration: String?
+    let longevity: String?
+    let sillage: String?
 
     /// 화면 표시용 향 계열 배열 (nil 제거)
     var scentFamilies: [String] {
@@ -34,16 +41,16 @@ extension LikedPerfume {
             rawMainAccords: mainAccords,
             mainAccords: mainAccords,
             mainAccordStrengths: [:],
-            topNotes: nil,
-            middleNotes: nil,
-            baseNotes: nil,
-            concentration: nil,
+            topNotes: topNotes,
+            middleNotes: middleNotes,
+            baseNotes: baseNotes,
+            concentration: concentration,
             gender: nil,
             season: nil,
-            seasonRanking: [],
+            seasonRanking: seasonRanking,
             situation: nil,
-            longevity: nil,
-            sillage: nil
+            longevity: longevity,
+            sillage: sillage
         )
     }
 }
