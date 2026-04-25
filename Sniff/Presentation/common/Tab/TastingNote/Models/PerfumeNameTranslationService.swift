@@ -16,7 +16,6 @@ enum PerfumeNameTranslationService {
     // MARK: - 캐시
 
     private static var cache: [String: String] = [:]
-    private static let geminiKey = "AIzaSyBO9QNecTKHP80WCC3XEoqAH4hTgr3vC7c"
 
     // MARK: - 번역 진입점
 
@@ -39,7 +38,10 @@ enum PerfumeNameTranslationService {
 
         // 2단계: Gemini로 미번역 항목 보완 (실패해도 무시)
         if !needGemini.isEmpty {
-            if let geminiResult = try? await callGemini(names: needGemini, apiKey: geminiKey) {
+            if
+                let geminiKey = try? AppSecrets.geminiAPIKey(),
+                let geminiResult = try? await callGemini(names: needGemini, apiKey: geminiKey)
+            {
                 for (name, korean) in geminiResult where !korean.isEmpty {
                     cache[name] = korean
                     result[name] = korean
