@@ -39,14 +39,17 @@ final class OwnedPerfumeListViewModel: ObservableObject {
 
     private let collectionRepository: CollectionRepositoryType
     private let tastingRepository: TastingRecordRepositoryType
+    private let localTastingNoteRepository: LocalTastingNoteRepository
     private var toastTask: Task<Void, Never>?
 
     init(
         collectionRepository: CollectionRepositoryType,
-        tastingRepository: TastingRecordRepositoryType
+        tastingRepository: TastingRecordRepositoryType,
+        localTastingNoteRepository: LocalTastingNoteRepository
     ) {
         self.collectionRepository = collectionRepository
         self.tastingRepository = tastingRepository
+        self.localTastingNoteRepository = localTastingNoteRepository
     }
 
     deinit {
@@ -60,20 +63,7 @@ final class OwnedPerfumeListViewModel: ObservableObject {
         do {
             let collection = try await fetchCollection()
 
-            let tastingKeys: Set<String>
-            do {
-                let tastingRecords = try await fetchTastingRecords()
-                tastingKeys = Set(
-                    tastingRecords.map { record in
-                        PerfumePresentationSupport.recordKey(
-                            perfumeName: record.perfumeName,
-                            brandName: record.brandName
-                        )
-                    }
-                )
-            } catch {
-                tastingKeys = []
-            }
+            let tastingKeys = await fetchTastingKeys()
 
             let likedIDs: Set<String>
             do {
@@ -100,7 +90,10 @@ final class OwnedPerfumeListViewModel: ObservableObject {
                             perfumeName: perfume.name,
                             brandName: perfume.brand
                         )
-                    ),
+                    ) || !tastingKeys.isDisjoint(with: PerfumePresentationSupport.recordMatchingKeys(
+                        perfumeName: perfume.name,
+                        brandName: perfume.brand
+                    )),
                     isLiked: likedIDs.contains(perfume.id),
                     sourcePerfume: sourcePerfume
                 )
@@ -190,6 +183,36 @@ private extension OwnedPerfumeListViewModel {
 
     func fetchTastingRecords() async throws -> [TastingRecord] {
         try await tastingRepository.fetchTastingRecords().async()
+    }
+
+    func fetchTastingKeys() async -> Set<String> {
+        var keys = Set<String>()
+
+        do {
+            let localNotes = try localTastingNoteRepository.loadNotes()
+            keys.formUnion(localNotes.flatMap {
+                PerfumePresentationSupport.recordMatchingKeys(
+                    perfumeName: $0.perfumeName,
+                    brandName: $0.brandName
+                )
+            })
+        } catch {
+            // 로컬 시향 기록 로딩 실패 시 원격 기록으로 보완한다.
+        }
+
+        do {
+            let tastingRecords = try await fetchTastingRecords()
+            keys.formUnion(tastingRecords.flatMap {
+                PerfumePresentationSupport.recordMatchingKeys(
+                    perfumeName: $0.perfumeName,
+                    brandName: $0.brandName
+                )
+            })
+        } catch {
+            return keys
+        }
+
+        return keys
     }
 
     func showToast(message: String) {

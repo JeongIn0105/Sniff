@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 @MainActor
 struct MyPageView: View {
@@ -16,15 +17,21 @@ struct MyPageView: View {
         static let horizontalPadding: CGFloat = 20
         static let headerTopPadding: CGFloat = 12
         static let sectionSpacing: CGFloat = 30
-        static let sectionHeaderBottomSpacing: CGFloat = 14
+        static let sectionContentSpacing: CGFloat = 10
+        static let sectionHeaderBottomSpacing: CGFloat = 4
         static let profileTopSpacing: CGFloat = 10
         static let profileBottomSpacing: CGFloat = 12
         static let profileImageSize: CGFloat = 84
         static let profileTextSpacing: CGFloat = 8
-        static let cardSpacing: CGFloat = PerfumeGridCardLayout.previewCardSpacing
+        static let cardSpacing: CGFloat = 18
         static let trailingPeekInset: CGFloat = PerfumeGridCardLayout.previewTrailingPeekInset
         static let likedSectionTopSpacing: CGFloat = 18
         static let bottomContentPadding: CGFloat = 68
+
+        static var cardWidth: CGFloat {
+            let availableWidth = UIScreen.main.bounds.width - (horizontalPadding * 2)
+            return min(max(availableWidth * 0.48, 180), 196)
+        }
     }
 
     init(viewModel: MyPageViewModel) {
@@ -53,6 +60,9 @@ struct MyPageView: View {
             }
             .task {
                 await viewModel.load()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .tastingNotesDidChange)) { _ in
+                Task { await viewModel.load() }
             }
             .alert(AppStrings.Profile.errorTitle, isPresented: Binding(
                 get: { viewModel.errorMessage != nil },
@@ -106,7 +116,7 @@ struct MyPageView: View {
     }
 
     private var ownedSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: Layout.sectionContentSpacing) {
             sectionHeader(
                 title: AppStrings.Profile.MyPage.ownedTitle,
                 count: viewModel.ownedCount,
@@ -142,7 +152,7 @@ struct MyPageView: View {
     }
 
     private var likedSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: Layout.sectionContentSpacing) {
             sectionHeader(
                 title: AppStrings.Profile.MyPage.likedTitle,
                 count: viewModel.likedCount,
@@ -237,7 +247,7 @@ struct MyPageView: View {
             accords: accords,
             isLiked: isLiked,
             style: .preview,
-            cardWidth: PerfumeGridCardLayout.previewCardWidth,
+            cardWidth: Layout.cardWidth,
             showsHeartIcon: false,
             hasTastingRecord: hasTastingRecord
         )
@@ -272,7 +282,7 @@ struct MyPageView: View {
                 .padding(.trailing, PerfumeCardStyle.preview.likeIconInset)
                 .padding(.bottom, PerfumeCardStyle.preview.likeIconInset + (PerfumeCardStyle.preview.textBlockHeight ?? 0) + PerfumeCardStyle.preview.contentTopSpacing)
         }
-        .frame(width: PerfumeGridCardLayout.previewCardWidth, alignment: .topLeading)
+        .frame(width: Layout.cardWidth, alignment: .topLeading)
     }
 }
 

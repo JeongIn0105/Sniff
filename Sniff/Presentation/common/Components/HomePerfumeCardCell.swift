@@ -43,18 +43,29 @@ final class HomePerfumeCardCell: UICollectionViewCell {
     }()
 
     private let tastingBadgeLabel: PaddingLabel = {
-        let label = PaddingLabel(insets: UIEdgeInsets(top: 5, left: 9, bottom: 5, right: 9))
+        let label = PaddingLabel(insets: UIEdgeInsets(top: 4, left: 8, bottom: 4, right: 8))
         label.text = "시향 기록"
-        label.font = .systemFont(ofSize: 11, weight: .medium)
-        label.textColor = UIColor(red: 0.47, green: 0.39, blue: 0.31, alpha: 1)
-        label.backgroundColor = UIColor.white.withAlphaComponent(0.92)
-        label.layer.cornerRadius = 11
+        label.font = .systemFont(ofSize: 10, weight: .medium)
+        label.textColor = UIColor(red: 0.43, green: 0.32, blue: 0.22, alpha: 1)
+        label.backgroundColor = UIColor(red: 0.91, green: 0.83, blue: 0.73, alpha: 1)
+        label.layer.cornerCurve = .continuous
         label.layer.masksToBounds = true
         return label
     }()
 
     let wishlistButton = UIButton(type: .custom).then {
         PerfumeHeartStyle.configure($0)
+        let symbolConfig = UIImage.SymbolConfiguration(pointSize: 18, weight: .semibold)
+        let heartImage = UIImage(systemName: "heart.fill", withConfiguration: symbolConfig)?
+            .withRenderingMode(.alwaysTemplate)
+        if #available(iOS 15.0, *) {
+            $0.configuration?.image = heartImage
+        } else {
+            $0.setImage(heartImage, for: .normal)
+            $0.setImage(heartImage, for: .selected)
+        }
+        $0.setPreferredSymbolConfiguration(symbolConfig, forImageIn: .normal)
+        $0.setPreferredSymbolConfiguration(symbolConfig, forImageIn: .selected)
         PerfumeHeartStyle.applyState(to: $0, isLiked: false)
     }
 
@@ -114,6 +125,11 @@ final class HomePerfumeCardCell: UICollectionViewCell {
 
     required init?(coder: NSCoder) { fatalError() }
 
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        tastingBadgeLabel.layer.cornerRadius = 8
+    }
+
     override func prepareForReuse() {
         super.prepareForReuse()
         disposeBag = DisposeBag()
@@ -135,9 +151,9 @@ final class HomePerfumeCardCell: UICollectionViewCell {
         placeholderBottleView.addSubview(placeholderMonogramLabel)
         imageContainerView.addSubview(placeholderMessageLabel)
         imageContainerView.addSubview(bottleImageView)
-        imageContainerView.addSubview(tastingBadgeLabel)
         imageContainerView.addSubview(wishlistButton)
 
+        cardView.addSubview(tastingBadgeLabel)
         cardView.addSubview(brandLabel)
         cardView.addSubview(perfumeNameLabel)
         cardView.addSubview(accordsWrapView)
@@ -150,7 +166,7 @@ final class HomePerfumeCardCell: UICollectionViewCell {
         }
 
         bottleImageView.snp.makeConstraints {
-            $0.edges.equalToSuperview().inset(12)
+            $0.edges.equalToSuperview()
         }
 
         tastingBadgeLabel.snp.makeConstraints {
@@ -158,8 +174,8 @@ final class HomePerfumeCardCell: UICollectionViewCell {
         }
 
         wishlistButton.snp.makeConstraints {
-            $0.trailing.equalToSuperview().inset(10)
-            $0.bottom.equalToSuperview().inset(10)
+            $0.trailing.equalToSuperview().inset(0)
+            $0.bottom.equalToSuperview().inset(0)
             $0.size.equalTo(32)
         }
 
@@ -211,7 +227,7 @@ final class HomePerfumeCardCell: UICollectionViewCell {
         let monogram = String(item.brandName.prefix(1)).uppercased()
         placeholderMonogramLabel.text = monogram
 
-        imageContainerView.backgroundColor = UIColor(red: 0.97, green: 0.95, blue: 0.92, alpha: 1)
+        imageContainerView.backgroundColor = .systemBackground
         placeholderCapView.backgroundColor = UIColor(red: 0.86, green: 0.83, blue: 0.79, alpha: 1)
         placeholderMonogramLabel.textColor = UIColor(red: 0.55, green: 0.48, blue: 0.40, alpha: 1)
 
