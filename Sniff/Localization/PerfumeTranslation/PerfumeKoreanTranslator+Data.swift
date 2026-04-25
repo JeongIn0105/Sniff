@@ -212,11 +212,7 @@ extension PerfumeKoreanTranslator {
         "autumn": "가을",
         "winter": "겨울",
     ]
-
-
-    nonisolated static let lowerAccordToKorean: [String: String] = {
-
-    static let domesticRetailBrandPriority: [String: Int] = [
+    nonisolated static let domesticRetailBrandPriority: [String: Int] = [
         "Chanel": 100,
         "CHANEL": 100,
         "Dior": 100,
@@ -376,7 +372,7 @@ extension PerfumeKoreanTranslator {
         "Aveda": 70,
     ]
 
-    static let lowerAccordToKorean: [String: String] = {
+    nonisolated static let lowerAccordToKorean: [String: String] = {
 
         Dictionary(accordToKorean.map { ($0.key.lowercased(), $0.value) },
                    uniquingKeysWith: { _, last in last })
@@ -391,11 +387,11 @@ extension PerfumeKoreanTranslator {
         Dictionary(accordToKorean.map { ($1, $0) }, uniquingKeysWith: { _, last in last })
     }()
 
-    static let brandToKorean: [String: String] = {
+    nonisolated static let brandToKorean: [String: String] = {
         Dictionary(brandKoreanEntries, uniquingKeysWith: { _, last in last })
     }()
 
-    private static let brandKoreanEntries: [(String, String)] = [
+    nonisolated private static let brandKoreanEntries: [(String, String)] = [
         ("Le Labo", "르 라보"),
         ("Chanel", "샤넬"),
         ("CHANEL", "CHANEL"),
@@ -609,22 +605,22 @@ extension PerfumeKoreanTranslator {
         ("Aveda", "아베다"),
     ]
 
-    static let lowerBrandToKorean: [String: String] = {
+    nonisolated static let lowerBrandToKorean: [String: String] = {
         Dictionary(brandToKorean.map { ($0.key.lowercased(), $0.value) },
                    uniquingKeysWith: { _, last in last })
     }()
-
-    static let normalizedBrandToKorean: [String: String] = {
+ 
+    nonisolated static let normalizedBrandToKorean: [String: String] = {
         Dictionary(brandToKorean.map { (normalizeBrandKey($0.key), $0.value) },
                    uniquingKeysWith: { _, last in last })
     }()
 
-    static let normalizedDomesticRetailBrandPriority: [String: Int] = {
+    nonisolated static let normalizedDomesticRetailBrandPriority: [String: Int] = {
         Dictionary(domesticRetailBrandPriority.map { (normalizeBrandKey($0.key), $0.value) },
                    uniquingKeysWith: max)
     }()
 
-    static let perfumeNameToKorean: [String: String] = [
+    nonisolated static let perfumeNameToKorean: [String: String] = [
         "Hermes Barenia": "에르메스 바레니아",
         "Hermès Barenia": "에르메스 바레니아",
         "Hermes Barénia": "에르메스 바레니아",
@@ -1889,12 +1885,12 @@ extension PerfumeKoreanTranslator {
         "Parfums de Marly Greenley": "퍼퓸 드 말리 그린리",
     ]
 
-    static let normalizedPerfumeNameToKorean: [String: String] = {
+    nonisolated static let normalizedPerfumeNameToKorean: [String: String] = {
         Dictionary(perfumeNameToKorean.map { (normalizeBrandKey($0.key), $0.value) },
                    uniquingKeysWith: { _, last in last })
     }()
 
-    static let domesticPerfumeNameReplacements: [(english: String, korean: String)] = [
+    nonisolated static let domesticPerfumeNameReplacements: [(english: String, korean: String)] = [
         // ── 에르메스 기존 항목 (공식 한국어 표기 기준) ──
         ("Hermes Eau d'Orange Verte", "에르메스 오 도랑쥬 베르트"),
         ("Hermès Eau d'Orange Verte", "에르메스 오 도랑쥬 베르트"),
@@ -2611,7 +2607,7 @@ extension PerfumeKoreanTranslator {
         "콜론": "cologne", "파르팡": "parfum", "뚜왈렛": "toilette",
         "엑스트레": "extrait", "포르테": "forte",
     ]
-    static func normalizeBrandKey(_ value: String) -> String {
+    nonisolated static func normalizeBrandKey(_ value: String) -> String {
         value
             .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
             .lowercased()
@@ -2619,7 +2615,7 @@ extension PerfumeKoreanTranslator {
             .joined()
     }
 
-    static func applyDomesticPerfumeNameReplacements(to value: String) -> String {
+    nonisolated static func applyDomesticPerfumeNameReplacements(to value: String) -> String {
         var result = value
 
         for replacement in domesticPerfumeNameReplacements {
