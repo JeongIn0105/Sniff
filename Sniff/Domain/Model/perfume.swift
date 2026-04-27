@@ -165,3 +165,17 @@ struct Perfume {
             .filter { seen.insert($0.lowercased()).inserted }
     }
 }
+
+extension Perfume {
+    var collectionDocumentID: String {
+        Self.collectionDocumentID(from: id)
+    }
+
+    static func collectionDocumentID(from id: String) -> String {
+        let trimmed = id.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "unknown-perfume" }
+        guard trimmed.contains("/") else { return trimmed }
+
+        return trimmed.replacingOccurrences(of: "/", with: "%2F")
+    }
+}

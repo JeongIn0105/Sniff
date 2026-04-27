@@ -9,6 +9,7 @@
 import Foundation
 import FirebaseAuth
 import Combine
+import FirebaseFirestore
 
 @MainActor
 final class TastingNoteFormViewModel: ObservableObject {

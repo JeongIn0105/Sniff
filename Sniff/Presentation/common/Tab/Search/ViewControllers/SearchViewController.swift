@@ -796,13 +796,15 @@ private extension SearchViewController {
     }
 
     private func saveLikedPerfume(_ perfume: Perfume) {
-        guard !likedPerfumeIDs.contains(perfume.id) else { return }
+        let collectionID = perfume.collectionDocumentID
+        guard !likedPerfumeIDs.contains(collectionID) else { return }
 
         collectionRepository.saveLikedPerfume(perfume)
             .observe(on: MainScheduler.instance)
             .subscribe(onCompleted: { [weak self] in
-                self?.likedPerfumeIDs.insert(perfume.id)
+                self?.likedPerfumeIDs.insert(collectionID)
                 self?.reloadPerfumeResults()
+                NotificationCenter.default.post(name: .perfumeCollectionDidChange, object: nil)
             }, onError: { [weak self] error in
                 self?.presentSaveFailure(error)
             })
@@ -817,6 +819,7 @@ private extension SearchViewController {
             .subscribe(onCompleted: { [weak self] in
                 self?.likedPerfumeIDs.remove(id)
                 self?.reloadPerfumeResults()
+                NotificationCenter.default.post(name: .perfumeCollectionDidChange, object: nil)
             }, onError: { [weak self] error in
                 self?.presentSaveFailure(error)
             })
@@ -971,14 +974,15 @@ extension SearchViewController: UICollectionViewDataSource, UICollectionViewDele
             for: indexPath
         ) as! PerfumeGridCell
         let perfume = filteredPerfumeResults[indexPath.item]
-        cell.configure(with: perfume, isLiked: likedPerfumeIDs.contains(perfume.id))
+        let collectionID = perfume.collectionDocumentID
+        cell.configure(with: perfume, isLiked: likedPerfumeIDs.contains(collectionID))
 
             // 찜하기 버튼
         cell.wishlistButton.rx.tap
             .subscribe(onNext: { [weak self] in
                 guard let self else { return }
-                if self.likedPerfumeIDs.contains(perfume.id) {
-                    self.deleteLikedPerfume(id: perfume.id)
+                if self.likedPerfumeIDs.contains(collectionID) {
+                    self.deleteLikedPerfume(id: collectionID)
                 } else {
                     self.saveLikedPerfume(perfume)
                 }

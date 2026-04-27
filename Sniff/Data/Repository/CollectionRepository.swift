@@ -67,7 +67,7 @@ final class CollectionRepository: CollectionRepositoryType {
                     self.usageLimiter.recordCollectionChange()
                     self.cacheStore.upsert(
                         CollectedPerfume(
-                            id: perfume.id,
+                            id: perfume.collectionDocumentID,
                             name: perfume.name,
                             brand: perfume.brand,
                             imageUrl: perfume.imageUrl,

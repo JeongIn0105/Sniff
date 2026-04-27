@@ -24,15 +24,19 @@ struct CollectedPerfume {
     let longevity: String?
     let sillage: String?
 
+    var scentFamilies: [String] {
+        mainAccords.filter { !$0.isEmpty }
+    }
+
     nonisolated init(
         id: String,
         name: String,
         brand: String,
         imageUrl: String? = nil,
         mainAccords: [String],
-        accordStrengths: [String: AccordStrength],
-        memo: String?,
-        createdAt: Date?,
+        accordStrengths: [String: AccordStrength] = [:],
+        memo: String? = nil,
+        createdAt: Date? = nil,
         topNotes: [String]? = nil,
         middleNotes: [String]? = nil,
         baseNotes: [String]? = nil,
@@ -58,12 +62,6 @@ struct CollectedPerfume {
         self.sillage = sillage
     }
 
-    var scentFamilies: [String] {
-        mainAccords.filter { !$0.isEmpty }
-    }
-}
-
-extension CollectedPerfume {
     nonisolated init(
         id: String,
         name: String,
@@ -75,60 +73,16 @@ extension CollectedPerfume {
     ) {
         let legacyFamilies: [String?] = [scentFamily, scentFamily2]
         let mainAccords = legacyFamilies.compactMap { rawValue -> String? in
-            guard let value = rawValue?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else {
-                return nil
-            }
+            guard let value = rawValue?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !value.isEmpty else { return nil }
             return value
         }
-
         self.init(
             id: id,
             name: name,
             brand: brand,
             imageUrl: imageURL,
             mainAccords: mainAccords,
-            accordStrengths: [:],
-            memo: nil,
-            createdAt: createdAt
-        )
-    }
-
-    nonisolated init(
-        id: String,
-        name: String,
-        brand: String,
-        imageUrl: String? = nil,
-        mainAccords: [String],
-        accordStrengths: [String: AccordStrength],
-        createdAt: Date?
-    ) {
-        self.init(
-            id: id,
-            name: name,
-            brand: brand,
-            imageUrl: imageUrl,
-            mainAccords: mainAccords,
-            accordStrengths: accordStrengths,
-            memo: nil,
-            createdAt: createdAt
-        )
-    }
-
-    nonisolated init(
-        id: String,
-        name: String,
-        brand: String,
-        mainAccords: [String],
-        createdAt: Date?
-    ) {
-        self.init(
-            id: id,
-            name: name,
-            brand: brand,
-            imageUrl: nil,
-            mainAccords: mainAccords,
-            accordStrengths: [:],
-            memo: nil,
             createdAt: createdAt
         )
     }

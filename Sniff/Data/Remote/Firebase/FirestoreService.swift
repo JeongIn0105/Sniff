@@ -191,7 +191,7 @@ final class FirestoreService {
         let now = FieldValue.serverTimestamp()
         let ref = try userDocumentRef()
             .collection("likes")
-            .document(perfume.id)
+            .document(perfume.collectionDocumentID)
 
         // nil 옵셔널은 Firestore에 null로 전송되면 보안 규칙의
         // (!('imageUrl' in data) || data.imageUrl is string) 검증 실패 → PERMISSION_DENIED
@@ -203,23 +203,8 @@ final class FirestoreService {
         ]
 
         if let imageUrl = perfume.imageUrl { data["imageUrl"] = imageUrl }
-        if let topNotes = perfume.topNotes, !topNotes.isEmpty { data["topNotes"] = topNotes }
-        if let middleNotes = perfume.middleNotes, !middleNotes.isEmpty { data["middleNotes"] = middleNotes }
-        if let baseNotes = perfume.baseNotes, !baseNotes.isEmpty { data["baseNotes"] = baseNotes }
-        if !perfume.seasonRanking.isEmpty {
-            data["seasonRanking"] = perfume.seasonRanking.map { ["name": $0.name, "score": $0.score] }
-        }
-        if let concentration = perfume.concentration, !concentration.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            data["concentration"] = concentration
-        }
-        if let longevity = perfume.longevity, !longevity.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            data["longevity"] = longevity
-        }
-        if let sillage = perfume.sillage, !sillage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            data["sillage"] = sillage
-        }
 
-        try await ref.setData(data, merge: true)
+        try await ref.setData(data, merge: false)
     }
 
     func fetchTastingRecords() async throws -> [TastingRecord] {
@@ -239,7 +224,7 @@ final class FirestoreService {
         let now = FieldValue.serverTimestamp()
         let ref = try userDocumentRef()
             .collection("collection")
-            .document(perfume.id)
+            .document(perfume.collectionDocumentID)
 
         // nil 옵셔널은 Firestore에 null로 전송되면 보안 규칙의
         // (!('field' in data) || data.field is string) 검증 실패 → PERMISSION_DENIED
@@ -261,20 +246,7 @@ final class FirestoreService {
         if let memo, !memo.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             data["memo"] = memo
         }
-        if let topNotes = perfume.topNotes, !topNotes.isEmpty { data["topNotes"] = topNotes }
-        if let middleNotes = perfume.middleNotes, !middleNotes.isEmpty { data["middleNotes"] = middleNotes }
-        if let baseNotes = perfume.baseNotes, !baseNotes.isEmpty { data["baseNotes"] = baseNotes }
-        if !perfume.seasonRanking.isEmpty {
-            data["seasonRanking"] = perfume.seasonRanking.map { ["name": $0.name, "score": $0.score] }
-        }
-        if let longevity = perfume.longevity, !longevity.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            data["longevity"] = longevity
-        }
-        if let sillage = perfume.sillage, !sillage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            data["sillage"] = sillage
-        }
-
-        try await ref.setData(data, merge: true)
+        try await ref.setData(data, merge: false)
     }
 
     func deleteCollectedPerfume(id: String) async throws {

@@ -447,7 +447,7 @@ private extension HomeViewController {
     func handleRoute(_ route: HomeRoute) {
         switch route {
         case .perfumeRegister:
-            presentAlert(AppStrings.UIKitScreens.Home.routePerfumeRegister)
+            navigateToMyPage()
         case .tastingNoteWrite:
             presentAlert(AppStrings.UIKitScreens.Home.routeTastingNote)
         case .tasteReport:
@@ -472,6 +472,13 @@ private extension HomeViewController {
         alert.addAction(UIAlertAction(title: AppStrings.UIKitScreens.confirm, style: .default))
         present(alert, animated: true)
     }
+
+    func navigateToMyPage() {
+        NotificationCenter.default.post(
+            name: .mainTabSelectionRequested,
+            object: MainTabSelection.my.rawValue
+        )
+    }
 }
 
 private extension HomeViewController {
@@ -487,6 +494,7 @@ private extension HomeViewController {
     }
 
     func saveLike(for item: HomePerfumeItem) {
+        let collectionID = Perfume.collectionDocumentID(from: item.id)
         let perfume = Perfume(
             id: item.id,
             name: item.perfumeName,
@@ -508,8 +516,9 @@ private extension HomeViewController {
         collectionRepository.saveLikedPerfume(perfume)
             .observe(on: MainScheduler.instance)
             .subscribe(onCompleted: { [weak self] in
-                self?.likedPerfumeIDs.insert(item.id)
+                self?.likedPerfumeIDs.insert(collectionID)
                 self?.recommendationCollectionView.reloadData()
+                NotificationCenter.default.post(name: .perfumeCollectionDidChange, object: nil)
             }, onError: { [weak self] error in
                 self?.presentLikeMutationError(error)
             })
@@ -522,6 +531,7 @@ private extension HomeViewController {
             .subscribe(onCompleted: { [weak self] in
                 self?.likedPerfumeIDs.remove(id)
                 self?.recommendationCollectionView.reloadData()
+                NotificationCenter.default.post(name: .perfumeCollectionDidChange, object: nil)
             }, onError: { [weak self] error in
                 self?.presentLikeMutationError(error)
             })
@@ -555,12 +565,13 @@ extension HomeViewController: UICollectionViewDataSource {
         }
 
         let item = visibleRecommendations[indexPath.item]
-        cell.configure(with: item, isLiked: likedPerfumeIDs.contains(item.id))
+        let collectionID = Perfume.collectionDocumentID(from: item.id)
+        cell.configure(with: item, isLiked: likedPerfumeIDs.contains(collectionID))
         cell.wishlistButton.rx.tap
             .subscribe(onNext: { [weak self] in
                 guard let self else { return }
-                if self.likedPerfumeIDs.contains(item.id) {
-                    self.deleteLike(id: item.id)
+                if self.likedPerfumeIDs.contains(collectionID) {
+                    self.deleteLike(id: collectionID)
                 } else {
                     self.saveLike(for: item)
                 }

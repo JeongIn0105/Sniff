@@ -73,6 +73,9 @@ struct MyPageView: View {
             .onReceive(NotificationCenter.default.publisher(for: .tastingNotesDidChange)) { _ in
                 Task { await viewModel.load() }
             }
+            .onReceive(NotificationCenter.default.publisher(for: .perfumeCollectionDidChange)) { _ in
+                Task { await viewModel.load() }
+            }
             .alert(AppStrings.Profile.errorTitle, isPresented: Binding(
                 get: { viewModel.errorMessage != nil },
                 set: { if !$0 { viewModel.clearError() } }

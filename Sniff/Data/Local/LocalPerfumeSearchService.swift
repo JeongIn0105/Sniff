@@ -116,11 +116,11 @@ final class LocalPerfumeSearchService {
                 guard seenKeys.insert(key).inserted else { continue }
                 entries.append(IndexedEntry(name: item.name, brand: item.brand))
             }
-        }
+        } 
 
-        indexLock.lock()
-        self.index = entries
-        indexLock.unlock()
+        await MainActor.run {
+            self.index = entries
+        }
     }
 
     private func loadFragellaCache() -> [Perfume] {
