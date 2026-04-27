@@ -27,7 +27,8 @@ enum SettingsSceneFactory {
         let container = AppDependencyContainer.shared
         let viewModel = WithdrawViewModel(
             nickname: nickname,
-            authService: container.authService
+            authService: container.authService,
+            coreDataStack: container.coreDataStack
         )
         return WithdrawView(viewModel: viewModel)
     }

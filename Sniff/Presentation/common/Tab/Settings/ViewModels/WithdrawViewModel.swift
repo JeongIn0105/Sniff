@@ -24,10 +24,10 @@ final class WithdrawViewModel: ObservableObject {
     private let authService: AuthServiceType
     private let coreDataStack: CoreDataStack
 
-    nonisolated init(
+    init(
         nickname: String,
-        authService: AuthServiceType = AuthService.shared,
-        coreDataStack: CoreDataStack = .shared
+        authService: AuthServiceType,
+        coreDataStack: CoreDataStack
     ) {
         self.nickname = nickname
         self.authService = authService

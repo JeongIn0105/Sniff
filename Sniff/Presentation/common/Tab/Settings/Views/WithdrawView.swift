@@ -195,7 +195,11 @@ struct WithdrawView: View {
 
 #Preview {
     NavigationStack {
-        WithdrawView(viewModel: WithdrawViewModel(nickname: "킁킁이"))
+        WithdrawView(viewModel: WithdrawViewModel(
+            nickname: "킁킁이",
+            authService: AuthService.shared,
+            coreDataStack: .shared
+        ))
             .environmentObject(AppStateManager())
     }
 }
