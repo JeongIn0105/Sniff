@@ -40,4 +40,20 @@ final class CoreDataStack {
         guard viewContext.hasChanges else { return }
         try viewContext.save()
     }
+
+    /// 로컬 Core Data에 저장된 모든 시향기 데이터를 삭제합니다.
+    /// 회원 탈퇴 시 기기에 남은 개인 데이터를 완전히 지우기 위해 호출합니다.
+    func deleteAllTastingNotes() throws {
+        let request: NSFetchRequest<NSFetchRequestResult> = LocalTastingNoteEntity.fetchRequest()
+        let deleteRequest = NSBatchDeleteRequest(fetchRequest: request)
+        deleteRequest.resultType = .resultTypeObjectIDs
+
+        let result = try viewContext.execute(deleteRequest) as? NSBatchDeleteResult
+        let objectIDs = result?.result as? [NSManagedObjectID] ?? []
+
+        NSManagedObjectContext.mergeChanges(
+            fromRemoteContextSave: [NSDeletedObjectsKey: objectIDs],
+            into: [viewContext]
+        )
+    }
 }

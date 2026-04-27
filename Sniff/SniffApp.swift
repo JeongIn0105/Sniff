@@ -50,11 +50,10 @@ struct SniffApp: App {
         switch appStateManager.state {
         case .splash:
             SplashView()
-                .onAppear {
-                    Task {
-                        try? await Task.sleep(nanoseconds: 2_000_000_000)
-                        await appStateManager.completeSplash()
-                    }
+                // .task modifier 사용 → View 소멸 시 Task가 자동으로 취소됩니다.
+                .task {
+                    try? await Task.sleep(nanoseconds: 2_000_000_000)
+                    await appStateManager.completeSplash()
                 }
         case .login:
             LoginSceneFactory.makeView(

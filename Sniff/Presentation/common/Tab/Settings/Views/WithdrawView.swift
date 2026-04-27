@@ -16,8 +16,8 @@ struct WithdrawView: View {
     /// 탈퇴 최종 확인 Alert 표시 여부
     @State private var showConfirmAlert: Bool = false
 
-    init(nickname: String) {
-        _viewModel = StateObject(wrappedValue: WithdrawViewModel(nickname: nickname))
+    init(viewModel: WithdrawViewModel) {
+        _viewModel = StateObject(wrappedValue: viewModel)
     }
 
     var body: some View {
@@ -195,7 +195,7 @@ struct WithdrawView: View {
 
 #Preview {
     NavigationStack {
-        WithdrawView(nickname: "킁킁이")
+        WithdrawView(viewModel: WithdrawViewModel(nickname: "킁킁이"))
             .environmentObject(AppStateManager())
     }
 }

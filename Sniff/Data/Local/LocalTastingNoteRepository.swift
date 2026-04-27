@@ -31,6 +31,8 @@ final class LocalTastingNoteRepository {
     private let coreDataStack: CoreDataStack
     private let database: Firestore
     private let userTasteRepository: UserTasteRepositoryType
+    /// Gemini 취향 재분석 호출 횟수를 하루 2회로 제한합니다.
+    private let recommendationTracker = RecommendationUpdateTracker()
 
     private var context: NSManagedObjectContext {
         coreDataStack.viewContext
@@ -237,7 +239,17 @@ final class LocalTastingNoteRepository {
     private func refreshNarrativeIfNeeded() async {
         guard let records = try? await FirestoreService.shared.fetchTastingRecords() else { return }
         guard shouldRefreshNarrative(with: records) else { return }
-        _ = try? await userTasteRepository.reanalyzeTasteFromHistory()
+
+        // 하루 최대 2회까지만 Gemini 취향 재분석을 호출합니다.
+        // 시향 기록을 자주 수정하더라도 불필요한 API 비용이 발생하지 않습니다.
+        guard recommendationTracker.canRecord(
+            collectionCount: 0,
+            tastingCount: records.count
+        ) else { return }
+
+        if (try? await userTasteRepository.reanalyzeTasteFromHistory()) != nil {
+            recommendationTracker.recordUpdate()
+        }
     }
 
     private func shouldRefreshNarrative(with records: [TastingRecord]) -> Bool {
