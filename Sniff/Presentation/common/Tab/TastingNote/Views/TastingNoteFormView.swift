@@ -224,14 +224,16 @@ struct TastingNoteFormView: View {
 
     private var bottomBar: some View {
         HStack(spacing: 12) {
+            // 초기화 버튼 — 고정 너비
             Button { vm.reset() } label: {
                 Text(AppStrings.TastingNoteFormUI.reset)
                     .font(.system(size: 16, weight: .semibold)).foregroundColor(.primary)
-                    .frame(maxWidth: .infinity).frame(height: 52)
+                    .frame(width: 108).frame(height: 52)
                     .background(Color(.systemGray6))
                     .clipShape(RoundedRectangle(cornerRadius: 12))
             }
 
+            // 작성 완료하기 버튼 — 나머지 공간 전체 차지
             Button { Task { await vm.save() } } label: {
                 ZStack {
                     if vm.isSaving { ProgressView().tint(.white) }

@@ -11,6 +11,7 @@ import FirebaseAuth
 enum AuthServiceError: LocalizedError {
     case missingIdentityToken
     case invalidIdentityToken
+    case missingCurrentUser
 
     var errorDescription: String? {
         switch self {
@@ -18,6 +19,8 @@ enum AuthServiceError: LocalizedError {
             return "Apple 로그인 토큰을 받지 못했어요"
         case .invalidIdentityToken:
             return "Apple 로그인 토큰을 해석하지 못했어요"
+        case .missingCurrentUser:
+            return "로그인된 사용자 정보를 찾을 수 없어요"
         }
     }
 }
@@ -32,20 +35,7 @@ final class AuthService: AuthServiceType {
         identityToken: Data?,
         rawNonce: String
     ) async throws -> AuthSession {
-        guard let identityToken else {
-            throw AuthServiceError.missingIdentityToken
-        }
-
-        guard let idTokenString = String(data: identityToken, encoding: .utf8) else {
-            throw AuthServiceError.invalidIdentityToken
-        }
-
-        let credential = OAuthProvider.appleCredential(
-            withIDToken: idTokenString,
-            rawNonce: rawNonce,
-            fullName: nil
-        )
-
+        let credential = try makeAppleCredential(identityToken: identityToken, rawNonce: rawNonce)
         let result = try await Auth.auth().signIn(with: credential)
         return AuthSession(
             userID: result.user.uid,
@@ -53,7 +43,39 @@ final class AuthService: AuthServiceType {
         )
     }
 
+    /// Apple 자격증명으로 현재 사용자를 재인증합니다.
+    /// requiresRecentLogin(17014) 에러 발생 후 계정 삭제를 재시도하기 위해 호출합니다.
+    func reauthenticateWithApple(
+        identityToken: Data?,
+        rawNonce: String
+    ) async throws {
+        guard let currentUser = Auth.auth().currentUser else {
+            throw AuthServiceError.missingCurrentUser
+        }
+        let credential = try makeAppleCredential(identityToken: identityToken, rawNonce: rawNonce)
+        try await currentUser.reauthenticate(with: credential)
+    }
+
     func signOut() throws {
         try Auth.auth().signOut()
+    }
+
+    // MARK: - Private
+
+    private func makeAppleCredential(
+        identityToken: Data?,
+        rawNonce: String
+    ) throws -> OAuthCredential {
+        guard let identityToken else {
+            throw AuthServiceError.missingIdentityToken
+        }
+        guard let idTokenString = String(data: identityToken, encoding: .utf8) else {
+            throw AuthServiceError.invalidIdentityToken
+        }
+        return OAuthProvider.appleCredential(
+            withIDToken: idTokenString,
+            rawNonce: rawNonce,
+            fullName: nil
+        )
     }
 }

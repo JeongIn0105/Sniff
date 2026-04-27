@@ -3,10 +3,10 @@
 //  Sniff
 //
 
-import Foundation
 import Combine
 import FirebaseAuth
 import FirebaseFirestore
+import Foundation
 
 // MARK: - 회원탈퇴 뷰모델
 
@@ -21,11 +21,20 @@ final class WithdrawViewModel: ObservableObject {
     /// 닉네임 (화면 상단 표시용)
     let nickname: String
 
-    init(nickname: String) {
+    private let authService: AuthServiceType
+    private let coreDataStack: CoreDataStack
+
+    nonisolated init(
+        nickname: String,
+        authService: AuthServiceType = AuthService.shared,
+        coreDataStack: CoreDataStack = .shared
+    ) {
         self.nickname = nickname
+        self.authService = authService
+        self.coreDataStack = coreDataStack
     }
 
-    // MARK: - 회원탈퇴 실행: Firestore 삭제 → Auth 삭제
+    // MARK: - 회원탈퇴 실행: Firestore 삭제 → 로컬 삭제 → 로그아웃
 
     func withdrawAccount() async {
         guard isAgreed else { return }
@@ -34,23 +43,21 @@ final class WithdrawViewModel: ObservableObject {
         defer { isLoading = false }
 
         do {
-            // 1단계: 유저 문서 삭제 (닉네임 포함) — 반드시 성공해야 탈퇴 진행
+            // 1단계: 유저 문서 삭제 — 반드시 성공해야 탈퇴 진행
             try await deleteUserDocument()
 
             // 2단계: 서브컬렉션 삭제 — 실패해도 탈퇴 계속 진행
             await deleteSubcollectionsSilently()
 
-            // 3단계: Firebase Auth 계정 삭제
-            try await Auth.auth().currentUser?.delete()
+            // 3단계: 기기 내 로컬 Core Data 시향기 데이터 삭제
+            try? coreDataStack.deleteAllTastingNotes()
+
+            // 4단계: Firebase 로그아웃 (Apple 재인증 없이 즉시 처리)
+            try authService.signOut()
+
             didWithdraw = true
         } catch {
-            let code = (error as NSError).code
-            // 17014: requiresRecentLogin — Apple 로그인 재인증 필요
-            if code == 17014 {
-                errorMessage = AppStrings.ViewModelMessages.Withdraw.requiresRecentLogin
-            } else {
-                errorMessage = AppStrings.ViewModelMessages.Withdraw.failed
-            }
+            errorMessage = AppStrings.ViewModelMessages.Withdraw.failed
         }
     }
 

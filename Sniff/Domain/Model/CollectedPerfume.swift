@@ -61,9 +61,7 @@ struct CollectedPerfume {
         self.longevity = longevity
         self.sillage = sillage
     }
-}
 
-extension CollectedPerfume {
     nonisolated init(
         id: String,
         name: String,
@@ -88,7 +86,9 @@ extension CollectedPerfume {
             createdAt: createdAt
         )
     }
+}
 
+extension CollectedPerfume {
     nonisolated func toPerfume() -> Perfume {
         Perfume(
             id: id,
