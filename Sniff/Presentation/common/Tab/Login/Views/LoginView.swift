@@ -37,9 +37,15 @@ struct LoginView: View {
                 
                 // 커스텀 Apple 로그인 버튼
                 Button {
-                    guard let windowScene = UIApplication.shared.connectedScenes
-                        .first as? UIWindowScene,
-                          let window = windowScene.windows.first else { return }
+                    // isKeyWindow 기준으로 키 윈도우를 탐색합니다.
+                    // windows.first는 키 윈도우를 보장하지 않으므로 사용하지 않습니다.
+                    let scenes = UIApplication.shared.connectedScenes
+                        .compactMap { $0 as? UIWindowScene }
+                    guard let window = scenes
+                        .flatMap(\.windows)
+                        .first(where: \.isKeyWindow)
+                        ?? scenes.flatMap(\.windows).first
+                    else { return }
                     viewModel.signInWithApple(presentationAnchor: window)
                 } label: {
                     HStack(spacing: 8) {

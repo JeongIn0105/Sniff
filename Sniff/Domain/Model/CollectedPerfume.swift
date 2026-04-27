@@ -24,6 +24,40 @@ struct CollectedPerfume {
     let longevity: String?
     let sillage: String?
 
+    nonisolated init(
+        id: String,
+        name: String,
+        brand: String,
+        imageUrl: String? = nil,
+        mainAccords: [String],
+        accordStrengths: [String: AccordStrength],
+        memo: String?,
+        createdAt: Date?,
+        topNotes: [String]? = nil,
+        middleNotes: [String]? = nil,
+        baseNotes: [String]? = nil,
+        seasonRanking: [SeasonRankingEntry] = [],
+        concentration: String? = nil,
+        longevity: String? = nil,
+        sillage: String? = nil
+    ) {
+        self.id = id
+        self.name = name
+        self.brand = brand
+        self.imageUrl = imageUrl
+        self.mainAccords = mainAccords
+        self.accordStrengths = accordStrengths
+        self.memo = memo
+        self.createdAt = createdAt
+        self.topNotes = topNotes
+        self.middleNotes = middleNotes
+        self.baseNotes = baseNotes
+        self.seasonRanking = seasonRanking
+        self.concentration = concentration
+        self.longevity = longevity
+        self.sillage = sillage
+    }
+
     var scentFamilies: [String] {
         mainAccords.filter { !$0.isEmpty }
     }
@@ -101,40 +135,6 @@ extension CollectedPerfume {
 }
 
 extension CollectedPerfume {
-    nonisolated init(
-        id: String,
-        name: String,
-        brand: String,
-        imageUrl: String? = nil,
-        mainAccords: [String],
-        accordStrengths: [String: AccordStrength],
-        memo: String?,
-        createdAt: Date?,
-        topNotes: [String]? = nil,
-        middleNotes: [String]? = nil,
-        baseNotes: [String]? = nil,
-        seasonRanking: [SeasonRankingEntry] = [],
-        concentration: String? = nil,
-        longevity: String? = nil,
-        sillage: String? = nil
-    ) {
-        self.id = id
-        self.name = name
-        self.brand = brand
-        self.imageUrl = imageUrl
-        self.mainAccords = mainAccords
-        self.accordStrengths = accordStrengths
-        self.memo = memo
-        self.createdAt = createdAt
-        self.topNotes = topNotes
-        self.middleNotes = middleNotes
-        self.baseNotes = baseNotes
-        self.seasonRanking = seasonRanking
-        self.concentration = concentration
-        self.longevity = longevity
-        self.sillage = sillage
-    }
-
     nonisolated func toPerfume() -> Perfume {
         Perfume(
             id: id,

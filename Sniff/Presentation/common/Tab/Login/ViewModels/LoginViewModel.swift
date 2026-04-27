@@ -62,8 +62,10 @@ final class LoginViewModel: ObservableObject {
                 rawNonce: payload.rawNonce
             )
             isLoading = false
+            // Firestore 프로필 존재 여부만으로 신규/기존 유저 판단
+            // isNewUser는 Firebase Auth 계정 기준이므로, 탈퇴 후 재가입 시 오판할 수 있음
             let hasProfile = try await userProfileStatusRepository.hasUserProfile(userID: session.userID)
-            if hasProfile || !session.isNewUser {
+            if hasProfile {
                 onExistingUser()
             } else {
                 onNewUser()
