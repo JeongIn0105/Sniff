@@ -1,37 +1,189 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ─────────────────────────────────────────────
-    // 사용자 문서 및 서브컬렉션
-    // 본인 UID 와 일치하는 경우에만 읽기/쓰기 허용
-    // ─────────────────────────────────────────────
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-
-      // 향수 컬렉션 (향수 등록)
-      match /collection/{perfumeId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
-
-      // 좋아요 목록
-      match /likes/{perfumeId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
-
-      // 시향 기록
-      match /tastingRecords/{recordId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
+    function isSignedIn() {
+      return request.auth != null;
     }
 
-    // ─────────────────────────────────────────────
-    // 향수 카탈로그 (전체 인증 사용자 읽기 전용)
-    // ─────────────────────────────────────────────
-    match /perfumes/{perfumeId} {
-      allow read: if request.auth != null;
-      allow write: if false;
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidNickname(value) {
+      return value is string
+        && value.size() >= 2
+        && value.size() <= 10;
+    }
+
+    function isValidNicknameLowercased(value) {
+      return value is string
+        && value.size() >= 2
+        && value.size() <= 10;
+    }
+
+    function isValidUserProfile(data) {
+      return data.keys().hasOnly([
+        'nickname',
+        'nicknameLowercased',
+        'tasteAnalysis',
+        'contactEmail',
+        'onboardingCompleted',
+        'experienceLevel',
+        'updatedAt',
+        'createdAt'
+      ])
+      && isValidNickname(data.nickname)
+      && isValidNicknameLowercased(data.nicknameLowercased)
+      && data.tasteAnalysis is map
+      && (!('contactEmail' in data) || data.contactEmail is string)
+      && (!('onboardingCompleted' in data) || data.onboardingCompleted is bool)
+      && (!('experienceLevel' in data) || data.experienceLevel is string)
+      && data.updatedAt != null
+      && data.createdAt != null;
+    }
+
+    function isValidLikedPerfume(data) {
+      return data.keys().hasOnly([
+        'name',
+        'brand',
+        'imageUrl',
+        'mainAccords',
+        'likedAt',
+        'topNotes',
+        'middleNotes',
+        'baseNotes',
+        'seasonRanking',
+        'concentration',
+        'longevity',
+        'sillage'
+      ])
+      && data.name is string
+      && data.brand is string
+      && data.mainAccords is list
+      && data.likedAt != null
+      && (!('imageUrl' in data) || data.imageUrl is string)
+      && (!('topNotes' in data) || data.topNotes is list)
+      && (!('middleNotes' in data) || data.middleNotes is list)
+      && (!('baseNotes' in data) || data.baseNotes is list)
+      && (!('seasonRanking' in data) || data.seasonRanking is list)
+      && (!('concentration' in data) || data.concentration is string)
+      && (!('longevity' in data) || data.longevity is string)
+      && (!('sillage' in data) || data.sillage is string);
+    }
+
+    function isValidCollectionItem(data) {
+      return data.keys().hasOnly([
+        'name',
+        'brand',
+        'imageUrl',
+        'mainAccords',
+        'accordStrengths',
+        'concentration',
+        'gender',
+        'memo',
+        'addedAt',
+        'updatedAt',
+        'topNotes',
+        'middleNotes',
+        'baseNotes',
+        'seasonRanking',
+        'longevity',
+        'sillage'
+      ])
+      && data.name is string
+      && data.brand is string
+      && data.mainAccords is list
+      && data.accordStrengths is map
+      && data.addedAt != null
+      && data.updatedAt != null
+      && (!('imageUrl' in data) || data.imageUrl is string)
+      && (!('concentration' in data) || data.concentration is string)
+      && (!('gender' in data) || data.gender is string)
+      && (!('memo' in data) || data.memo is string)
+      && (!('topNotes' in data) || data.topNotes is list)
+      && (!('middleNotes' in data) || data.middleNotes is list)
+      && (!('baseNotes' in data) || data.baseNotes is list)
+      && (!('seasonRanking' in data) || data.seasonRanking is list)
+      && (!('longevity' in data) || data.longevity is string)
+      && (!('sillage' in data) || data.sillage is string);
+    }
+
+    function isValidTastingRecord(data) {
+      return data.keys().hasOnly([
+        'perfumeName',
+        'brandName',
+        'imageUrl',
+        'perfumeImageURL',
+        'mainAccords',
+        'accordStrengths',
+        'rating',
+        'moodTags',
+        'memo',
+        'wantToRevisit',
+        'revisitDesire',
+        'concentration',
+        'createdAt',
+        'updatedAt'
+      ])
+      && data.perfumeName is string
+      && data.brandName is string
+      && data.mainAccords is list
+      && (!('accordStrengths' in data) || data.accordStrengths is map)
+      && data.rating is int
+      && data.rating >= 0
+      && data.rating <= 5
+      && data.moodTags is list
+      && (!('memo' in data) || data.memo is string)
+      && (!('wantToRevisit' in data) || data.wantToRevisit is string)
+      && (!('revisitDesire' in data) || data.revisitDesire is string)
+      && (!('imageUrl' in data) || data.imageUrl is string)
+      && (!('perfumeImageURL' in data) || data.perfumeImageURL is string)
+      && (!('concentration' in data) || data.concentration is string)
+      && (!('createdAt' in data) || data.createdAt != null)
+      && data.updatedAt != null;
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+
+      // 현재 앱은 닉네임 중복 확인을 위해 users 컬렉션에 whereField("nicknameLowercased") 쿼리를 날림
+      // 그래서 인증 사용자에 한해 list/query 를 허용해야 함
+      allow list: if isSignedIn();
+
+      allow create: if isOwner(userId)
+        && isValidUserProfile(request.resource.data);
+
+      allow update: if isOwner(userId)
+        && isValidUserProfile(request.resource.data)
+        && resource.data.createdAt == request.resource.data.createdAt;
+
+      allow delete: if isOwner(userId);
+
+      match /collection/{perfumeId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && isValidCollectionItem(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+
+      match /likes/{perfumeId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && isValidLikedPerfume(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+
+      match /tastingRecords/{recordId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && isValidTastingRecord(request.resource.data)
+          && request.resource.data.createdAt != null;
+        allow update: if isOwner(userId)
+          && isValidTastingRecord(request.resource.data)
+          && resource.data.createdAt == request.resource.data.createdAt;
+        allow delete: if isOwner(userId);
+      }
     }
   }
 }

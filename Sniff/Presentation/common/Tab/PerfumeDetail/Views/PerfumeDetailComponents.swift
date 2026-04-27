@@ -19,26 +19,35 @@ final class SectionContainerView: UIView {
     }
     private let contentContainer = UIView()
 
-    init(title: String) {
+    init(title: String? = nil) {
         super.init(frame: .zero)
         backgroundColor = PerfumeDetailViewController.Palette.surface
-        titleLabel.text = title
-        [divider, titleLabel, contentContainer].forEach { addSubview($0) }
+        addSubview(divider)
+        addSubview(contentContainer)
 
         divider.snp.makeConstraints {
             $0.top.leading.trailing.equalToSuperview()
             $0.height.equalTo(1)
         }
 
-        titleLabel.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(14)
-            $0.leading.trailing.equalToSuperview().inset(20)
-        }
-
-        contentContainer.snp.makeConstraints {
-            $0.top.equalTo(titleLabel.snp.bottom).offset(12)
-            $0.leading.trailing.equalToSuperview().inset(20)
-            $0.bottom.equalToSuperview().offset(-14)
+        if let title {
+            titleLabel.text = title
+            addSubview(titleLabel)
+            titleLabel.snp.makeConstraints {
+                $0.top.equalToSuperview().offset(14)
+                $0.leading.trailing.equalToSuperview().inset(20)
+            }
+            contentContainer.snp.makeConstraints {
+                $0.top.equalTo(titleLabel.snp.bottom).offset(12)
+                $0.leading.trailing.equalToSuperview().inset(20)
+                $0.bottom.equalToSuperview().offset(-14)
+            }
+        } else {
+            contentContainer.snp.makeConstraints {
+                $0.top.equalToSuperview().offset(18)
+                $0.leading.trailing.equalToSuperview().inset(20)
+                $0.bottom.equalToSuperview().offset(-18)
+            }
         }
     }
 
@@ -64,8 +73,9 @@ final class UsageInfoView: UIView {
 
     required init?(coder: NSCoder) { fatalError() }
 
-    func configure(longevity: String, sillage: String) {
+    func configure(concentration: String, longevity: String, sillage: String) {
         stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        stackView.addArrangedSubview(makeRow(title: "농도", value: concentration))
         stackView.addArrangedSubview(makeRow(title: AppStrings.UIKitScreens.PerfumeDetail.longevity, value: longevity))
         stackView.addArrangedSubview(makeRow(title: AppStrings.UIKitScreens.PerfumeDetail.sillage, value: sillage))
     }

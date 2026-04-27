@@ -195,7 +195,7 @@
 				CODE_SIGN_ENTITLEMENTS = Sniff/Sniff.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 9CSRLH87TB;
+				DEVELOPMENT_TEAM = VJCWLJ55WQ;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Sniff/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -230,7 +230,7 @@
 				CODE_SIGN_ENTITLEMENTS = Sniff/Sniff.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 9CSRLH87TB;
+				DEVELOPMENT_TEAM = VJCWLJ55WQ;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Sniff/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
