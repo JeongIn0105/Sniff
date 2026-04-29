@@ -82,7 +82,7 @@ final class TastingNoteFormViewModel: ObservableObject {
 
     // MARK: - Private
 
-    private static let minMemoCount = 20
+    private static let minMemoCount = 10
     private static let maxMemoCount = 2000
     private static let allowedWhitespaceScalars = CharacterSet.whitespacesAndNewlines
     private static let allowedPunctuationScalars = CharacterSet(charactersIn: ".,!?~")
