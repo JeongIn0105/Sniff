@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import CoreText
 
 // MARK: - 회원탈퇴 확인 화면
 
@@ -23,37 +24,39 @@ struct WithdrawView: View {
     var body: some View {
         VStack(spacing: 0) {
             customHeader
-            Divider()
 
-            // 스크롤 영역 (로고 + 닉네임/안내 + 유의사항 박스)
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
-                    // 킁킁 로고 워드마크
                     sniffLogo
 
-                    // 닉네임 + 안내 문구
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: 8) {
                         Text(AppStrings.Profile.Withdraw.nickname(viewModel.nickname))
-                            .font(.system(size: 18, weight: .bold))
+                            .font(.system(size: 16, weight: .medium))
                             .foregroundColor(.primary)
+                            .lineLimit(1)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(minHeight: 22, alignment: .leading)
 
                         Text(AppStrings.Profile.Withdraw.guide)
-                            .font(.system(size: 18, weight: .bold))
+                            .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(.primary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(minHeight: 22, alignment: .leading)
                     }
-                    .padding(.top, 32)
+                    .padding(.top, 16)
 
-                    // 유의사항 박스
                     noticeBox
-                        .padding(.top, 28)
+                        .padding(.top, 22)
+
+                    agreementRow
+                        .padding(.top, 20)
                 }
-                .padding(.horizontal, 24)
-                .padding(.top, 32)
+                .padding(.horizontal, 20)
+                .padding(.top, 24)
                 .padding(.bottom, 24)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            // 하단 고정: 구분선 + 체크박스 + 탈퇴 버튼
             bottomSection
         }
         .background(Color(.systemBackground).ignoresSafeArea())
@@ -105,31 +108,29 @@ struct WithdrawView: View {
             }
 
             Text(AppStrings.Profile.Withdraw.title)
-                .font(.system(size: 24, weight: .bold))
+                .font(.system(size: 20, weight: .bold))
                 .foregroundColor(.primary)
 
             Spacer()
         }
         .padding(.horizontal, 12)
-        .padding(.top, 8)
-        .padding(.bottom, 4)
+        .padding(.top, -6)
+        .padding(.bottom, 14)
     }
 
     // MARK: - 킁킁 로고
 
     private var sniffLogo: some View {
-        Text(AppStrings.Profile.Withdraw.appName)
-            .font(.system(size: 32, weight: .heavy))
-            .foregroundColor(.primary)
-            .tracking(-1)
+        HahmletLogoText(text: AppStrings.Profile.Withdraw.appName)
+            .frame(width: 47, height: 37, alignment: .leading)
     }
 
     // MARK: - 유의사항 박스
 
     private var noticeBox: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             Text(AppStrings.Profile.Withdraw.noticeTitle)
-                .font(.system(size: 15, weight: .semibold))
+                .font(.system(size: 16, weight: .semibold))
                 .foregroundColor(.primary)
 
             Text(AppStrings.Profile.Withdraw.noticeBody)
@@ -140,56 +141,129 @@ struct WithdrawView: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .background(Color(red: 0.98, green: 0.96, blue: 0.94))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
     // MARK: - 하단 고정 섹션
 
     private var bottomSection: some View {
         VStack(spacing: 0) {
-            Divider()
+            Button {
+                showConfirmAlert = true
+            } label: {
+                Text(AppStrings.Profile.Withdraw.action)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 52)
+                    .background(viewModel.isAgreed ? Color(red: 0.1, green: 0.1, blue: 0.1) : Color(.systemGray5))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+            .disabled(!viewModel.isAgreed)
+            .animation(.easeInOut(duration: 0.15), value: viewModel.isAgreed)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 16)
+        .padding(.bottom, 20)
+        .background(Color(.systemBackground))
+    }
 
-            VStack(spacing: 12) {
-                // 동의 체크박스
-                Button {
-                    viewModel.isAgreed.toggle()
-                } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: viewModel.isAgreed ? "checkmark.square.fill" : "square")
-                            .font(.system(size: 20))
-                            .foregroundColor(viewModel.isAgreed ? Color(.systemGray) : Color(.systemGray3))
+    private var agreementRow: some View {
+        Button {
+            viewModel.isAgreed.toggle()
+        } label: {
+            HStack(spacing: 8) {
+                checkbox
 
-                        Text(AppStrings.Profile.Withdraw.agreement)
-                            .font(.system(size: 14))
-                            .foregroundColor(.primary)
+                Text(AppStrings.Profile.Withdraw.agreement)
+                    .font(.custom("Pretendard", size: 15).weight(.medium))
+                    .foregroundColor(viewModel.isAgreed ? Color(red: 0.3, green: 0.3, blue: 0.3) : Color(red: 0.5, green: 0.5, blue: 0.5))
 
-                        Spacer()
-                    }
-                    .padding(.horizontal, 24)
-                    .padding(.top, 16)
-                }
-                .buttonStyle(.plain)
-                .animation(.easeInOut(duration: 0.1), value: viewModel.isAgreed)
-
-                // 계정 탈퇴 버튼
-                Button {
-                    showConfirmAlert = true
-                } label: {
-                    Text(AppStrings.Profile.Withdraw.action)
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(viewModel.isAgreed ? .primary : Color(.systemGray2))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 52)
-                        .background(viewModel.isAgreed ? Color(.systemGray5) : Color(.systemGray6))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .padding(.horizontal, 24)
-                }
-                .disabled(!viewModel.isAgreed)
-                .animation(.easeInOut(duration: 0.15), value: viewModel.isAgreed)
-                .padding(.bottom, 20)
+                Spacer()
             }
         }
+        .buttonStyle(.plain)
+        .animation(.easeInOut(duration: 0.1), value: viewModel.isAgreed)
+    }
+
+    private var checkbox: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 4)
+                .fill(viewModel.isAgreed ? Color.black : Color.white)
+
+            RoundedRectangle(cornerRadius: 4)
+                .stroke(viewModel.isAgreed ? Color.black : Color(red: 0.7, green: 0.7, blue: 0.7), lineWidth: 1)
+
+            if viewModel.isAgreed {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.white)
+            }
+        }
+        .frame(width: 24, height: 24)
+    }
+}
+
+private struct HahmletLogoText: UIViewRepresentable {
+
+    let text: String
+
+    func makeUIView(context: Context) -> UILabel {
+        let label = UILabel()
+        label.backgroundColor = .clear
+        label.numberOfLines = 1
+        label.lineBreakMode = .byClipping
+        label.setContentHuggingPriority(.required, for: .horizontal)
+        label.setContentCompressionResistancePriority(.required, for: .horizontal)
+        return label
+    }
+
+    func updateUIView(_ label: UILabel, context: Context) {
+        HahmletFontLoader.registerIfNeeded()
+
+        let font = HahmletFontLoader.logoFont(size: 24)
+        label.attributedText = NSAttributedString(
+            string: text,
+            attributes: [
+                .font: font,
+                .kern: 2,
+                .foregroundColor: UIColor.black
+            ]
+        )
+    }
+}
+
+private enum HahmletFontLoader {
+
+    private static var didRegister = false
+
+    static func registerIfNeeded() {
+        guard !didRegister else { return }
+        didRegister = true
+
+        [
+            ("Hahmlet-Bold", "ttf"),
+            ("Hahmlet-Bold", "otf"),
+            ("Hahmlet", "ttf"),
+            ("Hahmlet", "otf"),
+            ("Hahmlet-VariableFont_wght", "ttf")
+        ].forEach { name, ext in
+            guard let url = Bundle.main.url(forResource: name, withExtension: ext) else { return }
+            CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
+        }
+    }
+
+    static func logoFont(size: CGFloat) -> UIFont {
+        if let font = UIFont(name: "Hahmlet-Bold", size: size) {
+            return font
+        }
+
+        if let font = UIFont(name: "Hahmlet", size: size) {
+            return font
+        }
+
+        return .systemFont(ofSize: size, weight: .bold)
     }
 }
 
