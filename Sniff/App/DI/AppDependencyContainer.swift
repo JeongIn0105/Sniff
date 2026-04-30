@@ -61,7 +61,8 @@ final class AppDependencyContainer {
             firestoreService: firestoreService,
             collectionRepository: makeCollectionRepository(),
             tastingRepository: makeTastingRecordRepository(),
-            localTastingNoteRepository: localTastingNoteRepository
+            localTastingNoteRepository: localTastingNoteRepository,
+            userTasteRepository: userTasteRepository
         )
     }
 

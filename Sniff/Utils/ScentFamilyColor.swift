@@ -49,17 +49,17 @@ enum ScentFamilyColor {
 
         switch true {
         case normalized.contains("fresh floral"), normalized.contains("프레시 플로럴"):
-            return UIColor(hex: "#E56BAA")
+            return UIColor(hex: "#F29388")
         case normalized.contains("soft floral"),
              normalized.contains("소프트 플로럴"),
              normalized.contains("white floral"),
              normalized.contains("화이트 플로럴"):
-            return UIColor(hex: "#E56BAA")
+            return UIColor(hex: "#F29388")
         case normalized.contains("floral oriental"),
              normalized.contains("플로럴 오리엔탈"),
              normalized.contains("floral amber"),
              normalized.contains("플로럴 앰버"):
-            return UIColor(hex: "#EC008C")
+            return UIColor(hex: "#B7647B")
         case normalized == "floral",
              normalized.contains(" floral"),
              normalized.contains("floral "),
@@ -88,17 +88,17 @@ enum ScentFamilyColor {
              normalized.contains("네롤리"),
              normalized.contains("orange blossom"),
              normalized.contains("오렌지 블로섬"):
-            return UIColor(hex: "#F53D32")
+            return UIColor(hex: "#F29388")
         case normalized.contains("soft oriental"),
              normalized.contains("소프트 오리엔탈"),
              normalized.contains("soft amber"),
              normalized.contains("소프트 앰버"):
-            return UIColor(hex: "#D4148E")
+            return UIColor(hex: "#B7647B")
         case normalized == "oriental",
              normalized.contains("오리엔탈"),
              normalized == "amber",
              normalized.contains("앰버"):
-            return UIColor(hex: "#AF003D")
+            return UIColor(hex: "#B7647B")
         case normalized.contains("woody oriental"),
              normalized.contains("우디 오리엔탈"),
              normalized.contains("woody amber"),
@@ -149,10 +149,10 @@ enum ScentFamilyColor {
              normalized.contains("머스크"),
              normalized.contains("머스키"),
              normalized.contains("spic"):
-            return UIColor(hex: "#5B5796")
+            return UIColor(hex: "#68629D")
         case normalized.contains("citrus"),
              normalized.contains("시트러스"):
-            return UIColor(hex: "#FFD900")
+            return UIColor(hex: "#FFD22E")
         case normalized.contains("water"),
              normalized.contains("워터"),
              normalized.contains("aqua"),
@@ -166,15 +166,15 @@ enum ScentFamilyColor {
             return UIColor(hex: "#1D99C4")
         case normalized.contains("green"),
              normalized.contains("그린"):
-            return UIColor(hex: "#75C062")
+            return UIColor(hex: "#72BE68")
         case normalized.contains("fresh"),
              normalized.contains("프레시"),
              normalized.contains("프레쉬"):
-            return UIColor(hex: "#75C062")
+            return UIColor(hex: "#72BE68")
         case normalized.contains("fruit"),
              normalized.contains("fruity"),
              normalized.contains("프루티"):
-            return UIColor(hex: "#FF7A1A")
+            return UIColor(hex: "#E7A175")
         default:
             return UIColor.systemGray3
         }
