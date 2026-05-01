@@ -300,9 +300,10 @@ private extension SearchViewController {
             view.addSubview($0)
         }
 
-[resultCountLabel, countSeparatorView, filterButton, sortButton].forEach {
-    resultHeaderView.addSubview($0)
-}
+        [resultCountLabel, countSeparatorView, filterButton, sortButton].forEach {
+            resultHeaderView.addSubview($0)
+        }
+    } // addSubviews() 종료
 
     func makeConstraints() {
         backButton.snp.makeConstraints {
