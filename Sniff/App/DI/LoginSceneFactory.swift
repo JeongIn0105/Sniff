@@ -30,6 +30,7 @@ enum LoginSceneFactory {
             authService: dependencyContainer.authService,
             userProfileStatusRepository: dependencyContainer.makeUserProfileStatusRepository(),
             appleSignInHelper: AppleSignInHelper(),
+            googleSignInHelper: GoogleSignInHelper(),
             onNewUser: onNewUser,
             onExistingUser: onExistingUser
         )
