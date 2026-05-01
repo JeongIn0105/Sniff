@@ -109,7 +109,7 @@ struct OnboardingTasteView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .background(Color.sniffBeige.ignoresSafeArea())
+        .background(Color.white.ignoresSafeArea())
     }
 
     private var currentTags: [String] {

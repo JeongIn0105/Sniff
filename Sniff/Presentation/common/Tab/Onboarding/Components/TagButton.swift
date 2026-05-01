@@ -18,7 +18,7 @@ struct TagButton: View {
         Button(action: action) {
             ZStack(alignment: .topTrailing) {
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.white)
+                    .fill(isSelected ? Color.sniffBeige : Color.white)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
                             .stroke(

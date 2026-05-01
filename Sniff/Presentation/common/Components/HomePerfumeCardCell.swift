@@ -19,18 +19,17 @@ final class HomePerfumeCardCell: UICollectionViewCell {
 
     private let cardView: UIView = {
         let view = UIView()
-        view.backgroundColor = .systemBackground
-        view.layer.cornerRadius = 16
-        view.layer.cornerCurve = .continuous
-        view.layer.borderWidth = 1
-        view.layer.borderColor = UIColor.separator.withAlphaComponent(0.12).cgColor
+        view.backgroundColor = .clear
         return view
     }()
 
     private let imageContainerView: UIView = {
         let view = UIView()
+        view.backgroundColor = .systemBackground
         view.layer.cornerRadius = 14
         view.layer.cornerCurve = .continuous
+        view.layer.borderWidth = 1
+        view.layer.borderColor = UIColor.separator.withAlphaComponent(0.12).cgColor
         view.clipsToBounds = true
         return view
     }()
@@ -161,8 +160,8 @@ final class HomePerfumeCardCell: UICollectionViewCell {
         cardView.snp.makeConstraints { $0.edges.equalToSuperview() }
 
         imageContainerView.snp.makeConstraints {
-            $0.top.leading.trailing.equalToSuperview().inset(8)
-            $0.height.equalTo(140)
+            $0.top.leading.trailing.equalToSuperview()
+            $0.height.equalTo(imageContainerView.snp.width)
         }
 
         bottleImageView.snp.makeConstraints {
@@ -200,20 +199,20 @@ final class HomePerfumeCardCell: UICollectionViewCell {
         }
 
         brandLabel.snp.makeConstraints {
-            $0.top.equalTo(imageContainerView.snp.bottom).offset(10)
-            $0.leading.trailing.equalToSuperview().inset(8)
+            $0.top.equalTo(imageContainerView.snp.bottom).offset(14)
+            $0.leading.trailing.equalToSuperview()
             $0.height.equalTo(16)
         }
 
         perfumeNameLabel.snp.makeConstraints {
             $0.top.equalTo(brandLabel.snp.bottom).offset(2)
-            $0.leading.trailing.equalToSuperview().inset(8)
+            $0.leading.trailing.equalToSuperview()
             $0.height.equalTo(40)
         }
 
         accordsWrapView.snp.makeConstraints {
             $0.top.equalTo(perfumeNameLabel.snp.bottom).offset(8)
-            $0.leading.trailing.equalToSuperview().inset(8)
+            $0.leading.trailing.equalToSuperview()
             $0.bottom.lessThanOrEqualToSuperview().inset(8)
         }
     }
@@ -274,15 +273,10 @@ final class HomePerfumeCardCell: UICollectionViewCell {
         stack.alignment = .center
         stack.spacing = 4
 
-        let container = UIView()
-        container.addSubview(stack)
         dotView.snp.makeConstraints {
-            $0.size.equalTo(8)
+            $0.size.equalTo(8).priority(.high)
         }
-        stack.snp.makeConstraints {
-            $0.edges.equalToSuperview()
-        }
-        return container
+        return stack
     }
 
     private func showImage() {

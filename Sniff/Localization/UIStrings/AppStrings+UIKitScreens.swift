@@ -89,12 +89,13 @@ extension AppStrings {
             static let moodImage = "분위기 / 이미지"
             static let concentration = "농도"
             static let season = "계절"
-            static let concentrationInfoTitle = "농도 설명"
-            static let scentFamilyInfoTitle = "향 계열 설명"
-            static let scentFamilyInfoBody = "Fragrance Wheel 기준 계열이에요. 각 계열이 어떤 향인지 빠르게 확인할 수 있어요."
+            static let concentrationInfoTitle = "농도 정보"
+            static let concentrationInfoBody = "향수의 농도에 따라 향의 진함과 지속 시간이 달라져요."
+            static let scentFamilyInfoTitle = "향 계열 정보"
+            static let scentFamilyInfoBody = "향의 성격을 나누는 기준이에요. 선호하는 계열을 선택하면 더 잘 맞는 향수를 찾는 데 도움이 돼요."
 
             static func applyCount(_ count: Int) -> String {
-                "향수 \(count)개 보기"
+                "\(count)개 향수 보기"
             }
         }
     }

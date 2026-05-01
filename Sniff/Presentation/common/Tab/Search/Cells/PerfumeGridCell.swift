@@ -23,8 +23,11 @@ final class PerfumeGridCell: UICollectionViewCell {
         // MARK: - UI Components
 
     private let imageContainerView = UIView().then {
-        $0.backgroundColor = UIColor(red: 0.97, green: 0.95, blue: 0.92, alpha: 1)
-        $0.layer.cornerRadius = 16
+        $0.backgroundColor = .systemBackground
+        $0.layer.cornerRadius = 14
+        $0.layer.cornerCurve = .continuous
+        $0.layer.borderWidth = 1
+        $0.layer.borderColor = UIColor(hex: "#E9E5DF").cgColor
         $0.clipsToBounds = true
     }
 
@@ -53,7 +56,7 @@ final class PerfumeGridCell: UICollectionViewCell {
     }
 
     private let nameLabel = UILabel().then {
-        $0.font = .systemFont(ofSize: 14, weight: .medium)
+        $0.font = .systemFont(ofSize: 16, weight: .regular)
         $0.textColor = .label
         $0.numberOfLines = 2
     }
@@ -103,7 +106,7 @@ final class PerfumeGridCell: UICollectionViewCell {
         }
 
         bottleImageView.snp.makeConstraints {
-            $0.edges.equalToSuperview().inset(10)
+            $0.edges.equalToSuperview().inset(18)
         }
 
         placeholderLabel.snp.makeConstraints {
@@ -118,12 +121,12 @@ final class PerfumeGridCell: UICollectionViewCell {
         }
 
         brandLabel.snp.makeConstraints {
-            $0.top.equalTo(imageContainerView.snp.bottom).offset(8)
+            $0.top.equalTo(imageContainerView.snp.bottom).offset(14)
             $0.leading.trailing.equalToSuperview()
         }
 
         nameLabel.snp.makeConstraints {
-            $0.top.equalTo(brandLabel.snp.bottom).offset(2)
+            $0.top.equalTo(brandLabel.snp.bottom).offset(7)
             $0.leading.trailing.equalToSuperview()
         }
 
@@ -191,17 +194,20 @@ private final class AccordPillView: UIView {
             $0.text = displayAccord
             $0.font = .systemFont(ofSize: 12)
             $0.textColor = .secondaryLabel
+            $0.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         }
 
-        let stack = UIStackView(arrangedSubviews: [dot, label]).then {
-            $0.axis = .horizontal
-            $0.spacing = 4
-            $0.alignment = .center
+        [dot, label].forEach { addSubview($0) }
+
+        dot.snp.makeConstraints {
+            $0.leading.centerY.equalToSuperview()
+            $0.size.equalTo(8)
         }
 
-        addSubview(stack)
-        stack.snp.makeConstraints { $0.edges.equalToSuperview() }
-        dot.snp.makeConstraints { $0.size.equalTo(8) }
+        label.snp.makeConstraints {
+            $0.leading.equalTo(dot.snp.trailing).offset(4)
+            $0.top.bottom.trailing.equalToSuperview()
+        }
     }
 }
 

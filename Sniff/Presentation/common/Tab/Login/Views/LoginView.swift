@@ -18,27 +18,19 @@ struct LoginView: View {
     
     var body: some View {
         ZStack {
-            Color.sniffBeige.ignoresSafeArea()
+            Color(.systemBackground)
+                .ignoresSafeArea()
             
             VStack(spacing: 0) {
                 Spacer()
                 
-                // 로고
-                VStack(spacing: 12) {
-                    Text(AppStrings.AppShell.Login.title)
-                        .font(.system(size: 60, weight: .bold))
-                        .foregroundStyle(.black)
-                    Text(AppStrings.AppShell.Login.subtitle)
-                        .font(.subheadline)
-                        .foregroundStyle(.gray)
-                }
+                Text(AppStrings.AppShell.Login.title)
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(.black)
                 
                 Spacer()
                 
-                // 커스텀 Apple 로그인 버튼
                 Button {
-                    // isKeyWindow 기준으로 키 윈도우를 탐색합니다.
-                    // windows.first는 키 윈도우를 보장하지 않으므로 사용하지 않습니다.
                     let scenes = UIApplication.shared.connectedScenes
                         .compactMap { $0 as? UIWindowScene }
                     guard let window = scenes
@@ -48,29 +40,24 @@ struct LoginView: View {
                     else { return }
                     viewModel.signInWithApple(presentationAnchor: window)
                 } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "apple.logo")
-                            .font(.system(size: 17, weight: .medium))
-                            .foregroundStyle(.white)
-                        Text(AppStrings.AppShell.Login.appleButton)
-                            .font(.system(size: 17, weight: .medium))
-                            .foregroundStyle(.white)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .background(.black)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .padding(.horizontal, 32)
+                    Text(AppStrings.AppShell.Login.appleButton)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(Color(hex: "#242424"))
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }
+                .padding(.horizontal, 14)
                 .disabled(viewModel.isLoading)
                 
                 if viewModel.isLoading {
                     ProgressView()
                         .tint(.black)
-                        .padding(.top, 16)
+                        .padding(.top, 12)
                 }
                 
-                Spacer().frame(height: 60)
+                Spacer().frame(height: 42)
             }
         }
         .toast(isPresented: $viewModel.showError,

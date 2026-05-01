@@ -9,6 +9,29 @@
 import UIKit
 
 enum ScentFamilyColor {
+    private enum Palette {
+        static let floral = UIColor(hex: "#DE9B8B")
+        static let softFloral = UIColor(hex: "#D9AEB7")
+        static let floralAmber = UIColor(hex: "#D189BB")
+        static let softAmber = UIColor(hex: "#B67DA7")
+        static let amber = UIColor(hex: "#A36777")
+        static let woodyAmber = UIColor(hex: "#C5AA89")
+        static let woody = UIColor(hex: "#CCBC9C")
+        static let mossyWoods = UIColor(hex: "#95AAAE")
+        static let dryWoods = UIColor(hex: "#BCBCA9")
+        static let aromatic = UIColor(hex: "#C8BFD2")
+        static let citrus = UIColor(hex: "#EBE5B4")
+        static let aquatic = UIColor(hex: "#B1CCDF")
+        static let green = UIColor(hex: "#C7DAAE")
+        static let fruity = UIColor(hex: "#E3B286")
+        static let musk = UIColor(hex: "#E8E1D9")
+        static let powdery = UIColor(hex: "#EFE9F0")
+        static let unknown = UIColor.systemGray3
+        static let neutralIconBackground = UIColor(hex: "#F1EFE8")
+        static let citrusChipForeground = UIColor(hex: "#4A4300")
+        static let citrusSoftForeground = UIColor(hex: "#5C5200")
+    }
+
     static func color(for accord: String) -> UIColor {
         canonicalColor(for: accord)
     }
@@ -19,7 +42,7 @@ enum ScentFamilyColor {
 
     static func chipColors(for family: String) -> (background: UIColor, foreground: UIColor) {
         let background = canonicalColor(for: family)
-        let foreground = prefersDarkForeground(for: family) ? UIColor(hex: "#4A4300") : .white
+        let foreground = prefersDarkForeground(for: family) ? Palette.citrusChipForeground : .white
         return (background, foreground)
     }
 
@@ -30,14 +53,18 @@ enum ScentFamilyColor {
     static func softForeground(for family: String) -> UIColor {
         let base = canonicalColor(for: family)
         if prefersDarkForeground(for: family) {
-            return UIColor(hex: "#5C5200")
+            return Palette.citrusSoftForeground
         }
         return base.mixed(with: .black, ratio: 0.18)
     }
 
     static func iconBackground(for family: String?) -> UIColor {
-        guard let family else { return UIColor(hex: "#F1EFE8") }
+        guard let family else { return Palette.neutralIconBackground }
         return softBackground(for: family)
+    }
+
+    static func gradientColor(for family: String, base: UIColor, ratio: CGFloat) -> UIColor {
+        canonicalColor(for: family).mixed(with: base, ratio: ratio)
     }
 
     static func iconEmoji(for family: String?) -> String {
@@ -49,17 +76,17 @@ enum ScentFamilyColor {
 
         switch true {
         case normalized.contains("fresh floral"), normalized.contains("프레시 플로럴"):
-            return UIColor(hex: "#E56BAA")
+            return Palette.softFloral
         case normalized.contains("soft floral"),
              normalized.contains("소프트 플로럴"),
              normalized.contains("white floral"),
              normalized.contains("화이트 플로럴"):
-            return UIColor(hex: "#E56BAA")
+            return Palette.softFloral
         case normalized.contains("floral oriental"),
              normalized.contains("플로럴 오리엔탈"),
              normalized.contains("floral amber"),
              normalized.contains("플로럴 앰버"):
-            return UIColor(hex: "#EC008C")
+            return Palette.floralAmber
         case normalized == "floral",
              normalized.contains(" floral"),
              normalized.contains("floral "),
@@ -88,22 +115,22 @@ enum ScentFamilyColor {
              normalized.contains("네롤리"),
              normalized.contains("orange blossom"),
              normalized.contains("오렌지 블로섬"):
-            return UIColor(hex: "#F53D32")
+            return Palette.floral
         case normalized.contains("soft oriental"),
              normalized.contains("소프트 오리엔탈"),
              normalized.contains("soft amber"),
              normalized.contains("소프트 앰버"):
-            return UIColor(hex: "#D4148E")
+            return Palette.softAmber
         case normalized == "oriental",
              normalized.contains("오리엔탈"),
              normalized == "amber",
              normalized.contains("앰버"):
-            return UIColor(hex: "#AF003D")
+            return Palette.amber
         case normalized.contains("woody oriental"),
              normalized.contains("우디 오리엔탈"),
              normalized.contains("woody amber"),
              normalized.contains("우디 앰버"):
-            return UIColor(hex: "#C36216")
+            return Palette.woodyAmber
         case normalized.contains("mossy woods"),
              normalized.contains("모씨 우즈"),
              normalized.contains("모시 우즈"),
@@ -113,7 +140,7 @@ enum ScentFamilyColor {
              normalized.contains("earthy"),
              normalized.contains("어시"),
              normalized.contains("이끼"):
-            return UIColor(hex: "#3D7F68")
+            return Palette.mossyWoods
         case normalized.contains("dry woods"),
              normalized.contains("드라이 우즈"),
              normalized.contains("leather"),
@@ -126,7 +153,7 @@ enum ScentFamilyColor {
              normalized.contains("인센스"),
              normalized.contains("resin"),
              normalized.contains("레진"):
-            return UIColor(hex: "#9A9566")
+            return Palette.dryWoods
         case normalized == "woods",
              normalized == "woody",
              normalized == "우즈",
@@ -138,21 +165,23 @@ enum ScentFamilyColor {
              normalized.contains("woody"),
              normalized.contains("우즈"),
              normalized.contains("우디"):
-            return UIColor(hex: "#C58A3B")
+            return Palette.woody
+        case normalized.contains("musk"),
+             normalized.contains("머스크"),
+             normalized.contains("머스키"):
+            return Palette.musk
+        case normalized.contains("powdery"),
+             normalized.contains("파우더리"):
+            return Palette.powdery
         case normalized.contains("aromatic"),
              normalized.contains("아로마틱"),
              normalized.contains("fougere"),
              normalized.contains("푸제르"),
-             normalized.contains("powdery"),
-             normalized.contains("파우더리"),
-             normalized.contains("musk"),
-             normalized.contains("머스크"),
-             normalized.contains("머스키"),
              normalized.contains("spic"):
-            return UIColor(hex: "#5B5796")
+            return Palette.aromatic
         case normalized.contains("citrus"),
              normalized.contains("시트러스"):
-            return UIColor(hex: "#FFD900")
+            return Palette.citrus
         case normalized.contains("water"),
              normalized.contains("워터"),
              normalized.contains("aqua"),
@@ -163,20 +192,20 @@ enum ScentFamilyColor {
              normalized.contains("soapy"),
              normalized.contains("소피"),
              normalized.contains("soap"):
-            return UIColor(hex: "#1D99C4")
+            return Palette.aquatic
         case normalized.contains("green"),
              normalized.contains("그린"):
-            return UIColor(hex: "#75C062")
+            return Palette.green
         case normalized.contains("fresh"),
              normalized.contains("프레시"),
              normalized.contains("프레쉬"):
-            return UIColor(hex: "#75C062")
+            return Palette.green
         case normalized.contains("fruit"),
              normalized.contains("fruity"),
              normalized.contains("프루티"):
-            return UIColor(hex: "#FF7A1A")
+            return Palette.fruity
         default:
-            return UIColor.systemGray3
+            return Palette.unknown
         }
     }
 
@@ -186,7 +215,7 @@ enum ScentFamilyColor {
     }
 }
 
-private extension UIColor {
+extension UIColor {
     func mixed(with other: UIColor, ratio: CGFloat) -> UIColor {
         let ratio = max(0, min(1, ratio))
 

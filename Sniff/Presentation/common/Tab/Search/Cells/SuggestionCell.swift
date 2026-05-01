@@ -80,6 +80,8 @@ final class SuggestionCell: UITableViewCell {
             $0.trailing.lessThanOrEqualToSuperview().offset(-20)
             $0.bottom.equalToSuperview().offset(-10)
         }
+
+        nameLeadingToThumbnailConstraint?.deactivate()
     }
 
         // MARK: - Configure

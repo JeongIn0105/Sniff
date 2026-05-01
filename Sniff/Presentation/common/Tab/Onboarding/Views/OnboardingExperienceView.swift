@@ -51,7 +51,11 @@ struct OnboardingExperienceView: View {
                                 .padding()
                                 .background(
                                     RoundedRectangle(cornerRadius: 12)
-                                        .fill(Color.white)
+                                        .fill(
+                                            viewModel.selectedExperience == option.level
+                                            ? Color.sniffBeige
+                                            : Color.white
+                                        )
                                 )
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 12)
@@ -93,7 +97,7 @@ struct OnboardingExperienceView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .background(Color.sniffBeige.ignoresSafeArea())
+        .background(Color.white.ignoresSafeArea())
     }
 
     private func applyTitleConfig(_ text: String, config: TitleLayoutConfig = .default) -> some View {

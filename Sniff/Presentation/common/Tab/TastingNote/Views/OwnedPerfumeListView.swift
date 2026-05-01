@@ -234,6 +234,7 @@ struct OwnedPerfumeListView: View {
         ZStack(alignment: .bottomTrailing) {
             NavigationLink {
                 PerfumeDetailContainerView(perfume: perfume.sourcePerfume)
+                    .toolbar(.hidden, for: .navigationBar)
             } label: {
                 PerfumeGridCardView(
                     imageURL: perfume.imageURL,

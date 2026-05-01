@@ -111,7 +111,7 @@ final class FilterViewModel {
 
         let isApplyEnabled = Observable
             .combineLatest(filterRelay.asObservable(), resultCountRelay.asObservable())
-            .map { !$0.0.isEmpty && $0.1 > 0 }
+            .map { $0.1 > 0 }
 
         let onApply = input.applyTrigger
             .withLatestFrom(filterRelay)

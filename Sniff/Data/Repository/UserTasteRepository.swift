@@ -68,6 +68,58 @@ final class UserTasteRepository: UserTasteRepositoryType {
         }
     }
 
+    func fetchTasteProfileHistory() -> Single<[TasteProfileHistoryEntry]> {
+        Single.create { [weak self] single in
+            guard let self else {
+                single(.success([]))
+                return Disposables.create()
+            }
+
+            let task = Task {
+                do {
+                    let history = try await self.firestoreService.fetchTasteProfileHistory()
+                    single(.success(history))
+                } catch {
+                    single(.success([]))
+                }
+            }
+
+            return Disposables.create {
+                task.cancel()
+            }
+        }
+    }
+
+    func recordTasteProfileHistoryIfNeeded(
+        profile: UserTasteProfile,
+        collectionCount: Int,
+        tastingCount: Int
+    ) -> Single<[TasteProfileHistoryEntry]> {
+        Single.create { [weak self] single in
+            guard let self else {
+                single(.success([]))
+                return Disposables.create()
+            }
+
+            let task = Task {
+                do {
+                    let history = try await self.firestoreService.recordTasteProfileHistoryIfNeeded(
+                        profile: profile,
+                        collectionCount: collectionCount,
+                        tastingCount: tastingCount
+                    )
+                    single(.success(history))
+                } catch {
+                    single(.success([]))
+                }
+            }
+
+            return Disposables.create {
+                task.cancel()
+            }
+        }
+    }
+
     func analyzeTaste(input: TasteAnalysisInput) async throws -> TasteAnalysisResult {
         guard let geminiService else {
             throw AppSecretsError.missingValue("GEMINI_API_KEY")

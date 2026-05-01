@@ -10,6 +10,12 @@ import RxSwift
 
 protocol UserTasteRepositoryType {
     func fetchTasteAnalysis() -> Single<TasteAnalysisResult>
+    func fetchTasteProfileHistory() -> Single<[TasteProfileHistoryEntry]>
+    func recordTasteProfileHistoryIfNeeded(
+        profile: UserTasteProfile,
+        collectionCount: Int,
+        tastingCount: Int
+    ) -> Single<[TasteProfileHistoryEntry]>
     func analyzeTaste(input: TasteAnalysisInput) async throws -> TasteAnalysisResult
     func reanalyzeTasteFromHistory() async throws -> TasteAnalysisResult
     func checkNicknameAvailability(_ nickname: String) async throws -> Bool

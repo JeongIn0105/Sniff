@@ -170,17 +170,33 @@ extension String {
     var accordBorderColor: Color { accordColor.opacity(0.45) }
 }
 
-// MARK: - 영문 태그 → 한국어 태그 매핑 (이전 데이터 호환용)
+// MARK: - 이전 무드 태그 → 현재 무드 태그 매핑
 
-let kLegacyTagToKorean: [String: String] = [
-    "Woody": "우디", "Fresh": "프레시", "Amber(Oriental)": "앰버(오리엔탈)",
-    "Musky": "머스키", "White Floral": "화이트 플로럴", "Rose": "로즈",
-    "Powdery": "파우더리", "Vanilla": "바닐라", "Spicy": "스파이시",
-    "Citrus": "시트러스", "Green": "그린", "Aquatic": "아쿠아틱",
-    "Leather": "레더", "Oud": "우드",
-    // 구 태그 → 신 태그 마이그레이션
-    "우디": "묵직한", "앰버(오리엔탈)": "따뜻한", "바닐라": "달콤한",
-    "시트러스": "상큼한", "그린": "자연스러운", "아쿠아틱": "시원한",
+let kLegacyMoodTagToKorean: [String: String] = [
+    "Woody": "묵직한",
+    "Fresh": "상큼한",
+    "Amber(Oriental)": "따뜻한",
+    "Musky": "보송보송한",
+    "White Floral": "은은한",
+    "Rose": "은은한",
+    "Powdery": "보송보송한",
+    "Vanilla": "달콤한",
+    "Sweet": "달콤한",
+    "Spicy": "강렬한",
+    "Citrus": "상큼한",
+    "Green": "자연스러운",
+    "Aquatic": "시원한",
+    "Water": "시원한",
+    "Leather": "묵직한",
+    "Oud": "묵직한",
+    "우디": "묵직한",
+    "앰버(오리엔탈)": "따뜻한",
+    "바닐라": "달콤한",
+    "시트러스": "상큼한",
+    "그린": "자연스러운",
+    "아쿠아틱": "시원한",
+    "워터": "시원한",
+    "워터리": "시원한",
 ]
 
 // MARK: - 별점 라벨
