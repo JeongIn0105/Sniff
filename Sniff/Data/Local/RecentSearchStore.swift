@@ -6,12 +6,14 @@
 //
 
 import Foundation
+import FirebaseAuth
 import RxSwift
 import RxRelay
 
 final class RecentSearchStore: RecentSearchStoreType {
 
-    private let key = "sniff.recentSearches"
+    // 계정별로 분리된 UserDefaults 키 (UID 포함)
+    private let key: String
     private let maxCount = 10
     private let searchesRelay: BehaviorRelay<[RecentSearch]>
 
@@ -19,8 +21,16 @@ final class RecentSearchStore: RecentSearchStoreType {
         searchesRelay.asObservable()
     }
 
-    init() {
-        searchesRelay = BehaviorRelay(value: Self.load())
+    /// userID: Firebase Auth의 현재 유저 UID. nil이면 비로그인 상태로 간주해 공유 키 사용.
+    init(userID: String?) {
+        let resolvedKey: String
+        if let uid = userID, !uid.isEmpty {
+            resolvedKey = "sniff.recentSearches.\(uid)"
+        } else {
+            resolvedKey = "sniff.recentSearches.anonymous"
+        }
+        self.key = resolvedKey
+        searchesRelay = BehaviorRelay(value: Self.load(key: resolvedKey))
     }
 
     func save(query: String) {
@@ -51,7 +61,7 @@ final class RecentSearchStore: RecentSearchStoreType {
         UserDefaults.standard.removeObject(forKey: key)
     }
 
-    private static func load(key: String = "sniff.recentSearches") -> [RecentSearch] {
+    private static func load(key: String) -> [RecentSearch] {
         guard
             let data = UserDefaults.standard.data(forKey: key),
             let decoded = try? JSONDecoder().decode([RecentSearch].self, from: data)

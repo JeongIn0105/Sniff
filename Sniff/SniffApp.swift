@@ -9,10 +9,24 @@ import SwiftUI
 import FirebaseCore
 import FirebaseAuth
 import UIKit
+import GoogleSignIn
 
-final class AppDelegate: NSObject, UIApplicationDelegate {}
+// MARK: - AppDelegate
+
+final class AppDelegate: NSObject, UIApplicationDelegate {
+
+    /// 구글 로그인의 OAuth 리다이렉트 URL을 처리합니다.
+    func application(
+        _ app: UIApplication,
+        open url: URL,
+        options: [UIApplication.OpenURLOptionsKey: Any] = [:]
+    ) -> Bool {
+        return GIDSignIn.sharedInstance.handle(url)
+    }
+}
 
 // MARK: - 앱 상태
+
 enum AppState {
     case splash
     case login
@@ -21,6 +35,8 @@ enum AppState {
     case main
 }
 
+// MARK: - SniffApp
+
 @main
 struct SniffApp: App {
 
@@ -28,9 +44,12 @@ struct SniffApp: App {
     @StateObject private var appStateManager = AppStateManager()
     private let dependencyContainer = AppDependencyContainer.shared
 
-    // MARK: - Firebase 초기화
     init() {
         FirebaseApp.configure()
+        // Google Sign-In Client ID 설정
+        if let clientID = FirebaseApp.app()?.options.clientID {
+            GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: clientID)
+        }
     }
 
     var body: some Scene {
@@ -50,7 +69,6 @@ struct SniffApp: App {
         switch appStateManager.state {
         case .splash:
             SplashView()
-                // .task modifier 사용 → View 소멸 시 Task가 자동으로 취소됩니다.
                 .task {
                     try? await Task.sleep(nanoseconds: 2_000_000_000)
                     await appStateManager.completeSplash()

@@ -8,6 +8,7 @@
 import Foundation
 import Combine
 import AuthenticationServices
+import UIKit
 
 @MainActor
 final class LoginViewModel: ObservableObject {
@@ -19,6 +20,7 @@ final class LoginViewModel: ObservableObject {
     private let authService: AuthServiceType
     private let userProfileStatusRepository: UserProfileStatusRepositoryType
     private let appleSignInHelper: AppleSignInHelper
+    private let googleSignInHelper: GoogleSignInHelper
     private let onNewUser: () -> Void
     private let onExistingUser: () -> Void
 
@@ -26,26 +28,36 @@ final class LoginViewModel: ObservableObject {
         authService: AuthServiceType,
         userProfileStatusRepository: UserProfileStatusRepositoryType,
         appleSignInHelper: AppleSignInHelper,
+        googleSignInHelper: GoogleSignInHelper,
         onNewUser: @escaping () -> Void,
         onExistingUser: @escaping () -> Void
     ) {
         self.authService = authService
         self.userProfileStatusRepository = userProfileStatusRepository
         self.appleSignInHelper = appleSignInHelper
+        self.googleSignInHelper = googleSignInHelper
         self.onNewUser = onNewUser
         self.onExistingUser = onExistingUser
     }
 
+    // MARK: - Apple 로그인
+
     func signInWithApple(presentationAnchor: ASPresentationAnchor) {
         isLoading = true
-
         appleSignInHelper.startSignIn(presentationAnchor: presentationAnchor) { [weak self] result in
             guard let self else { return }
-
             Task { @MainActor in
                 switch result {
                 case .success(let payload):
-                    await self.handleSignInSuccess(payload: payload)
+                    do {
+                        let session = try await self.authService.signInWithApple(
+                            identityToken: payload.identityToken,
+                            rawNonce: payload.rawNonce
+                        )
+                        await self.handleSessionSuccess(userID: session.userID)
+                    } catch {
+                        self.handleError(error)
+                    }
                 case .failure(let error):
                     self.isLoading = false
                     self.errorMessage = error.localizedDescription
@@ -55,25 +67,41 @@ final class LoginViewModel: ObservableObject {
         }
     }
 
-    private func handleSignInSuccess(payload: AppleSignInPayload) async {
-        do {
-            let session = try await authService.signInWithApple(
-                identityToken: payload.identityToken,
-                rawNonce: payload.rawNonce
-            )
-            isLoading = false
-            // Firestore 프로필 존재 여부만으로 신규/기존 유저 판단
-            // isNewUser는 Firebase Auth 계정 기준이므로, 탈퇴 후 재가입 시 오판할 수 있음
-            let hasProfile = try await userProfileStatusRepository.hasUserProfile(userID: session.userID)
-            if hasProfile {
-                onExistingUser()
-            } else {
-                onNewUser()
+    // MARK: - 구글 로그인
+
+    func signInWithGoogle(presentingWindow: UIWindow) {
+        isLoading = true
+        Task {
+            do {
+                let payload = try await googleSignInHelper.startSignIn(presentingWindow: presentingWindow)
+                let session = try await authService.signInWithGoogle(
+                    idToken: payload.idToken,
+                    accessToken: payload.accessToken
+                )
+                await handleSessionSuccess(userID: session.userID)
+            } catch let error as GoogleSignInError where error == .canceled {
+                isLoading = false
+            } catch {
+                handleError(error)
             }
-        } catch {
-            isLoading = false
-            errorMessage = error.localizedDescription
-            showError = true
         }
+    }
+
+    // MARK: - Private
+
+    private func handleSessionSuccess(userID: String) async {
+        do {
+            let hasProfile = try await userProfileStatusRepository.hasUserProfile(userID: userID)
+            isLoading = false
+            hasProfile ? onExistingUser() : onNewUser()
+        } catch {
+            handleError(error)
+        }
+    }
+
+    private func handleError(_ error: Error) {
+        isLoading = false
+        errorMessage = error.localizedDescription
+        showError = true
     }
 }

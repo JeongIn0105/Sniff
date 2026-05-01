@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import FirebaseAuth
 
 final class AppDependencyContainer {
 
@@ -45,7 +46,9 @@ final class AppDependencyContainer {
     }
 
     func makeRecentSearchStore() -> RecentSearchStoreType {
-        RecentSearchStore()
+        // 현재 로그인된 유저 UID를 키에 포함하여 계정별 검색어 분리
+        let userID = Auth.auth().currentUser?.uid
+        return RecentSearchStore(userID: userID)
     }
 
     func makeRecommendPerfumesUseCase() -> RecommendPerfumesUseCaseType {
