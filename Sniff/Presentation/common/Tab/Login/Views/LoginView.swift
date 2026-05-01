@@ -17,79 +17,84 @@ struct LoginView: View {
     }
 
     var body: some View {
-        ZStack {
-            Color.sniffBeige.ignoresSafeArea()
+    ZStack {
+        Color.sniffBeige.ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                Spacer()
+        VStack(spacing: 0) {
+            Spacer()
 
-                // 로고
-                VStack(spacing: 12) {
-                    Text(AppStrings.AppShell.Login.title)
-                        .font(.system(size: 60, weight: .bold))
-                        .foregroundStyle(.black)
-                    Text(AppStrings.AppShell.Login.subtitle)
-                        .font(.subheadline)
-                        .foregroundStyle(.gray)
-                }
+            // 로고
+            VStack(spacing: 12) {
+                Text(AppStrings.AppShell.Login.title)
+                    .font(.system(size: 60, weight: .bold))
+                    .foregroundStyle(.black)
 
-                Spacer()
-
-                // 소셜 로그인 버튼 영역
-                VStack(spacing: 12) {
-                    // Apple 로그인
-                    loginButton(
-                        action: {
-                            let scenes = UIApplication.shared.connectedScenes
-                                .compactMap { $0 as? UIWindowScene }
-                            guard let window = scenes
-                                .flatMap(\.windows)
-                                .first(where: \.isKeyWindow)
-                                ?? scenes.flatMap(\.windows).first
-                            else { return }
-                            viewModel.signInWithApple(presentationAnchor: window)
-                        },
-                        icon: Image(systemName: "apple.logo"),
-                        label: AppStrings.AppShell.Login.appleButton,
-                        foregroundColor: .white,
-                        backgroundColor: .black,
-                        strokeColor: nil
-                    )
-
-                    // 구글 로그인
-                    loginButton(
-                        action: {
-                            let scenes = UIApplication.shared.connectedScenes
-                                .compactMap { $0 as? UIWindowScene }
-                            guard let window = scenes
-                                .flatMap(\.windows)
-                                .first(where: \.isKeyWindow)
-                                ?? scenes.flatMap(\.windows).first
-                            else { return }
-                            viewModel.signInWithGoogle(presentingWindow: window)
-                        },
-                        icon: Image("google_logo"),
-                        label: AppStrings.AppShell.Login.googleButton,
-                        foregroundColor: Color(red: 0.2, green: 0.2, blue: 0.2),
-                        backgroundColor: .white,
-                        strokeColor: Color(red: 0.85, green: 0.85, blue: 0.85)
-                    )
-                }
-                .disabled(viewModel.isLoading)
-
-                if viewModel.isLoading {
-                    ProgressView()
-                        .tint(.black)
-                        .padding(.top, 16)
-                }
-
-                Spacer().frame(height: 60)
+                Text(AppStrings.AppShell.Login.subtitle)
+                    .font(.subheadline)
+                    .foregroundStyle(.gray)
             }
-        }
-        .toast(isPresented: $viewModel.showError,
-               message: viewModel.errorMessage ?? AppStrings.AppShell.Login.defaultError)
-    }
 
+            Spacer()
+
+            // 소셜 로그인 버튼 영역
+            VStack(spacing: 12) {
+                // Apple 로그인
+                loginButton(
+                    action: {
+                        let scenes = UIApplication.shared.connectedScenes
+                            .compactMap { $0 as? UIWindowScene }
+                        guard let window = scenes
+                            .flatMap(\.windows)
+                            .first(where: \.isKeyWindow)
+                            ?? scenes.flatMap(\.windows).first
+                        else { return }
+
+                        viewModel.signInWithApple(presentationAnchor: window)
+                    },
+                    icon: Image(systemName: "apple.logo"),
+                    label: AppStrings.AppShell.Login.appleButton,
+                    foregroundColor: .white,
+                    backgroundColor: .black,
+                    strokeColor: nil
+                )
+
+                // 구글 로그인
+                loginButton(
+                    action: {
+                        let scenes = UIApplication.shared.connectedScenes
+                            .compactMap { $0 as? UIWindowScene }
+                        guard let window = scenes
+                            .flatMap(\.windows)
+                            .first(where: \.isKeyWindow)
+                            ?? scenes.flatMap(\.windows).first
+                        else { return }
+
+                        viewModel.signInWithGoogle(presentingWindow: window)
+                    },
+                    icon: Image("google_logo"),
+                    label: AppStrings.AppShell.Login.googleButton,
+                    foregroundColor: Color(red: 0.2, green: 0.2, blue: 0.2),
+                    backgroundColor: .white,
+                    strokeColor: Color(red: 0.85, green: 0.85, blue: 0.85)
+                )
+            }
+            .padding(.horizontal, 14)
+            .disabled(viewModel.isLoading)
+
+            if viewModel.isLoading {
+                ProgressView()
+                    .tint(.black)
+                    .padding(.top, 12)
+            }
+
+            Spacer().frame(height: 60)
+        }
+    }
+    .toast(
+        isPresented: $viewModel.showError,
+        message: viewModel.errorMessage ?? AppStrings.AppShell.Login.defaultError
+    )
+}
     // MARK: - 공용 로그인 버튼 빌더
 
     @ViewBuilder

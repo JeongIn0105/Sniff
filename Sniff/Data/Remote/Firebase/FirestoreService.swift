@@ -146,6 +146,52 @@ final class FirestoreService {
         throw FirestoreServiceError.invalidTasteAnalysisData
     }
 
+    func fetchTasteProfileHistory(limit: Int = 10) async throws -> [TasteProfileHistoryEntry] {
+        let snapshot = try await userDocumentRef()
+            .collection("profileHistory")
+            .order(by: "createdAt", descending: true)
+            .limit(to: limit)
+            .getDocuments()
+
+        return snapshot.documents.compactMap(Self.makeTasteProfileHistoryEntry)
+    }
+
+    func recordTasteProfileHistoryIfNeeded(
+        profile: UserTasteProfile,
+        collectionCount: Int,
+        tastingCount: Int
+    ) async throws -> [TasteProfileHistoryEntry] {
+        let historyRef = try userDocumentRef().collection("profileHistory")
+        let latest = try await historyRef
+            .order(by: "createdAt", descending: true)
+            .limit(to: 1)
+            .getDocuments()
+            .documents
+            .first
+            .flatMap { Self.makeTasteProfileHistoryEntry(from: $0) }
+
+        let title = profile.displayTitle
+        let families = Array(profile.displayFamilies.prefix(2))
+
+        if latest?.title == title && latest?.families == families {
+            return try await fetchTasteProfileHistory()
+        }
+
+        let now = FieldValue.serverTimestamp()
+        let data: [String: Any] = [
+            "title": title,
+            "families": families,
+            "scentVector": profile.scentVector,
+            "collectionCount": collectionCount,
+            "tastingCount": tastingCount,
+            "stage": profile.stage.historyValue,
+            "createdAt": now
+        ]
+
+        try await historyRef.document().setData(data, merge: false)
+        return try await fetchTasteProfileHistory()
+    }
+
     func fetchCollection() async throws -> [CollectedPerfume] {
         let snapshot = try await userDocumentRef()
             .collection("collection")
@@ -326,6 +372,55 @@ private extension FirestoreService {
     static func decodeTasteAnalysis(from dictionary: [String: Any]) throws -> TasteAnalysisResult {
         let data = try JSONSerialization.data(withJSONObject: dictionary)
         return try JSONDecoder().decode(TasteAnalysisResult.self, from: data)
+    }
+
+    static func makeTasteProfileHistoryEntry(from document: QueryDocumentSnapshot) -> TasteProfileHistoryEntry? {
+        let data = document.data()
+        guard
+            let title = data["title"] as? String,
+            let families = data["families"] as? [String],
+            let scentVector = doubleDictionary(from: data["scentVector"]),
+            let collectionCount = intValue(from: data["collectionCount"]),
+            let tastingCount = intValue(from: data["tastingCount"]),
+            let stage = data["stage"] as? String
+        else {
+            return nil
+        }
+
+        return TasteProfileHistoryEntry(
+            id: document.documentID,
+            title: FragranceProfileText.validatedTasteTitle(title) ?? title,
+            families: families,
+            scentVector: scentVector,
+            collectionCount: collectionCount,
+            tastingCount: tastingCount,
+            stage: stage,
+            createdAt: (data["createdAt"] as? Timestamp)?.dateValue()
+        )
+    }
+
+    static func doubleDictionary(from value: Any?) -> [String: Double]? {
+        guard let dictionary = value as? [String: Any] else { return nil }
+
+        return dictionary.reduce(into: [String: Double]()) { result, item in
+            if let value = item.value as? Double {
+                result[item.key] = value
+            } else if let value = item.value as? NSNumber {
+                result[item.key] = value.doubleValue
+            }
+        }
+    }
+
+    static func intValue(from value: Any?) -> Int? {
+        if let value = value as? Int {
+            return value
+        }
+
+        if let value = value as? NSNumber {
+            return value.intValue
+        }
+
+        return nil
     }
 
     private static func makeLikedPerfume(from document: QueryDocumentSnapshot) -> LikedPerfume? {

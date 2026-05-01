@@ -24,11 +24,11 @@ extension AppStrings.DomainDisplay {
         nonisolated static let fall = "가을"
         nonisolated static let winter = "겨울"
 
-        nonisolated static let parfumDescription = "오일 함량이 가장 높아 향이 진하고 오래 유지돼요.\n8시간 이상 지속되는 편이에요."
-        nonisolated static let eauDeParfumDescription = "일상에서 가장 무난하게 쓰기 좋고 지속력도 안정적이에요.\n5~8시간 정도 유지돼요."
-        nonisolated static let eauDeToiletteDescription = "EDP보다 가볍고 산뜻해서 데일리로 부담 없이 쓰기 좋아요.\n3~5시간 정도 가는 편이에요."
-        nonisolated static let eauDeCologneDescription = "향이 가장 가볍고 지속 시간이 짧아 리프레시용에 가까워요.\n2~3시간 정도 유지돼요."
-        nonisolated static let eauFraicheDescription = "아주 옅고 가벼운 타입으로 짧게 향을 더하는 느낌에 가까워요.\n1~2시간 정도 지속돼요."
+        nonisolated static let parfumDescription = "오일 함량이 가장 높아 향이 진하고 오래 유지돼요.\n지속 시간 8시간 이상"
+        nonisolated static let eauDeParfumDescription = "일상에서 무난하게 쓰기 좋고 지속력도 안정적이에요.\n지속 시간 5~8시간"
+        nonisolated static let eauDeToiletteDescription = "EDP보다 가볍고 산뜻해서 데일리로 쓰기 좋아요.\n지속 시간 3~5시간"
+        nonisolated static let eauDeCologneDescription = "향이 가볍고 지속 시간이 짧아 리프레시용에 가까워요.\n지속 시간 2~3시간"
+        nonisolated static let eauFraicheDescription = "아주 옅고 가벼운 타입으로 짧게 향을 더하는 느낌에 가까워요.\n지속 시간 1~2시간"
 
         nonisolated static let sortRecommended = "추천순"
         nonisolated static let sortNameAsc = "이름 순 (ㄱ~ㅎ)"

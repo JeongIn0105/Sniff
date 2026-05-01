@@ -9,7 +9,6 @@ import UIKit
 import SnapKit
 import RxSwift
 import RxCocoa
-import SwiftUI
 
 final class HomeViewController: UIViewController {
 
@@ -217,7 +216,7 @@ private extension HomeViewController {
         }
 
         titleLabel.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(24)
+            $0.top.equalToSuperview().offset(8)
             $0.leading.equalToSuperview().offset(20)
         }
 
@@ -228,7 +227,7 @@ private extension HomeViewController {
         }
 
         profileHeroCard.snp.makeConstraints {
-            $0.top.equalTo(titleLabel.snp.bottom).offset(92)
+            $0.top.equalTo(titleLabel.snp.bottom).offset(48)
             $0.leading.trailing.equalToSuperview()
         }
 
@@ -327,6 +326,14 @@ private extension HomeViewController {
                 owner.profileHeadlineLabel.text = item.title
                 owner.profileSummaryLabel.text = item.summary
                 owner.updateProfileTags(with: owner.currentProfileItem?.profile, banner: item)
+
+                if owner.currentProfileItem == nil, !item.familyText.isEmpty {
+                    let families = item.familyText
+                        .components(separatedBy: "·")
+                        .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                        .filter { !$0.isEmpty }
+                    owner.topGradientView.configure(topFamilies: families)
+                }
             }
             .disposed(by: disposeBag)
     }
@@ -341,6 +348,7 @@ private extension HomeViewController {
                     owner.profileSummaryLabel.text = item.profile.analysisSummary
                 }
                 owner.updateProfileTags(with: item.profile, banner: owner.currentBannerItem)
+                owner.topGradientView.configure(topFamilies: Array(item.profile.displayFamilies.prefix(2)))
             }
             .disposed(by: disposeBag)
     }
@@ -443,7 +451,7 @@ private extension HomeViewController {
         case "Citrus": return "시트러스"
         case "Fruity": return "프루티"
         case "Green": return "그린"
-        case "Water": return "워터리"
+        case "Water": return "워터"
         case "Aromatic": return "아로마틱"
         default: return family
         }
@@ -673,27 +681,19 @@ private final class PaddingLabel: UILabel {
     }
 }
 
-private final class HomeGradientView: UIView {
+final class HomeGradientView: UIView {
     private let gradientLayer = CAGradientLayer()
-    private let beigeOverlayView = UIView()
+    private static let baseBeige = UIColor(red: 0xF1/255.0, green: 0xE8/255.0, blue: 0xDF/255.0, alpha: 1)
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         isUserInteractionEnabled = false
-        backgroundColor = UIColor(red: 0.96, green: 0.92, blue: 0.88, alpha: 1)
-        gradientLayer.colors = [
-            UIColor(red: 0.84, green: 0.49, blue: 0.58, alpha: 1).cgColor,
-            UIColor(red: 0.95, green: 0.69, blue: 0.78, alpha: 1).cgColor,
-            UIColor(red: 0.96, green: 0.92, blue: 0.88, alpha: 0.92).cgColor,
-            UIColor(red: 0.96, green: 0.92, blue: 0.88, alpha: 1).cgColor
-        ]
-        gradientLayer.locations = [0.0, 0.52, 0.82, 1.0]
-        gradientLayer.startPoint = CGPoint(x: 0.12, y: 0.0)
-        gradientLayer.endPoint = CGPoint(x: 0.88, y: 1.0)
+        backgroundColor = HomeGradientView.baseBeige
+        gradientLayer.type = .radial
+        gradientLayer.startPoint = CGPoint(x: 0.25, y: 0.25)
+        gradientLayer.endPoint = CGPoint(x: 1.25, y: 1.25)
         layer.addSublayer(gradientLayer)
-
-        beigeOverlayView.backgroundColor = UIColor(red: 0.96, green: 0.92, blue: 0.88, alpha: 0.22)
-        addSubview(beigeOverlayView)
+        applyDefaultGradient()
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -701,6 +701,33 @@ private final class HomeGradientView: UIView {
     override func layoutSubviews() {
         super.layoutSubviews()
         gradientLayer.frame = bounds
-        beigeOverlayView.frame = bounds
+    }
+
+    func configure(topFamilies: [String]) {
+        let top1Color = topFamilies.first.map { ScentFamilyColor.color(for: $0) }
+        let top2Color = topFamilies.dropFirst().first.map { ScentFamilyColor.color(for: $0) }
+
+        let color20 = (top2Color ?? top1Color?.softened(amount: 0.25)
+            ?? UIColor(red: 1.0, green: 0.67, blue: 0.49, alpha: 1))
+            .softened(amount: 0.20)
+        let color45 = (top1Color
+            ?? UIColor(red: 0.95, green: 0.90, blue: 0.68, alpha: 1))
+            .softened(amount: 0.30)
+
+        gradientLayer.colors = [
+            color20.cgColor,
+            color45.cgColor,
+            HomeGradientView.baseBeige.cgColor
+        ]
+        gradientLayer.locations = [0.20, 0.45, 1.00]
+    }
+
+    private func applyDefaultGradient() {
+        gradientLayer.colors = [
+            UIColor(red: 1.0, green: 0.67, blue: 0.49, alpha: 1).cgColor,
+            UIColor(red: 0.95, green: 0.90, blue: 0.68, alpha: 1).cgColor,
+            HomeGradientView.baseBeige.cgColor
+        ]
+        gradientLayer.locations = [0.20, 0.45, 1.00]
     }
 }

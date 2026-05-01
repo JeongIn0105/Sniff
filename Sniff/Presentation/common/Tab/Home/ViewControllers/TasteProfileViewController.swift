@@ -27,6 +27,11 @@ final class TasteProfileViewController: UIViewController {
         $0.textColor = .label
     }
 
+    private let infoButton = UIButton(type: .system).then {
+        $0.setImage(UIImage(systemName: "questionmark.circle"), for: .normal)
+        $0.tintColor = .secondaryLabel
+    }
+
     private let cardView = TasteProfileCardView()
 
     private let helperContainerView = UIView().then {
@@ -63,6 +68,16 @@ final class TasteProfileViewController: UIViewController {
     @objc private func popViewController() {
         navigationController?.popViewController(animated: true)
     }
+
+    @objc private func presentColorInfo() {
+        let infoVC = TasteProfileColorInfoViewController()
+        if let sheet = infoVC.sheetPresentationController {
+            sheet.detents = [.large()]
+            sheet.prefersGrabberVisible = true
+            sheet.preferredCornerRadius = 24
+        }
+        present(infoVC, animated: true)
+    }
 }
 
 private extension TasteProfileViewController {
@@ -73,10 +88,11 @@ private extension TasteProfileViewController {
         view.addSubview(scrollView)
         scrollView.addSubview(contentView)
 
-        [backButton, titleLabel, cardView, helperContainerView].forEach { contentView.addSubview($0) }
+        [backButton, titleLabel, infoButton, cardView, helperContainerView].forEach { contentView.addSubview($0) }
         [helperIconView, helperLabel].forEach { helperContainerView.addSubview($0) }
 
         backButton.addTarget(self, action: #selector(popViewController), for: .touchUpInside)
+        infoButton.addTarget(self, action: #selector(presentColorInfo), for: .touchUpInside)
 
         scrollView.snp.makeConstraints { $0.edges.equalTo(view.safeAreaLayoutGuide) }
         contentView.snp.makeConstraints {
@@ -93,6 +109,12 @@ private extension TasteProfileViewController {
         titleLabel.snp.makeConstraints {
             $0.centerY.equalTo(backButton)
             $0.leading.equalTo(backButton.snp.trailing).offset(8)
+        }
+
+        infoButton.snp.makeConstraints {
+            $0.centerY.equalTo(titleLabel)
+            $0.leading.equalTo(titleLabel.snp.trailing).offset(6)
+            $0.size.equalTo(20)
         }
 
         cardView.snp.makeConstraints {

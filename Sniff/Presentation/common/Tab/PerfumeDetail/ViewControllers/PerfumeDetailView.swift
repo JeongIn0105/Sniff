@@ -16,13 +16,13 @@ import SwiftUI
 final class PerfumeDetailViewController: UIViewController {
 
     enum Palette {
-        static let background = UIColor(hex: "#2E2C29")
-        static let surface = UIColor(hex: "#33312E")
-        static let border = UIColor(hex: "#4B4740")
-        static let card = UIColor(hex: "#252421")
-        static let textPrimary = UIColor(hex: "#F4F1EA")
-        static let textSecondary = UIColor(hex: "#D2CCC1")
-        static let textMuted = UIColor(hex: "#A9A295")
+        static let background = UIColor.systemBackground
+        static let surface = UIColor.systemBackground
+        static let border = UIColor(hex: "#E9E9E9")
+        static let card = UIColor.systemBackground
+        static let textPrimary = UIColor(hex: "#1F1F1F")
+        static let textSecondary = UIColor(hex: "#7A7A7A")
+        static let textMuted = UIColor(hex: "#B5B5B5")
     }
 
     private let viewModel: PerfumeDetailViewModel
@@ -115,23 +115,21 @@ final class PerfumeDetailViewController: UIViewController {
     private let addCollectionButton = UIButton(type: .system).then {
         $0.setTitle(AppStrings.UIKitScreens.PerfumeDetail.addCollection, for: .normal)
         $0.titleLabel?.font = .systemFont(ofSize: 15, weight: .medium)
-        $0.setTitleColor(Palette.textPrimary, for: .normal)
-        $0.backgroundColor = .clear
+        $0.setTitleColor(Palette.textSecondary, for: .normal)
+        $0.backgroundColor = UIColor(hex: "#F6F6F8")
         $0.layer.cornerRadius = 12
-        $0.layer.borderWidth = 1
-        $0.layer.borderColor = Palette.border.cgColor
     }
 
     private let addTastingButton = UIButton(type: .system).then {
         $0.setTitle(AppStrings.UIKitScreens.PerfumeDetail.addTasting, for: .normal)
         $0.titleLabel?.font = .systemFont(ofSize: 15, weight: .semibold)
-        $0.setTitleColor(Palette.background, for: .normal)
-        $0.backgroundColor = UIColor(hex: "#F3F0EA")
+        $0.setTitleColor(.white, for: .normal)
+        $0.backgroundColor = Palette.textPrimary
         $0.layer.cornerRadius = 12
     }
 
     private let loadingIndicator = UIActivityIndicatorView(style: .medium).then {
-        $0.color = .white
+        $0.color = Palette.textPrimary
     }
 
     override func viewDidLoad() {
@@ -163,10 +161,10 @@ final class PerfumeDetailViewController: UIViewController {
         ].forEach { contentView.addSubview($0) }
 
         topBarView.addSubview(backButton)
+        topBarView.addSubview(likeButton)
         heroSectionView.addSubview(imageStageView)
         imageStageView.addSubview(bottleImageView)
         imageStageView.addSubview(imagePlaceholderLabel)
-        imageStageView.addSubview(likeButton)
         [brandLabel, nameLabel].forEach { infoSectionView.addSubview($0) }
         usageSectionView.embed(usageInfoView)
         accordsSectionView.embed(accordChipsView)
@@ -206,6 +204,12 @@ final class PerfumeDetailViewController: UIViewController {
             $0.size.equalTo(28)
         }
 
+        likeButton.snp.makeConstraints {
+            $0.trailing.equalToSuperview().inset(20)
+            $0.centerY.equalTo(backButton)
+            $0.size.equalTo(32)
+        }
+
         heroSectionView.snp.makeConstraints {
             $0.top.equalToSuperview()
             $0.leading.trailing.equalToSuperview()
@@ -226,12 +230,6 @@ final class PerfumeDetailViewController: UIViewController {
             $0.center.equalToSuperview()
             $0.leading.greaterThanOrEqualToSuperview().offset(24)
             $0.trailing.lessThanOrEqualToSuperview().offset(-24)
-        }
-
-        likeButton.snp.makeConstraints {
-            $0.trailing.equalToSuperview().offset(-18)
-            $0.bottom.equalToSuperview().offset(-18)
-            $0.size.equalTo(32)
         }
 
         infoSectionView.snp.makeConstraints {
@@ -272,7 +270,7 @@ final class PerfumeDetailViewController: UIViewController {
         }
 
         bottomBarView.backgroundColor = Palette.background
-        bottomBarView.layer.borderWidth = 1
+        bottomBarView.layer.borderWidth = 0
         bottomBarView.layer.borderColor = Palette.border.cgColor
 
         addCollectionButton.snp.makeConstraints {

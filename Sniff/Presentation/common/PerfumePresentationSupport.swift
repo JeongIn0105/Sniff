@@ -24,6 +24,14 @@ enum PerfumePresentationSupport {
         PerfumeKoreanTranslator.koreanAccords(for: accords)
     }
 
+    nonisolated static func displayFamily(_ family: String) -> String {
+        PerfumeKoreanTranslator.koreanFamily(for: family)
+    }
+
+    nonisolated static func displayFamilies(_ families: [String]) -> [String] {
+        PerfumeKoreanTranslator.koreanFamilies(for: families)
+    }
+
     nonisolated static func displayNotes(_ notes: [String]) -> [String] {
         PerfumeKoreanTranslator.koreanNotes(for: notes)
     }

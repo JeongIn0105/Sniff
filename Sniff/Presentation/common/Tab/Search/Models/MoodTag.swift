@@ -57,9 +57,9 @@ enum ScentFamilyFilter: String, CaseIterable, Codable {
         case .woodyAmber:
             return "우디 앰버"
         case .mossyWoods:
-            return "모시 우즈"
+            return "이끼가 있는 우디"
         case .dryWoods:
-            return "드라이 우즈"
+            return "마른 우디"
         }
     }
 

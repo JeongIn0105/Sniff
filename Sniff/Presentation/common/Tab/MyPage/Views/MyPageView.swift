@@ -338,6 +338,7 @@ struct MyPageView: View {
         ZStack(alignment: .bottomTrailing) {
             NavigationLink {
                 PerfumeDetailContainerView(perfume: perfume)
+                    .toolbar(.hidden, for: .navigationBar)
             } label: {
                 compactPreviewCard(
                     imageURL: imageURL,

@@ -110,15 +110,12 @@ final class TastingNoteFormViewModel: ObservableObject {
     private func loadEditingNote(_ note: TastingNote) {
         perfumeName = note.perfumeName
         brandName = note.brandName
-        // 이전 영문 태그 → 한국어 마이그레이션
-        mainAccords = note.mainAccords.map {
-            kLegacyTagToKorean[$0] ?? PerfumeKoreanTranslator.korean(for: $0)
-        }
+        mainAccords = PerfumePresentationSupport.displayFamilies(note.mainAccords)
         concentration = note.concentration ?? ""
         rating = note.rating
         // 이전 영문 무드태그 → 한국어 마이그레이션
         selectedMoodTags = Set(note.moodTags.map {
-            kLegacyTagToKorean[$0] ?? $0
+            kLegacyMoodTagToKorean[$0] ?? $0
         })
         revisitDesire = note.revisitDesire
         memo = note.memo

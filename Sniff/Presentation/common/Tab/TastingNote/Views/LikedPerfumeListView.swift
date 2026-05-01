@@ -124,6 +124,7 @@ struct LikedPerfumeListView: View {
         HStack(alignment: .center, spacing: 12) {
             NavigationLink {
                 PerfumeDetailContainerView(perfume: perfume.sourcePerfume)
+                    .toolbar(.hidden, for: .navigationBar)
             } label: {
                 perfumeRowContent(perfume)
             }

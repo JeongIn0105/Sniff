@@ -19,18 +19,17 @@ final class HomePerfumeCardCell: UICollectionViewCell {
 
     private let cardView: UIView = {
         let view = UIView()
-        view.backgroundColor = .systemBackground
-        view.layer.cornerRadius = 16
-        view.layer.cornerCurve = .continuous
-        view.layer.borderWidth = 1
-        view.layer.borderColor = UIColor.separator.withAlphaComponent(0.12).cgColor
+        view.backgroundColor = .clear
         return view
     }()
 
     private let imageContainerView: UIView = {
         let view = UIView()
+        view.backgroundColor = .systemBackground
         view.layer.cornerRadius = 14
         view.layer.cornerCurve = .continuous
+        view.layer.borderWidth = 1
+        view.layer.borderColor = UIColor.separator.withAlphaComponent(0.12).cgColor
         view.clipsToBounds = true
         return view
     }()
@@ -170,7 +169,7 @@ final class HomePerfumeCardCell: UICollectionViewCell {
 
         // 이미지 컨테이너가 카드 전체를 채움
         imageContainerView.snp.makeConstraints {
-            $0.edges.equalToSuperview()
+        $0.edges.equalToSuperview()
         }
 
         bottleImageView.snp.makeConstraints {
@@ -219,12 +218,12 @@ final class HomePerfumeCardCell: UICollectionViewCell {
             $0.height.equalTo(40)
         }
 
-        accordsWrapView.snp.makeConstraints {
-            $0.top.equalTo(perfumeNameLabel.snp.bottom).offset(8)
-            $0.leading.trailing.equalToSuperview()
-            $0.bottom.lessThanOrEqualToSuperview()
-        }
-    }
+       accordsWrapView.snp.makeConstraints {
+   
+         $0.top.equalTo(perfumeNameLabel.snp.bottom).offset(8)
+         $0.leading.trailing.equalToSuperview()
+         $0.bottom.lessThanOrEqualToSuperview()
+       }
 
     func configure(with item: HomePerfumeItem, isLiked: Bool = false, hasTastingRecord: Bool? = nil) {
         brandLabel.text = PerfumePresentationSupport.displayBrand(item.brandName)
@@ -282,15 +281,10 @@ final class HomePerfumeCardCell: UICollectionViewCell {
         stack.alignment = .center
         stack.spacing = 4
 
-        let container = UIView()
-        container.addSubview(stack)
         dotView.snp.makeConstraints {
-            $0.size.equalTo(8)
+            $0.size.equalTo(8).priority(.high)
         }
-        stack.snp.makeConstraints {
-            $0.edges.equalToSuperview()
-        }
-        return container
+        return stack
     }
 
     private func showImage() {

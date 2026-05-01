@@ -17,11 +17,11 @@ enum AccordStrength: String {
         switch rawDescription.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
         case "dominant":
             self = .dominant
-        case "prominent":
+        case "prominent", "strong":
             self = .prominent
         case "moderate":
             self = .moderate
-        case "subtle":
+        case "subtle", "light":
             self = .subtle
         default:
             return nil

@@ -1,25 +1,51 @@
 import Foundation
 
+struct FragranceProfileColorPalette: Sendable {
+    let accentHex: String
+    let primaryHex: String
+    let baseHex: String
+    let primaryLocation: Double
+
+    init(
+        accentHex: String,
+        primaryHex: String,
+        baseHex: String,
+        primaryLocation: Double = 0.45
+    ) {
+        self.accentHex = accentHex
+        self.primaryHex = primaryHex
+        self.baseHex = baseHex
+        self.primaryLocation = primaryLocation
+    }
+}
+
 enum FragranceProfileText {
-    nonisolated static let allowedTasteTitles: Set<String> = [
+    nonisolated private enum DisplayThreshold {
+        static let primaryFamily = 0.45
+        static let secondaryFamily = 0.20
+    }
+
+    nonisolated static let orderedTasteTitles: [String] = [
         "상큼하고 활기찬 취향",
         "맑고 세련된 취향",
         "시원하고 신비로운 취향",
         "부드럽고 청순한 취향",
         "포근하고 여유로운 취향",
-        "달콤하고 신비로운 취향",
-        "깨끗하고 자연스러운 취향",
+        "달콤하고 화사한 취향",
+        "싱그럽고 자연스러운 취향",
         "짙고 시크한 취향",
         "짙고 강렬한 취향"
     ]
 
+    nonisolated static let allowedTasteTitles = Set(orderedTasteTitles)
+
     nonisolated static func validatedTasteTitle(_ title: String?) -> String? {
         guard let normalized = title?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !normalized.isEmpty,
-              allowedTasteTitles.contains(normalized) else {
+              !normalized.isEmpty else {
             return nil
         }
-        return normalized
+        let canonical = legacyTasteTitleAliases[normalized] ?? normalized
+        return allowedTasteTitles.contains(canonical) ? canonical : nil
     }
 
     nonisolated static func displayTitle(for families: [String]) -> String {
@@ -39,8 +65,41 @@ enum FragranceProfileText {
         case "Woods", "Mossy Woods", "Dry Woods":
             return "차분하고 깊이 있는 취향"
         default:
-            return "\(firstFamily) 중심 취향"
+            return "\(displayFamilyName(firstFamily)) 중심 취향"
         }
+    }
+
+    nonisolated static func inferredDisplayTitle(for families: [String]) -> String {
+        inferredTasteTitle(from: families)
+            ?? displayTitle(for: families)
+    }
+
+    nonisolated static func profileTitle(
+        originalTitle: String?,
+        scentVector: [String: Double],
+        stage: RecommendationStage
+    ) -> String {
+        let dominantVector = dominantDisplayVector(from: scentVector)
+        let fullVector = normalizedVector(from: scentVector)
+        let rankedFamilies = rankedFamilies(from: scentVector)
+
+        return inferredTasteTitle(from: dominantVector)
+            ?? inferredTasteTitle(from: fullVector)
+            ?? validatedTasteTitle(originalTitle)
+            ?? inferredTasteTitle(from: rankedFamilies)
+            ?? displayTitle(for: rankedFamilies)
+    }
+
+    nonisolated static func profileFamilies(forTitle title: String) -> [String]? {
+        tasteTitleDisplayFamilies[title]
+    }
+
+    nonisolated static func profileColorHex(forTitle title: String) -> String? {
+        profileColorPalette(forTitle: title)?.primaryHex
+    }
+
+    nonisolated static func profileColorPalette(forTitle title: String) -> FragranceProfileColorPalette? {
+        tasteTitleColorPalettes[title]
     }
 
     nonisolated static func familySummary(for families: [String]) -> String {
@@ -48,9 +107,9 @@ enum FragranceProfileText {
 
         switch topFamilies.count {
         case 2:
-            return "\(topFamilies[0]) · \(topFamilies[1]) 중심"
+            return "\(displayFamilyName(topFamilies[0])) · \(displayFamilyName(topFamilies[1])) 중심"
         case 1:
-            return "\(topFamilies[0]) 중심"
+            return "\(displayFamilyName(topFamilies[0])) 중심"
         default:
             return ""
         }
@@ -89,36 +148,254 @@ enum FragranceProfileText {
             .filter { seen.insert($0).inserted }
     }
 
+    nonisolated static func dominantDisplayFamilies(from scentVector: [String: Double]) -> [String] {
+        let ranked = rankedVector(from: scentVector)
+
+        guard let first = ranked.first, first.value >= DisplayThreshold.primaryFamily else {
+            return []
+        }
+
+        var result = [first.key]
+        if ranked.count > 1 {
+            let second = ranked[1]
+            if second.value >= DisplayThreshold.secondaryFamily {
+                result.append(second.key)
+            }
+        }
+
+        return result
+    }
+
+    nonisolated static func rankedFamilies(from scentVector: [String: Double]) -> [String] {
+        rankedVector(from: scentVector).map(\.key)
+    }
+
     nonisolated private static func majorGroup(for family: String) -> String? {
         switch family {
         case "Citrus", "Fruity", "Green", "Water", "Aromatic":
-            return "Fresh"
+            return "프레쉬"
         case "Floral", "Soft Floral", "Floral Amber":
-            return "Floral"
+            return "플로럴"
         case "Soft Amber", "Amber", "Woody Amber":
-            return "Amber"
+            return "앰버"
         case "Woods", "Mossy Woods", "Dry Woods":
-            return "Woody"
+            return "우디"
         default:
             return nil
         }
     }
+
+    nonisolated static func displayFamilyName(_ family: String) -> String {
+        PerfumeKoreanTranslator.koreanFamily(for: family)
+    }
+
+    nonisolated private static func dominantDisplayVector(from scentVector: [String: Double]) -> [String: Double] {
+        let displayFamilies = dominantDisplayFamilies(from: scentVector)
+        guard !displayFamilies.isEmpty else { return [:] }
+
+        let normalized = normalizedVector(from: scentVector)
+        return displayFamilies.reduce(into: [String: Double]()) { result, family in
+            result[family] = normalized[family, default: 0]
+        }
+    }
+
+    nonisolated private static func normalizedVector(from scentVector: [String: Double]) -> [String: Double] {
+        scentVector.reduce(into: [String: Double]()) { result, pair in
+            guard let canonical = ScentFamilyNormalizer.canonicalName(for: pair.key), pair.value > 0 else {
+                return
+            }
+            result[canonical, default: 0] += pair.value
+        }
+    }
+
+    nonisolated private static func rankedVector(from scentVector: [String: Double]) -> [(key: String, value: Double)] {
+        normalizedVector(from: scentVector)
+            .sorted { lhs, rhs in
+                if lhs.value != rhs.value { return lhs.value > rhs.value }
+                return lhs.key.localizedCaseInsensitiveCompare(rhs.key) == .orderedAscending
+            }
+    }
+
+    nonisolated private static func inferredTasteTitle(from scentVector: [String: Double]) -> String? {
+        let normalizedVector = normalizedVector(from: scentVector)
+        guard !normalizedVector.isEmpty else { return nil }
+
+        let scoredTitles = orderedTasteTitles.map { title in
+            (title: title, score: tasteTitleFamilyHints[title, default: [:]].reduce(0) { partial, pair in
+                partial + normalizedVector[pair.key, default: 0] * pair.value
+            })
+        }
+
+        guard let best = scoredTitles.max(by: { $0.score < $1.score }), best.score > 0 else {
+            return nil
+        }
+        return best.title
+    }
+
+    nonisolated private static func inferredTasteTitle(from families: [String]) -> String? {
+        let normalizedFamilies = normalizedFamilies(from: families)
+        guard !normalizedFamilies.isEmpty else { return nil }
+
+        let vector = normalizedFamilies.enumerated().reduce(into: [String: Double]()) { result, pair in
+            let weight = max(1, normalizedFamilies.count - pair.offset)
+            result[pair.element, default: 0] += Double(weight)
+        }
+        return inferredTasteTitle(from: vector)
+    }
+
+    nonisolated private static let tasteTitleFamilyHints: [String: [String: Double]] = [
+        "상큼하고 활기찬 취향": [
+            "Citrus": 1.0,
+            "Fruity": 0.9,
+            "Green": 0.6,
+            "Aromatic": 0.5
+        ],
+        "맑고 세련된 취향": [
+            "Water": 1.0,
+            "Citrus": 0.8,
+            "Soft Floral": 0.6,
+            "Floral": 0.5
+        ],
+        "시원하고 신비로운 취향": [
+            "Water": 1.0,
+            "Aromatic": 0.9,
+            "Green": 0.6,
+            "Woody Amber": 0.5
+        ],
+        "부드럽고 청순한 취향": [
+            "Soft Floral": 1.0,
+            "Floral": 0.9,
+            "Water": 0.5,
+            "Soft Amber": 0.4
+        ],
+        "포근하고 여유로운 취향": [
+            "Soft Amber": 1.0,
+            "Soft Floral": 0.8,
+            "Woods": 0.6,
+            "Amber": 0.5
+        ],
+        "달콤하고 화사한 취향": [
+            "Fruity": 1.0,
+            "Floral Amber": 0.9,
+            "Amber": 0.6,
+            "Soft Amber": 0.5
+        ],
+        "싱그럽고 자연스러운 취향": [
+            "Green": 1.0,
+            "Water": 0.9,
+            "Citrus": 0.6,
+            "Aromatic": 0.5
+        ],
+        "짙고 시크한 취향": [
+            "Woods": 1.0,
+            "Dry Woods": 0.9,
+            "Amber": 0.6,
+            "Woody Amber": 0.5
+        ],
+        "짙고 강렬한 취향": [
+            "Amber": 1.0,
+            "Woody Amber": 0.9,
+            "Dry Woods": 0.7,
+            "Mossy Woods": 0.5
+        ]
+    ]
+
+    nonisolated private static let tasteTitleDisplayFamilies: [String: [String]] = [
+        "상큼하고 활기찬 취향": ["Citrus", "Fruity"],
+        "맑고 세련된 취향": ["Water", "Citrus"],
+        "시원하고 신비로운 취향": ["Water", "Aromatic"],
+        "부드럽고 청순한 취향": ["Soft Floral", "Floral"],
+        "포근하고 여유로운 취향": ["Soft Amber", "Soft Floral"],
+        "달콤하고 화사한 취향": ["Fruity", "Floral Amber"],
+        "싱그럽고 자연스러운 취향": ["Green", "Water"],
+        "짙고 시크한 취향": ["Woods", "Dry Woods"],
+        "짙고 강렬한 취향": ["Amber", "Woody Amber"]
+    ]
+
+    nonisolated private static let tasteTitleColorPalettes: [String: FragranceProfileColorPalette] = [
+        "상큼하고 활기찬 취향": FragranceProfileColorPalette(
+            accentHex: "#FFAB7D",
+            primaryHex: "#F2E6AD",
+            baseHex: "#F2E8DE"
+        ),
+        "맑고 세련된 취향": FragranceProfileColorPalette(
+            accentHex: "#F2E6AD",
+            primaryHex: "#99CFE3",
+            baseHex: "#F2E8DE",
+            primaryLocation: 0.47
+        ),
+        "시원하고 신비로운 취향": FragranceProfileColorPalette(
+            accentHex: "#CDBED4",
+            primaryHex: "#99CFE3",
+            baseHex: "#F2E8DE"
+        ),
+        "부드럽고 청순한 취향": FragranceProfileColorPalette(
+            accentHex: "#FF8A8B",
+            primaryHex: "#EFA8B7",
+            baseHex: "#F2E8DE"
+        ),
+        "포근하고 여유로운 취향": FragranceProfileColorPalette(
+            accentHex: "#C95EAD",
+            primaryHex: "#E4A8CF",
+            baseHex: "#F2E8DE"
+        ),
+        "달콤하고 화사한 취향": FragranceProfileColorPalette(
+            accentHex: "#F38BCB",
+            primaryHex: "#FFAB7D",
+            baseHex: "#F2E8DE"
+        ),
+        "싱그럽고 자연스러운 취향": FragranceProfileColorPalette(
+            accentHex: "#99CFE3",
+            primaryHex: "#B8DFA5",
+            baseHex: "#F2E8DE"
+        ),
+        "짙고 시크한 취향": FragranceProfileColorPalette(
+            accentHex: "#C8A77E",
+            primaryHex: "#D7C8B6",
+            baseHex: "#F2E8DE"
+        ),
+        "짙고 강렬한 취향": FragranceProfileColorPalette(
+            accentHex: "#C8A77E",
+            primaryHex: "#B95770",
+            baseHex: "#F2E8DE"
+        )
+    ]
+
+    nonisolated private static let legacyTasteTitleAliases: [String: String] = [
+        "달콤하고 신비로운 취향": "달콤하고 화사한 취향",
+        "깨끗하고 자연스러운 취향": "싱그럽고 자연스러운 취향"
+    ]
 }
 
 extension UserTasteProfile {
     var displayFamilies: [String] {
-        let rankedFamilies = scentVector
-            .sorted { $0.value > $1.value }
-            .map(\.key)
+        let title = FragranceProfileText.profileTitle(
+            originalTitle: tasteTitle,
+            scentVector: scentVector,
+            stage: stage
+        )
 
-        return rankedFamilies.isEmpty ? preferredFamilies : rankedFamilies
+        if let profileFamilies = FragranceProfileText.profileFamilies(forTitle: title) {
+            return profileFamilies
+        }
+
+        let dominantFamilies = FragranceProfileText.dominantDisplayFamilies(from: scentVector)
+        if !dominantFamilies.isEmpty {
+            return dominantFamilies
+        }
+        let rankedFamilies = FragranceProfileText.rankedFamilies(from: scentVector)
+        if !rankedFamilies.isEmpty {
+            return Array(rankedFamilies.prefix(2))
+        }
+        return preferredFamilies
     }
 
     var displayTitle: String {
-        if let tasteTitle = FragranceProfileText.validatedTasteTitle(tasteTitle) {
-            return tasteTitle
-        }
-        return FragranceProfileText.displayTitle(for: displayFamilies)
+        FragranceProfileText.profileTitle(
+            originalTitle: tasteTitle,
+            scentVector: scentVector,
+            stage: stage
+        )
     }
 
     var displayFamilySummary: String {
@@ -139,7 +416,7 @@ extension TasteAnalysisResult {
         if let tasteTitle = FragranceProfileText.validatedTasteTitle(tasteTitle) {
             return tasteTitle
         }
-        return FragranceProfileText.displayTitle(for: recommendationDirection.preferredFamilies)
+        return FragranceProfileText.inferredDisplayTitle(for: recommendationDirection.preferredFamilies)
     }
 
     var displayFamilySummary: String {

@@ -34,7 +34,7 @@ extension PerfumeKoreanTranslator {
         "Woody Spicy": "우디 스파이시",
         "Fresh Woody": "프레시 우디",
         "Dry Woods": "드라이 우즈",
-        "Mossy Woods": "모씨 우즈",
+        "Mossy Woods": "모시 우즈",
         "Sandalwood": "샌달우드",
         "Cedarwood": "시더우드",
         "Cedar": "시더",
@@ -2522,6 +2522,10 @@ extension PerfumeKoreanTranslator {
     nonisolated static let koreanToBrand: [String: String] = {
         Dictionary(brandToKorean.map { ($1, $0) }, uniquingKeysWith: { _, last in last })
     }()
+
+    nonisolated static let koreanToPerfumeName: [String: String] = {
+        Dictionary(perfumeNameToKorean.map { ($1, $0) }, uniquingKeysWith: { _, last in last })
+    }()
     
     nonisolated static let koreanWordToEnglish: [String: String] = [
         "어벤투스": "aventus", "히말라야": "himalaya", "카르미나": "carmina",
@@ -2556,7 +2560,10 @@ extension PerfumeKoreanTranslator {
         "테라": "terra", "벨라": "bella", "비타": "vita",
         "아모르": "amor", "로사": "rosa", "프로폰도": "profondo",
         "플로럴": "floral", "프레시": "fresh", "스위트": "sweet",
-        "우즈": "woods", "포레스트": "forest", "아쿠아": "aqua",
+        "프루티": "fruity", "그린": "green", "워터리": "water",
+        "워터": "water", "아로마틱": "aromatic",
+        "우디": "woody", "우즈": "woods", "드라이": "dry",
+        "모시": "mossy", "모씨": "mossy", "포레스트": "forest", "아쿠아": "aqua",
         "오션": "ocean", "코코넛": "coconut",
         "써머": "summer", "스프링": "spring", "윈터": "winter",
         "오텀": "autumn", "나이트": "night",

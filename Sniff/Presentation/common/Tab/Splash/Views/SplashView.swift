@@ -10,12 +10,12 @@ import SwiftUI
 struct SplashView: View {
     var body: some View {
         ZStack {
-            Color.sniffBeige
+            Color.black
                 .ignoresSafeArea()
 
             Text(AppStrings.AppShell.Splash.title)
-                .font(.system(size: 48, weight: .bold))
-                .foregroundColor(.black)
+                .font(.system(size: 24, weight: .bold))
+                .foregroundColor(.white)
         }
     }
 }

@@ -6,16 +6,9 @@
 //
 
 import SwiftUI
-import Combine
 
 extension Color {
     static let sniffBeige = Color(hex: "#F1E8DF")
-    static let scentFloral  = Color(hex: "#e8a4b8")
-    static let scentFresh   = Color(hex: "#7ecbb8")
-    static let scentWoody   = Color(hex: "#a07850")
-    static let scentAmber   = Color(hex: "#c8782a")
-    static let scentAquatic = Color(hex: "#4a90b8")
-    static let scentSpicy   = Color(hex: "#9a3a4a")
 
     init(hex: String) {
         let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)

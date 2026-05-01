@@ -8,18 +8,20 @@ import SnapKit
 
 final class TasteProfileCardView: UIView {
 
-    private let iconView: UIView = {
-        let view = UIView()
-        view.layer.cornerRadius = 14
-        view.layer.cornerCurve = .continuous
-        view.layer.masksToBounds = true
-        return view
-    }()
+    private let iconView = TasteProfileGradientIconView()
 
     private let profileNameLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 20, weight: .bold)
         label.textColor = .label
+        label.numberOfLines = 1
+        return label
+    }()
+
+    private let profileSubtitleLabel: UILabel = {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 13, weight: .regular)
+        label.textColor = .secondaryLabel
         label.numberOfLines = 1
         return label
     }()
@@ -56,16 +58,22 @@ final class TasteProfileCardView: UIView {
         layer.borderWidth = 1
         layer.borderColor = UIColor.separator.withAlphaComponent(0.2).cgColor
 
-        [iconView, profileNameLabel, chipStackView, analysisLabel].forEach { addSubview($0) }
+        [iconView, profileNameLabel, profileSubtitleLabel, chipStackView, analysisLabel].forEach { addSubview($0) }
 
         iconView.snp.makeConstraints {
             $0.top.leading.equalToSuperview().inset(20)
-            $0.size.equalTo(CGSize(width: 38, height: 38))
+            $0.size.equalTo(CGSize(width: 44, height: 44))
         }
 
         profileNameLabel.snp.makeConstraints {
-            $0.centerY.equalTo(iconView)
-            $0.leading.equalTo(iconView.snp.trailing).offset(16)
+            $0.top.equalTo(iconView).offset(2)
+            $0.leading.equalTo(iconView.snp.trailing).offset(14)
+            $0.trailing.equalToSuperview().inset(20)
+        }
+
+        profileSubtitleLabel.snp.makeConstraints {
+            $0.top.equalTo(profileNameLabel.snp.bottom).offset(4)
+            $0.leading.equalTo(profileNameLabel)
             $0.trailing.equalToSuperview().inset(20)
         }
 
@@ -82,8 +90,10 @@ final class TasteProfileCardView: UIView {
     }
 
     func configure(with profile: UserTasteProfile, collectionCount: Int, tastingCount: Int) {
-        iconView.backgroundColor = ScentFamilyColor.iconBackground(for: profile.displayLeadingFamily)
+        let topFamilies = Array(profile.displayFamilies.prefix(3))
+        iconView.configure(families: topFamilies)
         profileNameLabel.text = profile.displayTitle
+        profileSubtitleLabel.text = profile.displayMajorSummary
 
         chipStackView.arrangedSubviews.forEach {
             chipStackView.removeArrangedSubview($0)
@@ -236,5 +246,71 @@ final class TasteProfileCardView: UIView {
         default:
             return nil
         }
+    }
+}
+
+final class TasteProfileGradientIconView: UIView {
+
+    private let gradientLayer = CAGradientLayer()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        setup()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        setup()
+    }
+
+    private func setup() {
+        layer.cornerRadius = 12
+        layer.cornerCurve = .continuous
+        layer.masksToBounds = true
+        gradientLayer.type = .radial
+        gradientLayer.startPoint = CGPoint(x: 0.5, y: 0.5)
+        gradientLayer.endPoint = CGPoint(x: 1.2, y: 1.2)
+        layer.addSublayer(gradientLayer)
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        gradientLayer.frame = bounds
+    }
+
+    func configure(families: [String]) {
+        let baseBeige = UIColor(red: 0xF1/255.0, green: 0xE8/255.0, blue: 0xDF/255.0, alpha: 1)
+
+        let colors: [UIColor]
+        if families.isEmpty {
+            colors = [
+                UIColor(red: 1.0, green: 0.67, blue: 0.49, alpha: 1).softened(amount: 0.10),
+                UIColor(red: 0.95, green: 0.90, blue: 0.68, alpha: 1).softened(amount: 0.10),
+                baseBeige
+            ]
+        } else {
+            let top1 = ScentFamilyColor.color(for: families[0]).softened(amount: 0.30)
+            let top2 = families.count > 1
+                ? ScentFamilyColor.color(for: families[1]).softened(amount: 0.20)
+                : top1.softened(amount: 0.20)
+            colors = [top2, top1, baseBeige]
+        }
+
+        gradientLayer.colors = colors.map { $0.cgColor }
+        gradientLayer.locations = [0.20, 0.45, 1.00]
+    }
+}
+
+extension UIColor {
+    func softened(amount: CGFloat) -> UIColor {
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        guard getRed(&r, green: &g, blue: &b, alpha: &a) else { return self }
+        let mix = max(0, min(1, amount))
+        return UIColor(
+            red: r + (1 - r) * mix,
+            green: g + (1 - g) * mix,
+            blue: b + (1 - b) * mix,
+            alpha: a
+        )
     }
 }

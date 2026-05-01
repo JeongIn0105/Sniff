@@ -189,8 +189,9 @@ final class SearchViewModel {
         // MARK: - Private
 
     private func fetchResults(query: String) {
+        let requestQuery = PerfumeKoreanTranslator.toEnglishQuery(query) ?? query
         isLoadingRelay.accept(true)
-        perfumeCatalogRepository.search(query: query, limit: 200)
+        perfumeCatalogRepository.search(query: requestQuery, limit: 200)
             .subscribe(
                 onSuccess: { [weak self] perfumes in
                     guard let self else { return }
@@ -220,6 +221,9 @@ final class SearchViewModel {
                 let lhsScore = brandMatchScore(for: $0, query: query)
                 let rhsScore = brandMatchScore(for: $1, query: query)
                 if lhsScore != rhsScore { return lhsScore > rhsScore }
+                let lhsPriority = PerfumeKoreanTranslator.domesticRetailPriority(for: $0)
+                let rhsPriority = PerfumeKoreanTranslator.domesticRetailPriority(for: $1)
+                if lhsPriority != rhsPriority { return lhsPriority > rhsPriority }
                 return $0.brand.localizedCaseInsensitiveCompare($1.brand) == .orderedAscending
             }
     }
@@ -230,6 +234,9 @@ final class SearchViewModel {
             .filter { $0.score > 0 }
             .sorted { lhs, rhs in
                 if lhs.score != rhs.score { return lhs.score > rhs.score }
+                let lhsPriority = PerfumeKoreanTranslator.domesticRetailPriority(for: lhs.perfume)
+                let rhsPriority = PerfumeKoreanTranslator.domesticRetailPriority(for: rhs.perfume)
+                if lhsPriority != rhsPriority { return lhsPriority > rhsPriority }
                 if lhs.perfume.brand != rhs.perfume.brand {
                     return lhs.perfume.brand.localizedCaseInsensitiveCompare(rhs.perfume.brand) == .orderedAscending
                 }
@@ -239,37 +246,32 @@ final class SearchViewModel {
     }
 
     private func searchScore(for perfume: Perfume, query: String) -> Int {
-        let normalizedQuery = normalizeForSearch(query)
-        guard !normalizedQuery.isEmpty else { return 0 }
+        let normalizedQueries = searchQueryCandidates(for: query)
+        guard !normalizedQueries.isEmpty else { return 0 }
 
-        let normalizedBrand = normalizeForSearch(perfume.brand)
-        let normalizedName = normalizeForSearch(perfume.name)
-        let normalizedBrandAliases = perfume.brandAliases.map { normalizeForSearch($0) }
-        let normalizedNameAliases = perfume.nameAliases.map { normalizeForSearch($0) }
+        let normalizedBrandValues = searchableBrandValues(for: perfume).map(normalizeForSearch(_:))
+        let normalizedNameValues = searchableNameValues(for: perfume).map(normalizeForSearch(_:))
 
-        if normalizedBrand == normalizedQuery { return 1_000 }
-        if normalizedBrandAliases.contains(normalizedQuery) { return 950 }
-        if normalizedName == normalizedQuery { return 900 }
-        if normalizedNameAliases.contains(normalizedQuery) { return 850 }
-        if normalizedBrand.contains(normalizedQuery) { return 800 }
-        if normalizedBrandAliases.contains(where: { $0.contains(normalizedQuery) }) { return 760 }
-        if normalizedName.contains(normalizedQuery) { return 700 }
-        if normalizedNameAliases.contains(where: { $0.contains(normalizedQuery) }) { return 660 }
+        for normalizedQuery in normalizedQueries {
+            if normalizedBrandValues.contains(normalizedQuery) { return 1_000 }
+            if normalizedNameValues.contains(normalizedQuery) { return 900 }
+            if normalizedBrandValues.contains(where: { $0.contains(normalizedQuery) }) { return 800 }
+            if normalizedNameValues.contains(where: { $0.contains(normalizedQuery) }) { return 700 }
+        }
 
         return 0
     }
 
     private func brandMatchScore(for perfume: Perfume, query: String) -> Int {
-        let normalizedQuery = normalizeForSearch(query)
-        guard !normalizedQuery.isEmpty else { return 0 }
+        let normalizedQueries = searchQueryCandidates(for: query)
+        guard !normalizedQueries.isEmpty else { return 0 }
 
-        let normalizedBrand = normalizeForSearch(perfume.brand)
-        let normalizedAliases = perfume.brandAliases.map { normalizeForSearch($0) }
+        let normalizedBrandValues = searchableBrandValues(for: perfume).map(normalizeForSearch(_:))
 
-        if normalizedBrand == normalizedQuery { return 1_000 }
-        if normalizedAliases.contains(normalizedQuery) { return 950 }
-        if normalizedBrand.contains(normalizedQuery) { return 800 }
-        if normalizedAliases.contains(where: { $0.contains(normalizedQuery) }) { return 760 }
+        for normalizedQuery in normalizedQueries {
+            if normalizedBrandValues.contains(normalizedQuery) { return 1_000 }
+            if normalizedBrandValues.contains(where: { $0.contains(normalizedQuery) }) { return 800 }
+        }
         return 0
     }
 
@@ -279,5 +281,32 @@ final class SearchViewModel {
             .lowercased()
             .components(separatedBy: CharacterSet.alphanumerics.inverted)
             .joined()
+    }
+
+    private func searchQueryCandidates(for query: String) -> [String] {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        let candidates = [trimmed, PerfumeKoreanTranslator.toEnglishQuery(trimmed)]
+            .compactMap { $0 }
+            .map(normalizeForSearch(_:))
+            .filter { !$0.isEmpty }
+
+        var seen = Set<String>()
+        return candidates.filter { seen.insert($0).inserted }
+    }
+
+    private func searchableBrandValues(for perfume: Perfume) -> [String] {
+        uniqueSearchValues([perfume.brand, PerfumePresentationSupport.displayBrand(perfume.brand)] + perfume.brandAliases)
+    }
+
+    private func searchableNameValues(for perfume: Perfume) -> [String] {
+        uniqueSearchValues([perfume.name, PerfumePresentationSupport.displayPerfumeName(perfume.name)] + perfume.nameAliases)
+    }
+
+    private func uniqueSearchValues(_ values: [String]) -> [String] {
+        var seen = Set<String>()
+        return values
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .filter { seen.insert(normalizeForSearch($0)).inserted }
     }
 }

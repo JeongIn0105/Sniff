@@ -22,14 +22,15 @@ final class PerfumeGridCell: UICollectionViewCell {
 
         // MARK: - UI Components
 
-    private let imageContainerView = UIView().then {
-        $0.backgroundColor = .systemBackground
-        $0.layer.cornerRadius = 16
-        $0.layer.cornerCurve = .continuous
-        $0.layer.borderWidth = 1
-        $0.layer.borderColor = UIColor.separator.withAlphaComponent(0.12).cgColor
-        $0.clipsToBounds = true
-    }
+ 
+private let imageContainerView = UIView().then {
+    $0.backgroundColor = .systemBackground
+    $0.layer.cornerRadius = 16
+    $0.layer.cornerCurve = .continuous
+    $0.layer.borderWidth = 1
+    $0.layer.borderColor = UIColor.separator.withAlphaComponent(0.12).cgColor
+    $0.clipsToBounds = true
+}
 
     private let bottleImageView = UIImageView().then {
         $0.contentMode = .scaleAspectFill
@@ -70,12 +71,11 @@ final class PerfumeGridCell: UICollectionViewCell {
         $0.numberOfLines = 1
     }
 
-    private let nameLabel = UILabel().then {
-        $0.font = .systemFont(ofSize: 15, weight: .medium)
-        $0.textColor = .label
-        $0.numberOfLines = 2
-    }
-
+   private let nameLabel = UILabel().then {
+    $0.font = .systemFont(ofSize: 15, weight: .medium)
+    $0.textColor = .label
+    $0.numberOfLines = 2
+}
     private let accordStackView = UIStackView().then {
         $0.axis = .horizontal
         $0.spacing = 4
@@ -123,9 +123,8 @@ final class PerfumeGridCell: UICollectionViewCell {
         }
 
         bottleImageView.snp.makeConstraints {
-            $0.edges.equalToSuperview().inset(6)
-        }
-
+    $0.edges.equalToSuperview().inset(18)
+}
         placeholderLabel.snp.makeConstraints {
             $0.center.equalToSuperview()
             $0.leading.greaterThanOrEqualToSuperview().offset(16)
@@ -142,12 +141,12 @@ final class PerfumeGridCell: UICollectionViewCell {
         }
 
         brandLabel.snp.makeConstraints {
-            $0.top.equalTo(imageContainerView.snp.bottom).offset(8)
+            $0.top.equalTo(imageContainerView.snp.bottom).offset(14)
             $0.leading.trailing.equalToSuperview()
         }
 
         nameLabel.snp.makeConstraints {
-            $0.top.equalTo(brandLabel.snp.bottom).offset(2)
+            $0.top.equalTo(brandLabel.snp.bottom).offset(7)
             $0.leading.trailing.equalToSuperview()
         }
 
@@ -216,17 +215,20 @@ private final class AccordPillView: UIView {
             $0.text = displayAccord
             $0.font = .systemFont(ofSize: 13, weight: .medium)
             $0.textColor = .secondaryLabel
+            $0.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         }
 
-        let stack = UIStackView(arrangedSubviews: [dot, label]).then {
-            $0.axis = .horizontal
-            $0.spacing = 4
-            $0.alignment = .center
+        [dot, label].forEach { addSubview($0) }
+
+        dot.snp.makeConstraints {
+            $0.leading.centerY.equalToSuperview()
+            $0.size.equalTo(8)
         }
 
-        addSubview(stack)
-        stack.snp.makeConstraints { $0.edges.equalToSuperview() }
-        dot.snp.makeConstraints { $0.size.equalTo(8) }
+        label.snp.makeConstraints {
+            $0.leading.equalTo(dot.snp.trailing).offset(4)
+            $0.top.bottom.trailing.equalToSuperview()
+        }
     }
 }
 

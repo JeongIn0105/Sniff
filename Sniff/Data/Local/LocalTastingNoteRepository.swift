@@ -226,7 +226,7 @@ final class LocalTastingNoteRepository {
         }
 
         var remoteNote = note
-        remoteNote.id = entity.remoteID
+        remoteNote.id = nil
         try documentRef.setData(from: remoteNote)
         entity.syncStatus = TastingNoteSyncStatus.synced.rawValue
     }
