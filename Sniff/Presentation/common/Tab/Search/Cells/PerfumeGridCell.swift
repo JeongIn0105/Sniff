@@ -22,17 +22,18 @@ final class PerfumeGridCell: UICollectionViewCell {
 
         // MARK: - UI Components
 
-    private let imageContainerView = UIView().then {
-        $0.backgroundColor = .systemBackground
-        $0.layer.cornerRadius = 14
-        $0.layer.cornerCurve = .continuous
-        $0.layer.borderWidth = 1
-        $0.layer.borderColor = UIColor(hex: "#E9E5DF").cgColor
-        $0.clipsToBounds = true
-    }
+ 
+private let imageContainerView = UIView().then {
+    $0.backgroundColor = .systemBackground
+    $0.layer.cornerRadius = 16
+    $0.layer.cornerCurve = .continuous
+    $0.layer.borderWidth = 1
+    $0.layer.borderColor = UIColor.separator.withAlphaComponent(0.12).cgColor
+    $0.clipsToBounds = true
+}
 
     private let bottleImageView = UIImageView().then {
-        $0.contentMode = .scaleAspectFit
+        $0.contentMode = .scaleAspectFill
         $0.clipsToBounds = true
     }
 
@@ -44,23 +45,37 @@ final class PerfumeGridCell: UICollectionViewCell {
         $0.numberOfLines = 2
     }
 
+    private let tastingBadgeLabel: PaddingLabel = {
+        let label = PaddingLabel(insets: UIEdgeInsets(top: 4, left: 6, bottom: 4, right: 6))
+        label.text = "시향 기록"
+        label.font = .systemFont(ofSize: 11, weight: .medium)
+        label.textColor = UIColor(red: 0.47, green: 0.39, blue: 0.31, alpha: 1)
+        label.backgroundColor = UIColor(red: 0.95, green: 0.92, blue: 0.88, alpha: 1)
+        label.layer.cornerRadius = 4
+        label.layer.cornerCurve = .continuous
+        label.layer.masksToBounds = true
+        label.layer.borderWidth = 1.0
+        label.layer.borderColor = UIColor(red: 0.80, green: 0.75, blue: 0.68, alpha: 1).cgColor
+        label.isHidden = true
+        return label
+    }()
+
     let wishlistButton = UIButton(type: .custom).then {
         PerfumeHeartStyle.configure($0)
         PerfumeHeartStyle.applyState(to: $0, isLiked: false)
     }
 
     private let brandLabel = UILabel().then {
-        $0.font = .systemFont(ofSize: 12, weight: .regular)
+        $0.font = .systemFont(ofSize: 14, weight: .medium)
         $0.textColor = .secondaryLabel
         $0.numberOfLines = 1
     }
 
-    private let nameLabel = UILabel().then {
-        $0.font = .systemFont(ofSize: 16, weight: .regular)
-        $0.textColor = .label
-        $0.numberOfLines = 2
-    }
-
+   private let nameLabel = UILabel().then {
+    $0.font = .systemFont(ofSize: 15, weight: .medium)
+    $0.textColor = .label
+    $0.numberOfLines = 2
+}
     private let accordStackView = UIStackView().then {
         $0.axis = .horizontal
         $0.spacing = 4
@@ -84,6 +99,7 @@ final class PerfumeGridCell: UICollectionViewCell {
         placeholderLabel.isHidden = false
         wishlistButton.isSelected = false
         accordStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        tastingBadgeLabel.isHidden = true
     }
 
         // MARK: - Setup
@@ -95,6 +111,7 @@ final class PerfumeGridCell: UICollectionViewCell {
         imageContainerView.addSubview(bottleImageView)
         imageContainerView.addSubview(placeholderLabel)
         imageContainerView.addSubview(wishlistButton)
+        imageContainerView.addSubview(tastingBadgeLabel)
 
         [brandLabel, nameLabel, accordStackView].forEach {
             contentView.addSubview($0)
@@ -106,9 +123,8 @@ final class PerfumeGridCell: UICollectionViewCell {
         }
 
         bottleImageView.snp.makeConstraints {
-            $0.edges.equalToSuperview().inset(18)
-        }
-
+    $0.edges.equalToSuperview().inset(18)
+}
         placeholderLabel.snp.makeConstraints {
             $0.center.equalToSuperview()
             $0.leading.greaterThanOrEqualToSuperview().offset(16)
@@ -118,6 +134,10 @@ final class PerfumeGridCell: UICollectionViewCell {
         wishlistButton.snp.makeConstraints {
             $0.trailing.bottom.equalToSuperview().inset(10)
             $0.size.equalTo(32)
+        }
+
+        tastingBadgeLabel.snp.makeConstraints {
+            $0.top.leading.equalToSuperview().inset(8)
         }
 
         brandLabel.snp.makeConstraints {
@@ -140,10 +160,11 @@ final class PerfumeGridCell: UICollectionViewCell {
 
         // MARK: - Configure
 
-    func configure(with perfume: Perfume, isLiked: Bool = false) {
+    func configure(with perfume: Perfume, isLiked: Bool = false, hasTastingRecord: Bool = false) {
         brandLabel.text = PerfumePresentationSupport.displayBrand(perfume.brand)
         nameLabel.text = PerfumePresentationSupport.displayPerfumeName(perfume.name)
         PerfumeHeartStyle.applyState(to: wishlistButton, isLiked: isLiked)
+        tastingBadgeLabel.isHidden = !hasTastingRecord
         placeholderLabel.isHidden = false
 
         if let urlStr = perfume.imageUrl, let url = URL(string: urlStr) {
@@ -192,7 +213,7 @@ private final class AccordPillView: UIView {
 
         let label = UILabel().then {
             $0.text = displayAccord
-            $0.font = .systemFont(ofSize: 12)
+            $0.font = .systemFont(ofSize: 13, weight: .medium)
             $0.textColor = .secondaryLabel
             $0.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         }
@@ -211,4 +232,27 @@ private final class AccordPillView: UIView {
     }
 }
 
- 
+// MARK: - PaddingLabel
+
+private final class PaddingLabel: UILabel {
+    private let insets: UIEdgeInsets
+
+    init(insets: UIEdgeInsets) {
+        self.insets = insets
+        super.init(frame: .zero)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    override func drawText(in rect: CGRect) {
+        super.drawText(in: rect.inset(by: insets))
+    }
+
+    override var intrinsicContentSize: CGSize {
+        let size = super.intrinsicContentSize
+        return CGSize(
+            width: size.width + insets.left + insets.right,
+            height: size.height + insets.top + insets.bottom
+        )
+    }
+}

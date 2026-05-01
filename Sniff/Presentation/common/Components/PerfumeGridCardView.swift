@@ -15,7 +15,7 @@ enum PerfumeCardStyle: Equatable {
     var defaultCardWidth: CGFloat? {
         switch self {
         case .preview:
-            return 124
+            return 132
         case .grid, .listThumbnail:
             return nil
         }
@@ -23,8 +23,10 @@ enum PerfumeCardStyle: Equatable {
 
     var cornerRadius: CGFloat {
         switch self {
-        case .preview, .grid:
+        case .grid:
             return 20
+        case .preview:
+            return 10
         case .listThumbnail:
             return 18
         }
@@ -33,7 +35,7 @@ enum PerfumeCardStyle: Equatable {
     var imagePadding: CGFloat {
         switch self {
         case .preview:
-            return 0
+            return 4
         case .grid:
             return 4
         case .listThumbnail:
@@ -44,7 +46,7 @@ enum PerfumeCardStyle: Equatable {
     var innerCanvasInset: CGFloat {
         switch self {
         case .preview:
-            return 0
+            return 8
         case .grid:
             return 11
         case .listThumbnail:
@@ -72,7 +74,9 @@ enum PerfumeCardStyle: Equatable {
 
     var contentTopSpacing: CGFloat {
         switch self {
-        case .preview, .grid:
+        case .preview:
+            return stylePreviewContentTopSpacing
+        case .grid:
             return 10
         case .listThumbnail:
             return 0
@@ -81,7 +85,7 @@ enum PerfumeCardStyle: Equatable {
 
     var brandFontSize: CGFloat {
         switch self {
-        case .preview, .grid, .listThumbnail:
+        case .grid, .listThumbnail, .preview:
             return 12
         }
     }
@@ -97,7 +101,9 @@ enum PerfumeCardStyle: Equatable {
 
     var nameFontSize: CGFloat {
         switch self {
-        case .preview, .grid:
+        case .preview:
+            return stylePreviewNameFontSize
+        case .grid:
             return 16
         case .listThumbnail:
             return 17
@@ -114,21 +120,21 @@ enum PerfumeCardStyle: Equatable {
     var brandToNameSpacing: CGFloat {
         switch self {
         case .preview, .grid, .listThumbnail:
-            return 5
+            return 2
         }
     }
 
     var nameToAccordSpacing: CGFloat {
         switch self {
         case .preview, .grid, .listThumbnail:
-            return 5
+            return 4
         }
     }
 
     var textBlockHeight: CGFloat? {
         switch self {
         case .preview:
-            return 80
+            return 84
         case .grid:
             return 82
         case .listThumbnail:
@@ -138,7 +144,9 @@ enum PerfumeCardStyle: Equatable {
 
     var accordSpacing: CGFloat {
         switch self {
-        case .preview, .grid, .listThumbnail:
+        case .preview:
+            return 8
+        case .grid, .listThumbnail:
             return 10
         }
     }
@@ -159,22 +167,14 @@ enum PerfumeCardStyle: Equatable {
 
     var likeIconSize: CGFloat {
         switch self {
-        case .preview:
-            return 18
-        case .grid:
-            return 20
-        case .listThumbnail:
-            return 18
+        case .preview, .grid, .listThumbnail:
+            return 24
         }
     }
 
     var likeIconInset: CGFloat {
         switch self {
-        case .preview:
-            return 0
-        case .grid:
-            return 10
-        case .listThumbnail:
+        case .preview, .grid, .listThumbnail:
             return 8
         }
     }
@@ -182,7 +182,7 @@ enum PerfumeCardStyle: Equatable {
     var artworkWidthRatio: CGFloat {
         switch self {
         case .preview:
-            return 1
+            return 0.9
         case .grid:
             return 0.86
         case .listThumbnail:
@@ -193,7 +193,7 @@ enum PerfumeCardStyle: Equatable {
     var artworkHeightRatio: CGFloat {
         switch self {
         case .preview:
-            return 1
+            return 0.9
         case .grid:
             return 0.88
         case .listThumbnail:
@@ -203,22 +203,14 @@ enum PerfumeCardStyle: Equatable {
 
     var badgeTopInset: CGFloat {
         switch self {
-        case .preview:
-            return 6
-        case .grid:
-            return 10
-        case .listThumbnail:
+        case .preview, .grid, .listThumbnail:
             return 8
         }
     }
 
     var badgeLeadingInset: CGFloat {
         switch self {
-        case .preview:
-            return 6
-        case .grid:
-            return 10
-        case .listThumbnail:
+        case .preview, .grid, .listThumbnail:
             return 8
         }
     }
@@ -226,16 +218,16 @@ enum PerfumeCardStyle: Equatable {
     var badgeHeight: CGFloat {
         switch self {
         case .preview, .grid:
-            return 23
+            return 22
         case .listThumbnail:
-            return 30
+            return 22
         }
     }
 
     var artworkTopReservedInset: CGFloat {
         switch self {
         case .preview:
-            return badgeHeight + 4
+            return 0
         case .grid, .listThumbnail:
             return 0
         }
@@ -244,7 +236,7 @@ enum PerfumeCardStyle: Equatable {
     var imageSectionAspectRatio: CGFloat {
         switch self {
         case .preview:
-            return 0.92
+            return 1
         case .grid, .listThumbnail:
             return 1
         }
@@ -261,7 +253,7 @@ enum PerfumeCardStyle: Equatable {
 }
 
 enum PerfumeGridCardLayout {
-    static let previewCardWidth: CGFloat = 124
+    static let previewCardWidth: CGFloat = 132
     static let previewCardSpacing: CGFloat = 10
     static let previewTrailingPeekInset: CGFloat = 10
     static let gridHorizontalPadding: CGFloat = 20
@@ -274,6 +266,8 @@ enum PerfumeGridCardLayout {
 }
 
 private let perfumeArtworkBackgroundCleanupProcessor = PerfumeArtworkBackgroundCleanupProcessor()
+private let stylePreviewContentTopSpacing: CGFloat = 10
+private let stylePreviewNameFontSize: CGFloat = 14
 
 struct PerfumeGridCardView: View {
     let imageURL: String?
@@ -302,22 +296,9 @@ struct PerfumeGridCardView: View {
             )
             .padding(.top, style.contentTopSpacing)
         }
-        .padding(style == .preview ? 8 : 0)
+        .padding(0)
         .frame(width: resolvedCardWidth, alignment: .topLeading)
         .frame(maxWidth: resolvedCardWidth == nil ? .infinity : nil, alignment: .topLeading)
-        .background {
-            if style == .preview {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Color(.systemBackground))
-            }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: style == .preview ? 16 : 0, style: .continuous))
-        .overlay {
-            if style == .preview {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(Color(uiColor: UIColor.separator.withAlphaComponent(0.12)), lineWidth: 1)
-            }
-        }
     }
 
     private var imageSection: some View {
@@ -332,11 +313,15 @@ struct PerfumeGridCardView: View {
                 Text(AppStrings.TastingNoteUI.tastingRecordBadge)
                     .font(.system(size: 11, weight: .medium))
                     .foregroundColor(Color(uiColor: UIColor(red: 0.43, green: 0.32, blue: 0.22, alpha: 1)))
-                    .padding(.horizontal, 8)
+                    .padding(.horizontal, 6)
                     .frame(height: style.badgeHeight)
                     .background(
-                        Capsule()
-                            .fill(Color(uiColor: UIColor(red: 0.91, green: 0.83, blue: 0.73, alpha: 1)))
+                        RoundedRectangle(cornerRadius: 4, style: .continuous)
+                            .fill(Color(uiColor: UIColor(red: 0.96, green: 0.94, blue: 0.90, alpha: 1)))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 4, style: .continuous)
+                            .stroke(Color(uiColor: UIColor(red: 0.86, green: 0.84, blue: 0.80, alpha: 1)), lineWidth: 1)
                     )
                     .padding(.top, style.badgeTopInset)
                     .padding(.leading, style.badgeLeadingInset)
@@ -383,15 +368,26 @@ struct PerfumeCardArtworkView: View {
         if normalizedName.contains("another 13") || normalizedName.contains("어나더 13") {
             return 1.4
         }
-        return 1
+        switch style {
+        case .preview:
+            return 1.0
+        case .listThumbnail:
+            return 1.45
+        case .grid:
+            return 1
+        }
     }
 
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: style.cornerRadius)
-                .fill(style == .preview ? Color(.systemBackground) : PerfumeGridCardLayout.cardBackgroundColor)
+                .fill(Color(.systemBackground))
 
             if style != .preview {
+                RoundedRectangle(cornerRadius: style.innerCanvasCornerRadius)
+                    .fill(Color.white)
+                    .padding(style.innerCanvasInset)
+            } else {
                 RoundedRectangle(cornerRadius: style.innerCanvasCornerRadius)
                     .fill(Color.white)
                     .padding(style.innerCanvasInset)
@@ -411,6 +407,10 @@ struct PerfumeCardArtworkView: View {
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: style.cornerRadius))
+        .overlay {
+            RoundedRectangle(cornerRadius: style.cornerRadius)
+                .stroke(Color(uiColor: UIColor.separator.withAlphaComponent(0.12)), lineWidth: 1)
+        }
     }
 
     @ViewBuilder
@@ -506,8 +506,9 @@ struct PerfumeGridCardAccordLine: View {
 
                     Text(accord)
                         .font(.system(size: style.accordFontSize, weight: .regular))
-                        .foregroundColor(Color(.systemGray2))
+                        .foregroundColor(Color(.systemGray))
                         .lineLimit(1)
+                        .minimumScaleFactor(0.82)
                 }
             }
 

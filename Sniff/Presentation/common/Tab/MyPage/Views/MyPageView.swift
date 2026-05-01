@@ -14,23 +14,24 @@ struct MyPageView: View {
     @StateObject private var viewModel: MyPageViewModel
 
     private enum Layout {
-        static let horizontalPadding: CGFloat = 20
-        static let headerTopPadding: CGFloat = 12
-        static let sectionSpacing: CGFloat = 30
+        static let horizontalPadding: CGFloat = 16
+        static let headerTopPadding: CGFloat = 18
+        static let sectionSpacing: CGFloat = 36
         static let sectionContentSpacing: CGFloat = 10
         static let sectionHeaderBottomSpacing: CGFloat = 4
-        static let profileTopSpacing: CGFloat = 10
-        static let profileBottomSpacing: CGFloat = 12
-        static let profileImageSize: CGFloat = 84
-        static let profileTextSpacing: CGFloat = 8
-        static let cardSpacing: CGFloat = 18
+        static let profileTopSpacing: CGFloat = 18
+        static let profileBottomSpacing: CGFloat = 8
+        static let profileImageSize: CGFloat = 60
+        static let profileTextSpacing: CGFloat = 6
+        static let profileTasteTopSpacing: CGFloat = 8
+        static let tasteIconSize: CGFloat = 18
+        static let cardSpacing: CGFloat = 16
         static let trailingPeekInset: CGFloat = PerfumeGridCardLayout.previewTrailingPeekInset
-        static let likedSectionTopSpacing: CGFloat = 18
+        static let likedSectionTopSpacing: CGFloat = 24
         static let bottomContentPadding: CGFloat = 68
 
         static var cardWidth: CGFloat {
-            let availableWidth = UIScreen.main.bounds.width - (horizontalPadding * 2)
-            return min(max(availableWidth * 0.48, 180), 196)
+            PerfumeGridCardLayout.previewCardWidth
         }
     }
 
@@ -91,7 +92,7 @@ struct MyPageView: View {
     private var headerSection: some View {
         HStack(alignment: .center) {
             Text(AppStrings.Profile.MyPage.title)
-                .font(.system(size: 25, weight: .bold))
+                .font(.system(size: 22, weight: .semibold))
                 .foregroundColor(.primary)
 
             Spacer()
@@ -100,8 +101,8 @@ struct MyPageView: View {
                 SettingsSceneFactory.makeSettingsView()
             } label: {
                 Image(systemName: "gearshape")
-                    .font(.system(size: 21, weight: .semibold))
-                    .foregroundColor(.primary)
+                    .font(.system(size: 24, weight: .semibold))
+                    .foregroundColor(Color(.systemGray))
                     .frame(width: 32, height: 32)
             }
             .buttonStyle(.plain)
@@ -109,23 +110,70 @@ struct MyPageView: View {
     }
 
     private var profileSection: some View {
-        HStack(spacing: 16) {
-            CheckerboardProfilePlaceholder()
-                .frame(width: Layout.profileImageSize, height: Layout.profileImageSize)
-
+        HStack(alignment: .center, spacing: 16) {
             VStack(alignment: .leading, spacing: Layout.profileTextSpacing) {
                 Text(viewModel.profileInfo?.nickname ?? AppStrings.Profile.userFallback)
-                    .font(.system(size: 21, weight: .bold))
+                    .font(.system(size: 22, weight: .bold))
                     .foregroundColor(.primary)
 
                 Text(viewModel.profileInfo?.email ?? AppStrings.Profile.missingEmail)
-                    .font(.system(size: 16, weight: .regular))
-                    .foregroundColor(Color(.systemGray))
+                    .font(.system(size: 14, weight: .regular))
+                    .foregroundColor(Color(.systemGray2))
                     .lineLimit(1)
+
+                tasteProfileNavigation
+                    .padding(.top, Layout.profileTasteTopSpacing)
             }
+
+            Spacer(minLength: 16)
+
+            CheckerboardProfilePlaceholder()
+                .frame(width: Layout.profileImageSize, height: Layout.profileImageSize)
         }
         .padding(.top, Layout.profileTopSpacing)
         .padding(.bottom, Layout.profileBottomSpacing)
+    }
+
+    @ViewBuilder
+    private var tasteProfileNavigation: some View {
+        if let tasteProfileItem = viewModel.tasteProfileItem {
+            NavigationLink {
+                TasteProfileDestinationView(profileItem: tasteProfileItem)
+                    .toolbar(.hidden, for: .navigationBar)
+            } label: {
+                tasteProfileRow(title: tasteProfileItem.profile.displayTitle)
+            }
+            .buttonStyle(.plain)
+        } else {
+            tasteProfileRow(title: "취향을 분석하는 중이에요")
+                .opacity(0.65)
+        }
+    }
+
+    private func tasteProfileRow(title: String) -> some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color(red: 0.94, green: 0.62, blue: 0.73),
+                            Color(red: 0.98, green: 0.95, blue: 0.88)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: Layout.tasteIconSize, height: Layout.tasteIconSize)
+
+            Text(title)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(Color(.systemGray))
+                .lineLimit(1)
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(Color(.systemGray))
+        }
     }
 
     private var ownedSection: some View {
@@ -208,12 +256,12 @@ struct MyPageView: View {
     ) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
             Text(title)
-                .font(.system(size: 22, weight: .bold))
+                .font(.system(size: 18, weight: .semibold))
                 .foregroundColor(.primary)
 
             Text(AppStrings.Profile.MyPage.count(count))
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(.secondary)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(Color(.systemGray))
 
             Spacer()
 
@@ -221,8 +269,8 @@ struct MyPageView: View {
                 destination
             } label: {
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(Color(.systemGray2))
                     .frame(width: 28, height: 28)
             }
             .buttonStyle(.plain)
@@ -338,6 +386,16 @@ private struct CheckerboardProfilePlaceholder: View {
             }
         }
     }
+}
+
+private struct TasteProfileDestinationView: UIViewControllerRepresentable {
+    let profileItem: HomeViewModel.HomeProfileItem
+
+    func makeUIViewController(context: Context) -> TasteProfileViewController {
+        TasteProfileViewController(profileItem: profileItem)
+    }
+
+    func updateUIViewController(_ uiViewController: TasteProfileViewController, context: Context) {}
 }
 
 #if DEBUG

@@ -5,7 +5,7 @@
 //  Created by 이정인 on 4/16/26.
 //
 
-// MARK: - 상세 화면 (새로 추가)
+// MARK: - 시향기 상세 화면
 import SwiftUI
 import Kingfisher
 
@@ -15,9 +15,9 @@ struct TastingNoteDetailView: View {
     @ObservedObject var viewModel: TastingNoteViewModel
 
     @Environment(\.dismiss) private var dismiss
-    @State private var showDeleteAlert: Bool = false
     @State private var showEditSheet: Bool = false
 
+    // 목록 viewModel의 notes를 구독해 실시간으로 최신 데이터 반영
     private var currentNote: TastingNote {
         guard let id = note.id,
               let liveNote = viewModel.notes.first(where: { $0.id == id }) else {
@@ -35,239 +35,235 @@ struct TastingNoteDetailView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     headerView
 
-                    perfumeInfoCard
-                        .padding(.horizontal, 20)
+                    // 시향 향수 섹션 (헤더 아래 12pt 여백)
+                    perfumeInfoSection
+                        .padding(.horizontal, 16)
+                        .padding(.top, 12)
+                        .padding(.bottom, 24)
 
-                    Divider()
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 20)
+                    detailSectionDivider
 
-                    ratingDisplaySection(
-                        title: AppStrings.TastingNoteDetailUI.ratingTitle,
-                        rating: currentNote.rating,
-                        label: currentNote.rating.ratingLabel
-                    )
-                    .padding(.horizontal, 20)
+                    // 향 선호도 섹션
+                    ratingSection
+                        .padding(.horizontal, 16)
+                        .padding(.top, 24)
+                        .padding(.bottom, 0)
 
-                    Divider()
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 20)
+                    // 분위기&이미지 섹션 (구분선 없음, 40pt 상단 여백)
+                    moodTagSection
+                        .padding(.horizontal, 16)
+                        .padding(.top, 40)
+                        .padding(.bottom, 0)
 
-                    moodTagDisplaySection
-                        .padding(.horizontal, 20)
-
-                    Divider()
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 20)
-
-                    if let desire = currentNote.revisitDesire {
-                        revisitDesireDisplaySection(desire)
-                            .padding(.horizontal, 20)
-
-                        Divider()
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 20)
-                    }
-
-                    memoDisplaySection
-                        .padding(.horizontal, 20)
-
-                    Spacer()
-                        .frame(height: 40)
+                    // 시향 메모 섹션 (구분선 없음, 40pt 상단 여백)
+                    memoSection
+                        .padding(.horizontal, 16)
+                        .padding(.top, 40)
+                        .padding(.bottom, 40)
                 }
             }
         }
         .toolbar(.hidden, for: .navigationBar)
-        .toolbar(.hidden, for: .tabBar)
         .fullScreenCover(isPresented: $showEditSheet) {
             TastingNoteSceneFactory.makeFormView(editingNote: currentNote)
         }
-        .alert(AppStrings.TastingNoteDetailUI.deleteAlertTitle, isPresented: $showDeleteAlert) {
-            Button(AppStrings.TastingNoteDetailUI.delete, role: .destructive) {
-                Task {
-                    await viewModel.deleteNote(currentNote)
-                    dismiss()
-                }
-            }
-            Button(AppStrings.TastingNoteDetailUI.cancel, role: .cancel) { }
-        } message: {
-            Text(AppStrings.TastingNoteDetailUI.deleteAlertMessage)
-        }
     }
+
+    // MARK: - 헤더 (와이어프레임: 좌측 정렬 chevron + 제목, 우측 "편집" 버튼)
 
     private var headerView: some View {
-        ZStack {
-            Text(AppStrings.TastingNoteDetailUI.title(PerfumePresentationSupport.displayPerfumeName(currentNote.perfumeName)))
-                .font(.system(size: 17, weight: .semibold))
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-                .minimumScaleFactor(0.8)
-                .padding(.horizontal, 72)
-
-            HStack {
-                // 뒤로 가기 버튼 (동그라미 없음)
-                Button {
-                    dismiss()
-                } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(.primary)
-                        .frame(width: 44, height: 44)
-                }
-
-                Spacer()
-
-                // 수정/삭제 메뉴 (동그라미 없음)
-                Menu {
-                    Button {
-                        showEditSheet = true
-                    } label: {
-                        Label(AppStrings.TastingNoteDetailUI.edit, systemImage: "pencil")
-                    }
-
-                    Button(role: .destructive) {
-                        showDeleteAlert = true
-                    } label: {
-                        Label(AppStrings.TastingNoteDetailUI.delete, systemImage: "trash")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(.primary)
-                        .frame(width: 44, height: 44)
-                }
-            }
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 14)
-        .padding(.bottom, 20)
-    }
-
-    private var perfumeInfoCard: some View {
-        HStack(spacing: 14) {
-            if let urlString = currentNote.perfumeImageURL,
-               let url = URL(string: urlString) {
-                KFImage(url)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: 110, height: 110)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text(PerfumePresentationSupport.displayBrand(currentNote.brandName))
-                    .font(.system(size: 14))
-                    .foregroundColor(.secondary)
-
-                Text(PerfumePresentationSupport.displayPerfumeName(currentNote.perfumeName))
-                    .font(.system(size: 18, weight: .bold))
+        HStack(spacing: 0) {
+            // 뒤로 가기 버튼
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(.primary)
-
-                if !currentNote.mainAccords.isEmpty {
-                    HStack(spacing: 6) {
-                        ForEach(PerfumePresentationSupport.displayAccords(Array(currentNote.mainAccords.prefix(3))), id: \.self) { accord in
-                            HStack(spacing: 4) {
-                                Circle()
-                                    .frame(width: 5, height: 5)
-                                    .foregroundColor(accord.accordColor)
-
-                                Text(accord)
-                                    .font(.system(size: 13))
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                    }
-                }
+                    .frame(width: 44, height: 44)
             }
+
+            // 향수 이름 제목 (좌측 정렬)
+            Text(PerfumePresentationSupport.displayPerfumeName(currentNote.perfumeName))
+                .font(.custom("Pretendard", size: 20).weight(.medium))
+                .foregroundColor(.primary)
+                .lineLimit(1)
+                .truncationMode(.tail)
 
             Spacer()
+
+            // 편집 버튼 (와이어프레임: 우측에 "편집" 텍스트 버튼)
+            Button("편집") {
+                showEditSheet = true
+            }
+            .font(.system(size: 17, weight: .regular))
+            .foregroundColor(.primary)
+            .padding(.trailing, 16)
+        }
+        .padding(.leading, 4)
+        .frame(height: 52)
+        .padding(.bottom, 8)
+    }
+
+    // MARK: - 시향 향수 섹션 (와이어프레임: 이름 bold, 브랜드, 마지막 작성일)
+
+    private var perfumeInfoSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // 섹션 레이블
+            Text("시향 향수")
+                .font(.custom("Pretendard", size: 17).weight(.semibold))
+                .foregroundColor(.primary)
+
+            // 향수 이름 (bold)
+            HStack(alignment: .top, spacing: 12) {
+                perfumeImageView
+
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(PerfumePresentationSupport.displayPerfumeName(currentNote.perfumeName))
+                        .font(.custom("Pretendard", size: 20).weight(.bold))
+                        .foregroundColor(.primary)
+                        .lineLimit(2)
+
+                    // 브랜드
+                    Text(PerfumePresentationSupport.displayBrand(currentNote.brandName))
+                        .font(.custom("Pretendard", size: 15).weight(.regular))
+                        .foregroundColor(.secondary)
+                        .padding(.top, 8)
+
+                    if !currentNote.mainAccords.isEmpty {
+                        HStack(spacing: 6) {
+                            ForEach(PerfumePresentationSupport.displayAccords(Array(currentNote.mainAccords.prefix(3))), id: \.self) { accord in
+                                accordChip(accord)
+                            }
+                        }
+                        .padding(.top, 12)
+                    }
+                }
+            }
+            .padding(.top, 16)
+
+
+            // 마지막 작성일
+            Text("마지막 작성일: \(currentNote.updatedAt.tastingNoteFormat)")
+                .font(.custom("Pretendard", size: 13).weight(.regular))
+                .foregroundColor(Color(.systemGray3))
+                .padding(.top, 24)
         }
     }
 
-    private func ratingDisplaySection(title: String, rating: Int, label: String) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(title)
-                .font(.system(size: 17, weight: .semibold))
+    @ViewBuilder
+    private var perfumeImageView: some View {
+        if let urlString = currentNote.perfumeImageURL,
+           let url = URL(string: urlString) {
+            KFImage(url)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: 72, height: 72)
+                .background(Color(.systemGray6))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+    }
 
+    private func accordChip(_ accord: String) -> some View {
+        Text(accord)
+            .font(.custom("Pretendard", size: 13).weight(.regular))
+            .foregroundColor(accord.accordColor)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(accord.accordBackgroundColor)
+            .clipShape(Capsule())
+            .overlay(
+                Capsule().stroke(accord.accordBorderColor, lineWidth: 1)
+            )
+    }
+
+    private var detailSectionDivider: some View {
+        Rectangle()
+            .fill(Color(.systemGray6))
+            .frame(maxWidth: .infinity)
+            .frame(height: 8)
+    }
+
+    // MARK: - 향 선호도 섹션 (와이어프레임: "향 선호도 | 보통" 인라인 라벨)
+
+    private var ratingSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // 제목과 라벨 인라인 표시
+            HStack(spacing: 6) {
+                Text("향 선호도")
+                    .font(.custom("Pretendard", size: 17).weight(.semibold))
+                    .foregroundColor(.primary)
+
+                if currentNote.rating > 0 {
+                    Text("|")
+                        .font(.custom("Pretendard", size: 17).weight(.regular))
+                        .foregroundColor(Color(.systemGray3))
+
+                    Text(currentNote.rating.ratingLabel)
+                        .font(.custom("Pretendard", size: 17).weight(.regular))
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            // 별점 표시
             HStack(spacing: 6) {
                 ForEach(1...5, id: \.self) { star in
-                    Image(systemName: star <= rating ? "star.fill" : "star")
-                        .font(.system(size: 30))
-                        .foregroundColor(star <= rating ? .primary : Color(.systemGray4))
+                    Image(systemName: star <= currentNote.rating ? "star.fill" : "star")
+                        .font(.system(size: 28))
+                        .foregroundColor(star <= currentNote.rating ? .primary : Color(.systemGray4))
                 }
 
-                Text("\(rating)")
-                    .font(.system(size: 17, weight: .semibold))
+                Text("\(currentNote.rating)")
+                    .font(.custom("Pretendard", size: 17).weight(.semibold))
+                    .foregroundColor(.primary)
                     .padding(.leading, 4)
 
                 Text("/5")
-                    .font(.system(size: 14))
+                    .font(.custom("Pretendard", size: 14).weight(.regular))
                     .foregroundColor(.secondary)
             }
-
-            Text(label)
-                .font(.system(size: 13))
-                .foregroundColor(.secondary)
         }
     }
 
-    private var moodTagDisplaySection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(AppStrings.TastingNoteDetailUI.moodTitle)
-                .font(.system(size: 17, weight: .semibold))
+    // MARK: - 분위기&이미지 섹션 (와이어프레임: 아웃라인 칩 스타일)
 
+    private var moodTagSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("분위기&이미지")
+                .font(.custom("Pretendard", size: 17).weight(.semibold))
+                .foregroundColor(.primary)
+
+            // 아웃라인 스타일 칩 (와이어프레임: 검정 테두리, 흰 배경, 검정 텍스트)
             ChipFlowLayout(spacing: 8) {
                 ForEach(currentNote.moodTags, id: \.self) { tag in
                     Text(tag)
-                        .font(.system(size: 14))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-                        .background(Color.black)
+                        .font(.custom("Pretendard", size: 13).weight(.regular))
+                        .foregroundColor(Color(.label))
+                        .padding(.horizontal, 13)
+                        .padding(.vertical, 7)
+                        .background(Color(.systemBackground))
                         .clipShape(Capsule())
+                        .overlay(
+                            Capsule().stroke(Color(.label), lineWidth: 1)
+                        )
                 }
             }
         }
     }
 
-    private func revisitDesireDisplaySection(_ desire: String) -> some View {
+    // MARK: - 시향 메모 섹션 (와이어프레임: 글자 수 카운터 없음)
+
+    private var memoSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(AppStrings.TastingNoteDetailUI.revisitTitle)
-                .font(.system(size: 17, weight: .semibold))
+            Text("시향 메모")
+                .font(.custom("Pretendard", size: 17).weight(.semibold))
+                .foregroundColor(.primary)
 
-            Text(desire)
-                .font(.system(size: 14))
-                .foregroundColor(.white)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(Color.black)
-                .clipShape(Capsule())
-        }
-    }
-
-    private var memoDisplaySection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(AppStrings.TastingNoteDetailUI.memoTitle)
-                .font(.system(size: 17, weight: .semibold))
-
-            ZStack(alignment: .bottomTrailing) {
-                Text(currentNote.memo)
-                    .font(.system(size: 15))
-                    .foregroundColor(.primary)
-                    .frame(maxWidth: .infinity, minHeight: 120, alignment: .topLeading)
-                    .padding(14)
-
-                Text("\(currentNote.memo.count)/2000")
-                    .font(.system(size: 12))
-                    .foregroundColor(.secondary)
-                    .padding(.trailing, 12)
-                    .padding(.bottom, 10)
-            }
-            .background(Color(.systemBackground))
-            .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(Color(.systemGray4), lineWidth: 1)
-            )
+            Text(currentNote.memo)
+                .font(.custom("Pretendard", size: 15).weight(.regular))
+                .foregroundColor(.primary)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+                .lineSpacing(4)
         }
     }
 }

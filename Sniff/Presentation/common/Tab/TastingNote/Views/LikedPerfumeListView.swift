@@ -11,15 +11,15 @@ struct LikedPerfumeListView: View {
     @StateObject private var viewModel: LikedPerfumeListViewModel
     @Environment(\.dismiss) private var dismiss
     private enum Layout {
-        static let horizontalPadding: CGFloat = PerfumeGridCardLayout.listHorizontalPadding
-        static let rowSpacing: CGFloat = 30
-        static let thumbnailSize: CGFloat = 92
-        static let rowVerticalPadding: CGFloat = 6
-        static let contentSpacing: CGFloat = 20
-        static let inlineInfoSpacing: CGFloat = 8
-        static let nameToMetaSpacing: CGFloat = 5
-        static let badgeTopSpacing: CGFloat = 7
-        static let heartSize: CGFloat = 29
+        static let horizontalPadding: CGFloat = 16
+        static let rowSpacing: CGFloat = 12
+        static let thumbnailSize: CGFloat = 72
+        static let rowVerticalPadding: CGFloat = 12
+        static let contentSpacing: CGFloat = 16
+        static let inlineInfoSpacing: CGFloat = 6
+        static let nameToMetaSpacing: CGFloat = 4
+        static let badgeTopSpacing: CGFloat = 10
+        static let heartSize: CGFloat = 24
     }
 
     init(viewModel: LikedPerfumeListViewModel) {
@@ -71,22 +71,22 @@ struct LikedPerfumeListView: View {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(.primary)
-                    .frame(width: 44, height: 44)
+                    .frame(width: 36, height: 44)
             }
 
             Text(AppStrings.TastingNoteUI.LikedList.title)
-                .font(.system(size: 24, weight: .bold))
+                .font(.system(size: 20, weight: .semibold))
                 .foregroundColor(.primary)
 
             Text(AppStrings.TastingNoteUI.LikedList.count(viewModel.perfumeCount))
-                .font(.system(size: 22, weight: .medium))
+                .font(.system(size: 16, weight: .medium))
                 .foregroundColor(Color(.systemGray2))
 
             Spacer()
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, Layout.horizontalPadding)
         .padding(.top, 14)
-        .padding(.bottom, 20)
+        .padding(.bottom, 10)
     }
 
     // MARK: - 빈 상태
@@ -145,12 +145,13 @@ struct LikedPerfumeListView: View {
     }
 
     private func perfumeRowContent(_ perfume: LikedPerfumeListViewModel.PerfumeRowItem) -> some View {
-        HStack(alignment: .top, spacing: Layout.contentSpacing) {
+        // 시향 기록이 있으면 상단 정렬, 없으면 중앙 정렬
+        HStack(alignment: perfume.hasTastingRecord ? .top : .center, spacing: Layout.contentSpacing) {
             perfumeImage(url: perfume.imageURL)
 
             VStack(alignment: .leading, spacing: 0) {
                 Text(PerfumePresentationSupport.displayPerfumeName(perfume.name))
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: 15, weight: .medium))
                     .foregroundColor(.primary)
                     .lineLimit(1)
                     .multilineTextAlignment(.leading)
@@ -185,7 +186,7 @@ struct LikedPerfumeListView: View {
 
     private var tastingRecordBadge: some View {
         Text(AppStrings.TastingNoteUI.tastingRecordBadge)
-            .font(.system(size: 11, weight: .medium))
+            .font(.system(size: 13, weight: .semibold))
             .foregroundColor(Color(uiColor: UIColor(red: 0.47, green: 0.39, blue: 0.31, alpha: 1)))
             .padding(.horizontal, 9)
             .padding(.vertical, 5)
@@ -198,9 +199,13 @@ struct LikedPerfumeListView: View {
 
         return HStack(spacing: Layout.inlineInfoSpacing) {
             Text(PerfumePresentationSupport.displayBrand(brand))
-                .font(.system(size: 12, weight: .medium))
+                .font(.system(size: 13, weight: .medium))
                 .foregroundColor(.secondary)
                 .lineLimit(1)
+
+            Text("|")
+                .font(.system(size: 13, weight: .regular))
+                .foregroundColor(Color(.systemGray3))
 
             ForEach(Array(displayAccords.enumerated()), id: \.offset) { index, accord in
                 HStack(spacing: 4) {
@@ -209,8 +214,8 @@ struct LikedPerfumeListView: View {
                         .frame(width: 7, height: 7)
 
                     Text(accord)
-                        .font(.system(size: 12, weight: .regular))
-                        .foregroundColor(Color(.systemGray2))
+                        .font(.system(size: 13, weight: .regular))
+                        .foregroundColor(Color(.systemGray))
                         .lineLimit(1)
                 }
             }

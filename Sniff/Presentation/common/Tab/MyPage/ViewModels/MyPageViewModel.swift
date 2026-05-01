@@ -42,6 +42,7 @@ final class MyPageViewModel: ObservableObject {
     @Published private(set) var profileInfo: ProfileInfo?
     @Published private(set) var ownedPerfumes: [OwnedPreviewItem] = []
     @Published private(set) var likedPerfumes: [LikedPreviewItem] = []
+    @Published private(set) var tasteProfileItem: HomeViewModel.HomeProfileItem?
     @Published private(set) var ownedCount: Int = 0
     @Published private(set) var likedCount: Int = 0
     @Published private(set) var isLoading = false
@@ -60,6 +61,8 @@ final class MyPageViewModel: ObservableObject {
     private let collectionRepository: CollectionRepositoryType
     private let tastingRepository: TastingRecordRepositoryType
     private let localTastingNoteRepository: LocalTastingNoteRepository
+    private let userTasteRepository: UserTasteRepositoryType
+    private let preferenceAggregator = PreferenceAggregator()
     private var allOwnedPerfumes: [OwnedPreviewItem] = []
     private var allLikedPerfumes: [LikedPreviewItem] = []
     private var toastTask: Task<Void, Never>?
@@ -68,12 +71,14 @@ final class MyPageViewModel: ObservableObject {
         firestoreService: FirestoreService,
         collectionRepository: CollectionRepositoryType,
         tastingRepository: TastingRecordRepositoryType,
-        localTastingNoteRepository: LocalTastingNoteRepository
+        localTastingNoteRepository: LocalTastingNoteRepository,
+        userTasteRepository: UserTasteRepositoryType
     ) {
         self.firestoreService = firestoreService
         self.collectionRepository = collectionRepository
         self.tastingRepository = tastingRepository
         self.localTastingNoteRepository = localTastingNoteRepository
+        self.userTasteRepository = userTasteRepository
     }
 
     deinit {
@@ -94,11 +99,21 @@ final class MyPageViewModel: ObservableObject {
             async let likedFetch = fetchLikedPerfumesResult()
             async let tastingKeyFetch = fetchTastingKeys()
             async let tastingImageURLFetch = fetchTastingImageURLs()
+            async let tasteAnalysisFetch = fetchTasteAnalysisResult()
+            async let tastingRecordsFetch = fetchTastingRecordsResult()
 
             let collectionResult = await collectionFetch
             let likedResult = await likedFetch
             let tastingKeys = await tastingKeyFetch
             let tastingImageURLs = await tastingImageURLFetch
+            let tasteAnalysisResult = await tasteAnalysisFetch
+            let tastingRecordsResult = await tastingRecordsFetch
+
+            updateTasteProfile(
+                tasteAnalysisResult: tasteAnalysisResult,
+                collectionResult: collectionResult,
+                tastingRecordsResult: tastingRecordsResult
+            )
 
             switch collectionResult {
             case .success(let collection):
@@ -323,6 +338,47 @@ private extension MyPageViewModel {
         } catch {
             return .failure(error)
         }
+    }
+
+    func fetchTasteAnalysisResult() async -> Result<TasteAnalysisResult, Error> {
+        do {
+            return .success(try await userTasteRepository.fetchTasteAnalysis().async())
+        } catch {
+            return .failure(error)
+        }
+    }
+
+    func fetchTastingRecordsResult() async -> Result<[TastingRecord], Error> {
+        do {
+            return .success(try await tastingRepository.fetchTastingRecords().async())
+        } catch {
+            return .failure(error)
+        }
+    }
+
+    func updateTasteProfile(
+        tasteAnalysisResult: Result<TasteAnalysisResult, Error>,
+        collectionResult: Result<[CollectedPerfume], Error>,
+        tastingRecordsResult: Result<[TastingRecord], Error>
+    ) {
+        guard case .success(let tasteAnalysis) = tasteAnalysisResult else {
+            tasteProfileItem = nil
+            return
+        }
+
+        let collection = collectionResult.collectionItems
+        let tastingRecords = tastingRecordsResult.tastingRecords
+        let profile = preferenceAggregator.aggregate(
+            onboarding: tasteAnalysis,
+            collection: collection,
+            tastingRecords: tastingRecords
+        )
+
+        tasteProfileItem = HomeViewModel.HomeProfileItem(
+            profile: profile,
+            collectionCount: collection.count,
+            tastingCount: tastingRecords.count
+        )
     }
 
     func makeOwnedPreviewItem(from perfume: CollectedPerfume) -> OwnedPreviewItem {
@@ -591,6 +647,13 @@ private extension Result where Success == [LikedPerfume], Failure == Error {
     }
 }
 
+private extension Result where Success == [TastingRecord], Failure == Error {
+    var tastingRecords: [TastingRecord] {
+        guard case .success(let records) = self else { return [] }
+        return records
+    }
+}
+
 // MARK: - Preview 전용 목 데이터
 
 #if DEBUG
@@ -604,10 +667,26 @@ extension MyPageViewModel {
             firestoreService: dependencyContainer.firestoreService,
             collectionRepository: dependencyContainer.makeCollectionRepository(),
             tastingRepository: dependencyContainer.makeTastingRecordRepository(),
-            localTastingNoteRepository: dependencyContainer.localTastingNoteRepository
+            localTastingNoteRepository: dependencyContainer.localTastingNoteRepository,
+            userTasteRepository: dependencyContainer.userTasteRepository
         )
         vm.isMock = true
         vm.profileInfo = ProfileInfo(nickname: "강지수", email: "asdgh1423@gmail.com")
+        vm.tasteProfileItem = HomeViewModel.HomeProfileItem(
+            profile: UserTasteProfile(
+                tasteTitle: "깨끗하고 자연스러운 취향",
+                analysisSummary: "시트러스나 워터리 계열처럼 가볍고 산뜻한 향으로 부담 없이 시작해보시는 걸 추천해요.",
+                preferredImpressions: ["깨끗한", "자연스러운"],
+                preferredFamilies: ["Citrus", "Water"],
+                intensityLevel: "light",
+                safeStartingPoint: "Citrus",
+                familyScores: ["Citrus": 0.6, "Water": 0.4],
+                scentVector: ["Citrus": 0.6, "Water": 0.4],
+                stage: .onboardingCollection
+            ),
+            collectionCount: 3,
+            tastingCount: 2
+        )
         vm.ownedCount = 3
         vm.ownedPerfumes = [
             OwnedPreviewItem(

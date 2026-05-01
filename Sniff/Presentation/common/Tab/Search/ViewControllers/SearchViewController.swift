@@ -19,6 +19,8 @@ final class SearchViewController: UIViewController {
         // MARK: - Properties
     private let viewModel: SearchViewModel
     private let collectionRepository: CollectionRepositoryType
+    private let tastingRecordRepository: TastingRecordRepositoryType
+    private let localTastingNoteRepository: LocalTastingNoteRepository
     private let showsRecentOnAppear: Bool
     private let disposeBag = DisposeBag()
 
@@ -44,6 +46,7 @@ final class SearchViewController: UIViewController {
     private var suggestions: [SuggestionItem] = []
     private var keyboardInset: CGFloat = 0
     private var likedPerfumeIDs = Set<String>()
+    private var tastingNoteKeys = Set<String>()
     private var hasHandledRecentOnAppear = false
 
         // MARK: - UI Components
@@ -84,50 +87,48 @@ final class SearchViewController: UIViewController {
         $0.isHidden = true
     }
 
-    private let resultCountLabel = UILabel().then {
-        $0.font = .systemFont(ofSize: 20, weight: .bold)
-        $0.textColor = .label
-    }
+private let resultCountLabel = UILabel().then {
+    $0.textColor = .label
+}
 
     private let resultDividerView = UIView().then {
         $0.backgroundColor = UIColor(hex: "#E2E0DD")
     }
 
-    private let filterButton = UIButton(type: .system).then {
-        $0.setImage(UIImage(systemName: "slider.horizontal.3"), for: .normal)
-        $0.titleLabel?.font = .systemFont(ofSize: 15, weight: .semibold)
-        $0.setTitleColor(.label, for: .normal)
-        $0.tintColor = .label
-        $0.backgroundColor = UIColor(hex: "#F8F4EE")
-        $0.layer.cornerRadius = 18
-        $0.layer.borderWidth = 1
-        $0.layer.borderColor = UIColor(hex: "#D8D0C8").cgColor
-        $0.semanticContentAttribute = .forceLeftToRight
-        var configuration = UIButton.Configuration.plain()
-        configuration.contentInsets = NSDirectionalEdgeInsets(top: 7, leading: 12, bottom: 7, trailing: 14)
-        $0.configuration = configuration
-    }
+private let filterButton = UIButton(type: .system).then {
+    let symbolConfig = UIImage.SymbolConfiguration(pointSize: 18, weight: .medium)
+    $0.setImage(UIImage(systemName: "slider.horizontal.3", withConfiguration: symbolConfig), for: .normal)
+    $0.tintColor = UIColor(red: 0.52, green: 0.52, blue: 0.52, alpha: 1)
+}
 
-    private let sortButton = UIButton(type: .system).then {
-        $0.setTitle("추천순", for: .normal)
-        $0.setImage(UIImage(systemName: "chevron.down"), for: .normal)
-        $0.titleLabel?.font = .systemFont(ofSize: 16, weight: .semibold)
-        $0.setTitleColor(.secondaryLabel, for: .normal)
-        $0.tintColor = .secondaryLabel
-        $0.semanticContentAttribute = .forceRightToLeft
-        $0.configuration = {
-            var configuration = UIButton.Configuration.plain()
-            configuration.imagePadding = 6
-            configuration.contentInsets = .zero
-            return configuration
-        }()
+// 향수N개 | 필터 사이 구분선
+private let countSeparatorView = UIView().then {
+    $0.backgroundColor = UIColor(red: 0.93, green: 0.93, blue: 0.93, alpha: 1)
+}
+
+private let sortButton = UIButton(type: .system).then {
+    let neutral800 = UIColor(red: 0.39, green: 0.39, blue: 0.39, alpha: 1)
+    var config = UIButton.Configuration.plain()
+    config.imagePlacement = .trailing
+    config.imagePadding = 4
+    config.image = UIImage(systemName: "chevron.down")
+    config.preferredSymbolConfigurationForImage = UIImage.SymbolConfiguration(pointSize: 11, weight: .semibold)
+    config.baseForegroundColor = neutral800
+    config.contentInsets = .zero
+    config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { attrs in
+        var a = attrs
+        a.font = UIFont.systemFont(ofSize: 16, weight: .medium)
+        a.foregroundColor = neutral800
+        return a
     }
+    $0.configuration = config
+    $0.setTitle(AppStrings.UIKitScreens.Search.sortRecommended, for: .normal)
+}
 
         // 브랜드 섹션 (결과 화면)
-    private let brandSectionLabel = UILabel().then {
-        $0.font = .systemFont(ofSize: 20, weight: .bold)
-        $0.isHidden = true
-    }
+   private let brandSectionLabel = UILabel().then {
+    $0.isHidden = true
+}
 
     private let brandEmptyLabel = UILabel().then {
         $0.font = .systemFont(ofSize: 14)
@@ -211,10 +212,14 @@ final class SearchViewController: UIViewController {
     init(
         viewModel: SearchViewModel,
         collectionRepository: CollectionRepositoryType,
+        tastingRecordRepository: TastingRecordRepositoryType,
+        localTastingNoteRepository: LocalTastingNoteRepository,
         showsRecentOnAppear: Bool = false
     ) {
         self.viewModel = viewModel
         self.collectionRepository = collectionRepository
+        self.tastingRecordRepository = tastingRecordRepository
+        self.localTastingNoteRepository = localTastingNoteRepository
         self.showsRecentOnAppear = showsRecentOnAppear
         self.currentState = showsRecentOnAppear ? .initial : .landing
         super.init(nibName: nil, bundle: nil)
@@ -247,6 +252,7 @@ final class SearchViewController: UIViewController {
         }
         updateSearchBarLeadingConstraint()
         loadLikedPerfumes()
+        loadTastingNoteKeys()
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -264,6 +270,7 @@ private extension SearchViewController {
 
     func setupUI() {
         view.backgroundColor = .systemBackground
+
 
         setupRecentHeader()
         addSubviews()
@@ -293,8 +300,9 @@ private extension SearchViewController {
             view.addSubview($0)
         }
 
-        [resultCountLabel, resultDividerView, filterButton, sortButton].forEach { resultHeaderView.addSubview($0) }
-    }
+[resultCountLabel, countSeparatorView, filterButton, sortButton].forEach {
+    resultHeaderView.addSubview($0)
+}
 
     func makeConstraints() {
         backButton.snp.makeConstraints {
@@ -322,26 +330,29 @@ private extension SearchViewController {
             $0.leading.trailing.equalToSuperview()
             $0.height.equalTo(40)
         }
-        resultCountLabel.snp.makeConstraints {
-            $0.leading.equalToSuperview().offset(24)
-            $0.centerY.equalToSuperview()
-        }
-        filterButton.snp.makeConstraints {
-            $0.leading.equalTo(resultDividerView.snp.trailing).offset(12)
-            $0.centerY.equalToSuperview()
-            $0.height.equalTo(36)
-            $0.trailing.lessThanOrEqualTo(sortButton.snp.leading).offset(-8)
-        }
-        resultDividerView.snp.makeConstraints {
-            $0.leading.equalTo(resultCountLabel.snp.trailing).offset(12)
-            $0.centerY.equalToSuperview()
-            $0.width.equalTo(1)
-            $0.height.equalTo(20)
-        }
-        sortButton.snp.makeConstraints {
-            $0.trailing.equalToSuperview().offset(-24)
-            $0.centerY.equalToSuperview()
-        }
+      resultCountLabel.snp.makeConstraints {
+    $0.leading.equalToSuperview().offset(24)
+    $0.centerY.equalToSuperview()
+}
+
+countSeparatorView.snp.makeConstraints {
+    $0.leading.equalTo(resultCountLabel.snp.trailing).offset(12)
+    $0.centerY.equalToSuperview()
+    $0.width.equalTo(2)
+    $0.height.equalTo(20)
+}
+
+filterButton.snp.makeConstraints {
+    $0.leading.equalTo(countSeparatorView.snp.trailing).offset(8)
+    $0.centerY.equalToSuperview()
+    $0.size.equalTo(24)
+    $0.trailing.lessThanOrEqualTo(sortButton.snp.leading).offset(-8)
+}
+
+sortButton.snp.makeConstraints {
+    $0.trailing.equalToSuperview().offset(-24)
+    $0.centerY.equalToSuperview()
+}
 
         brandSectionLabel.snp.makeConstraints {
             $0.top.equalTo(searchBar.snp.bottom).offset(26)
@@ -477,7 +488,7 @@ private extension SearchViewController {
             .subscribe(onNext: { [weak self] brands in
                 guard let self else { return }
                 self.brandResults = brands
-                self.brandSectionLabel.attributedText = self.sectionCountText(title: "브랜드", count: brands.count)
+                self.brandSectionLabel.attributedText = self.makeCountAttributed(AppStrings.UIKitScreens.Search.brandCount(brands.count))
                 self.brandTableView.snp.updateConstraints {
                     $0.height.equalTo(brands.isEmpty ? 0 : min(brands.count, 1) * 84)
                 }
@@ -512,7 +523,7 @@ private extension SearchViewController {
         resultCount
             .observe(on: MainScheduler.instance)
             .subscribe(onNext: { [weak self] count in
-                self?.resultCountLabel.attributedText = self?.sectionCountText(title: "향수", count: count)
+                self?.resultCountLabel.attributedText = self?.makeCountAttributed(AppStrings.UIKitScreens.Search.perfumeCount(count))
             })
             .disposed(by: disposeBag)
     }
@@ -523,13 +534,14 @@ private extension SearchViewController {
             .subscribe(onNext: { [weak self] filter in
                 guard let self else { return }
                 self.currentFilter = filter
-                let label = filter.summaryLabel.map { "  \($0)" } ?? ""
-                let image = UIImage(systemName: "slider.horizontal.3")
-                self.filterButton.setTitle(label, for: .normal)
+                // 필터 활성화 여부에 따라 아이콘 색상만 변경 (필 스타일 없음)
+                let symbolConfig = UIImage.SymbolConfiguration(pointSize: 18, weight: .medium)
+                let image = UIImage(systemName: "slider.horizontal.3", withConfiguration: symbolConfig)
+                self.filterButton.setTitle(nil, for: .normal)
                 self.filterButton.setImage(image, for: .normal)
-                self.filterButton.backgroundColor = UIColor(hex: "#F8F4EE")
-                self.filterButton.tintColor = .label
-                self.filterButton.setTitleColor(.label, for: .normal)
+                self.filterButton.tintColor = filter.isEmpty
+                    ? UIColor(red: 0.52, green: 0.52, blue: 0.52, alpha: 1)
+                    : .black
             })
             .disposed(by: disposeBag)
     }
@@ -679,9 +691,9 @@ private extension SearchViewController {
         backButton.isHidden = (navigationController?.viewControllers.count ?? 0) <= 1
         updateSearchBarLeadingConstraint()
         searchBar.showsCancelButton = false
-        brandSectionLabel.attributedText = sectionCountText(title: "브랜드", count: 0)
+        brandSectionLabel.attributedText = makeCountAttributed(AppStrings.UIKitScreens.Search.brandCount(0))
         brandEmptyLabel.text = AppStrings.UIKitScreens.Search.landingBrandMessage
-        resultCountLabel.attributedText = sectionCountText(title: "향수", count: 0)
+        resultCountLabel.attributedText = makeCountAttributed(AppStrings.UIKitScreens.Search.perfumeCount(0))
         brandTableView.snp.updateConstraints { $0.height.equalTo(0) }
         emptyView.configureLanding()
         resultHeaderTopToBrandConstraint?.deactivate()
@@ -773,7 +785,7 @@ private extension SearchViewController {
         brandTableView.isHidden = !hasBrands
         brandEmptyLabel.isHidden = hasBrands
         perfumeCollectionView.isHidden = !hasPerfumes
-        brandSectionLabel.attributedText = sectionCountText(title: "브랜드", count: brandResults.count)
+        brandSectionLabel.attributedText = makeCountAttributed(AppStrings.UIKitScreens.Search.brandCount(brandResults.count))
         resultHeaderTopToGuideConstraint?.deactivate()
         if hasBrands {
             resultHeaderTopToBrandEmptyConstraint?.deactivate()
@@ -866,6 +878,64 @@ private extension SearchViewController {
             .subscribe(onSuccess: { [weak self] items in
                 self?.likedPerfumeIDs = Set(items.map(\.id))
                 self?.reloadPerfumeResults()
+            }, onFailure: { _ in })
+            .disposed(by: disposeBag)
+    }
+
+    // MARK: - 결과 카운트 AttributedString 생성
+    // "향수 N개" → 향수(18SB) + N개(16M)
+    private func makeCountAttributed(_ text: String) -> NSAttributedString {
+        let attributed = NSMutableAttributedString()
+        let parts = text.components(separatedBy: " ")
+        guard parts.count >= 2 else {
+            return NSAttributedString(string: text, attributes: [
+                .font: UIFont.systemFont(ofSize: 18, weight: .semibold),
+                .foregroundColor: UIColor.black
+            ])
+        }
+        // 첫 단어: "향수"/"브랜드" (18SB, black)
+        attributed.append(NSAttributedString(string: parts[0], attributes: [
+            .font: UIFont.systemFont(ofSize: 18, weight: .semibold),
+            .foregroundColor: UIColor.black
+        ]))
+        // 공백: kern으로 8pt 간격 (space advance ~4.5pt + kern 3.5 ≈ 8pt)
+        attributed.append(NSAttributedString(string: " ", attributes: [
+            .font: UIFont.systemFont(ofSize: 18, weight: .semibold),
+            .kern: 3.5
+        ]))
+        // "N개" (16M, Atomic/Neutral/700)
+        attributed.append(NSAttributedString(string: parts[1...].joined(separator: " "), attributes: [
+            .font: UIFont.systemFont(ofSize: 16, weight: .medium),
+            .foregroundColor: UIColor(red: 0.52, green: 0.52, blue: 0.52, alpha: 1)
+        ]))
+        return attributed
+    }
+
+    private func loadTastingNoteKeys() {
+        // 1단계: CoreData 로컬에서 즉시 반영 (동기) — Firestore 동기화 전에도 배지 표시
+        if let localNotes = try? localTastingNoteRepository.loadNotes() {
+            tastingNoteKeys = Set(localNotes.flatMap {
+                PerfumePresentationSupport.recordMatchingKeys(
+                    perfumeName: $0.perfumeName,
+                    brandName: $0.brandName
+                )
+            })
+            reloadPerfumeResults()
+        }
+
+        // 2단계: Firestore에서 추가 병합 (비동기) — 다른 기기 기록까지 포함
+        tastingRecordRepository.fetchTastingRecords()
+            .observe(on: MainScheduler.instance)
+            .subscribe(onSuccess: { [weak self] records in
+                guard let self else { return }
+                let remoteKeys = Set(records.flatMap {
+                    PerfumePresentationSupport.recordMatchingKeys(
+                        perfumeName: $0.perfumeName,
+                        brandName: $0.brandName
+                    )
+                })
+                self.tastingNoteKeys.formUnion(remoteKeys)
+                self.reloadPerfumeResults()
             }, onFailure: { _ in })
             .disposed(by: disposeBag)
     }
@@ -1051,7 +1121,17 @@ extension SearchViewController: UICollectionViewDataSource, UICollectionViewDele
         ) as! PerfumeGridCell
         let perfume = filteredPerfumeResults[indexPath.item]
         let collectionID = perfume.collectionDocumentID
-        cell.configure(with: perfume, isLiked: likedPerfumeIDs.contains(collectionID))
+        let hasTastingRecord = !tastingNoteKeys.isDisjoint(
+            with: PerfumePresentationSupport.recordMatchingKeys(
+                perfumeName: perfume.name,
+                brandName: perfume.brand
+            )
+        )
+        cell.configure(
+            with: perfume,
+            isLiked: likedPerfumeIDs.contains(collectionID),
+            hasTastingRecord: hasTastingRecord
+        )
 
             // 찜하기 버튼
         cell.wishlistButton.rx.tap

@@ -14,18 +14,21 @@ final class HomeViewController: UIViewController {
 
     private enum Layout {
         static let horizontalInset: CGFloat = 20
-        static let cardWidth: CGFloat = 154
-        static let cardHeight: CGFloat = 256
-        static let cardSpacing: CGFloat = 14
+        static let cardWidth: CGFloat = 132
+        static let cardHeight: CGFloat = 240
+        static let cardSpacing: CGFloat = 16
     }
 
     private let viewModel: HomeViewModel
     private let collectionRepository: CollectionRepositoryType
+    private let tastingRecordRepository: TastingRecordRepositoryType
+    private let localTastingNoteRepository: LocalTastingNoteRepository
     private let disposeBag = DisposeBag()
     private var recommendations: [HomePerfumeItem] = []
     private var currentProfileItem: HomeViewModel.HomeProfileItem?
     private var currentBannerItem: HomeTasteBannerItem?
     private var likedPerfumeIDs = Set<String>()
+    private var tastingNoteKeys = Set<String>()
 
     private let scrollView = UIScrollView()
     private let contentView = UIView()
@@ -93,7 +96,7 @@ final class HomeViewController: UIViewController {
     private let recommendationTitleLabel: UILabel = {
         let label = UILabel()
         label.text = AppStrings.Home.recommendTitle
-        label.font = .systemFont(ofSize: 18, weight: .bold)
+        label.font = .systemFont(ofSize: 18, weight: .semibold)
         label.textColor = .label
         return label
     }()
@@ -136,10 +139,14 @@ final class HomeViewController: UIViewController {
 
     init(
         viewModel: HomeViewModel,
-        collectionRepository: CollectionRepositoryType
+        collectionRepository: CollectionRepositoryType,
+        tastingRecordRepository: TastingRecordRepositoryType,
+        localTastingNoteRepository: LocalTastingNoteRepository
     ) {
         self.viewModel = viewModel
         self.collectionRepository = collectionRepository
+        self.tastingRecordRepository = tastingRecordRepository
+        self.localTastingNoteRepository = localTastingNoteRepository
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -154,6 +161,7 @@ final class HomeViewController: UIViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         loadLikedPerfumes()
+        loadTastingNoteKeys()
     }
 }
 
@@ -501,6 +509,35 @@ private extension HomeViewController {
             .disposed(by: disposeBag)
     }
 
+    func loadTastingNoteKeys() {
+        // 1단계: CoreData 로컬에서 즉시 반영 (동기) — Firestore 동기화 전에도 배지 표시
+        if let localNotes = try? localTastingNoteRepository.loadNotes() {
+            tastingNoteKeys = Set(localNotes.flatMap {
+                PerfumePresentationSupport.recordMatchingKeys(
+                    perfumeName: $0.perfumeName,
+                    brandName: $0.brandName
+                )
+            })
+            recommendationCollectionView.reloadData()
+        }
+
+        // 2단계: Firestore에서 추가 병합 (비동기) — 다른 기기 기록까지 포함
+        tastingRecordRepository.fetchTastingRecords()
+            .observe(on: MainScheduler.instance)
+            .subscribe(onSuccess: { [weak self] records in
+                guard let self else { return }
+                let remoteKeys = Set(records.flatMap {
+                    PerfumePresentationSupport.recordMatchingKeys(
+                        perfumeName: $0.perfumeName,
+                        brandName: $0.brandName
+                    )
+                })
+                self.tastingNoteKeys.formUnion(remoteKeys)
+                self.recommendationCollectionView.reloadData()
+            }, onFailure: { _ in })
+            .disposed(by: disposeBag)
+    }
+
     func saveLike(for item: HomePerfumeItem) {
         let collectionID = Perfume.collectionDocumentID(from: item.id)
         let perfume = Perfume(
@@ -574,7 +611,17 @@ extension HomeViewController: UICollectionViewDataSource {
 
         let item = visibleRecommendations[indexPath.item]
         let collectionID = Perfume.collectionDocumentID(from: item.id)
-        cell.configure(with: item, isLiked: likedPerfumeIDs.contains(collectionID))
+        let hasTastingRecord = !tastingNoteKeys.isDisjoint(
+            with: PerfumePresentationSupport.recordMatchingKeys(
+                perfumeName: item.perfumeName,
+                brandName: item.brandName
+            )
+        )
+        cell.configure(
+            with: item,
+            isLiked: likedPerfumeIDs.contains(collectionID),
+            hasTastingRecord: hasTastingRecord
+        )
         cell.wishlistButton.rx.tap
             .subscribe(onNext: { [weak self] in
                 guard let self else { return }
