@@ -19,7 +19,7 @@ struct MyPageView: View {
         static let sectionSpacing: CGFloat = 36
         static let sectionContentSpacing: CGFloat = 10
         static let sectionHeaderBottomSpacing: CGFloat = 4
-        static let profileTopSpacing: CGFloat = 18
+        static let profileTopSpacing: CGFloat = -14.5
         static let profileBottomSpacing: CGFloat = 8
         static let profileImageSize: CGFloat = 60
         static let profileTextSpacing: CGFloat = 6
@@ -27,7 +27,7 @@ struct MyPageView: View {
         static let tasteIconSize: CGFloat = 18
         static let cardSpacing: CGFloat = 16
         static let trailingPeekInset: CGFloat = PerfumeGridCardLayout.previewTrailingPeekInset
-        static let likedSectionTopSpacing: CGFloat = 24
+        static let likedSectionTopSpacing: CGFloat = 2
         static let bottomContentPadding: CGFloat = 68
 
         static var cardWidth: CGFloat {
@@ -113,7 +113,7 @@ struct MyPageView: View {
         HStack(alignment: .center, spacing: 16) {
             VStack(alignment: .leading, spacing: Layout.profileTextSpacing) {
                 Text(viewModel.profileInfo?.nickname ?? AppStrings.Profile.userFallback)
-                    .font(.system(size: 22, weight: .bold))
+                    .font(.system(size: 22, weight: .semibold))
                     .foregroundColor(.primary)
 
                 Text(viewModel.profileInfo?.email ?? AppStrings.Profile.missingEmail)

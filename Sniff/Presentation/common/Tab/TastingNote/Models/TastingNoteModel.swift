@@ -90,7 +90,8 @@ struct TastingNote: Identifiable, Codable {
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encodeIfPresent(id, forKey: .id)
+        // id는 @DocumentID로 관리되므로 Firestore 문서 데이터에 포함하지 않습니다.
+        // Firestore 보안 규칙의 hasOnly 검증 통과를 위해 id 필드를 제외합니다.
         try container.encode(perfumeName, forKey: .perfumeName)
         try container.encode(brandName, forKey: .brandName)
         try container.encode(mainAccords, forKey: .mainAccords)

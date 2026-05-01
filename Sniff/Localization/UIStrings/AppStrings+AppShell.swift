@@ -18,7 +18,9 @@ extension AppStrings {
         enum Login {
             static let title = AppShell.appName
             static let subtitle = "나만의 향수 취향을 찾아보세요"
-            static let appleButton = "Apple로 로그인"
+            static let appleButton = "Apple로 계속하기"
+            static let kakaoButton = "카카오로 계속하기"
+            static let googleButton = "Google로 계속하기"
             static let defaultError = "로그인에 실패했습니다."
             static let invalidCredential = "인증 정보를 처리할 수 없습니다."
         }

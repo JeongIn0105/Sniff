@@ -121,17 +121,23 @@ final class LocalTastingNoteRepository {
                 .order(by: "createdAt", descending: true)
                 .getDocuments()
 
+            // Firestore에서 데이터를 성공적으로 가져온 후, 기존 synced 항목을 모두 삭제하고 새로 채웁니다.
+            // pending 상태(아직 Firestore에 동기화 안 된 항목)는 유지합니다.
+            // 이렇게 하면 로그인 유저가 바뀌어도 이전 유저의 데이터가 남지 않습니다.
+            let deleteRequest = LocalTastingNoteEntity.fetchRequest()
+            deleteRequest.predicate = NSPredicate(
+                format: "syncStatus == %@",
+                TastingNoteSyncStatus.synced.rawValue
+            )
+            if let syncedEntities = try? context.fetch(deleteRequest) {
+                syncedEntities.forEach { context.delete($0) }
+            }
+
             for document in snapshot.documents {
                 guard var note = try? document.data(as: TastingNote.self) else { continue }
                 note.id = document.documentID
-                let entity = try findEntity(remoteID: document.documentID)
-                    ?? findEntity(id: document.documentID)
-                    ?? LocalTastingNoteEntity(context: context)
-
-                if currentID(for: entity).isEmpty {
-                    entity.id = document.documentID
-                }
-
+                let entity = LocalTastingNoteEntity(context: context)
+                entity.id = document.documentID
                 apply(note, to: entity)
                 entity.remoteID = document.documentID
                 entity.syncStatus = TastingNoteSyncStatus.synced.rawValue

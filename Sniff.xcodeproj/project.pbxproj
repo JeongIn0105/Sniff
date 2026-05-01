@@ -16,6 +16,7 @@
 		7D70694E2F8D0AF2009D473E /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = 7D70694D2F8D0AF2009D473E /* Kingfisher */; };
 		7D7069512F8D0AFE009D473E /* Then in Frameworks */ = {isa = PBXBuildFile; productRef = 7D7069502F8D0AFE009D473E /* Then */; };
 		7D7069542F8D0B0F009D473E /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 7D7069532F8D0B0F009D473E /* Lottie */; };
+		99D1B2B62FA4485700AB4DF8 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 99D1B2B52FA4485700AB4DF8 /* GoogleSignIn */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -58,6 +59,7 @@
 				7D7069542F8D0B0F009D473E /* Lottie in Frameworks */,
 				7D70694E2F8D0AF2009D473E /* Kingfisher in Frameworks */,
 				7D7069512F8D0AFE009D473E /* Then in Frameworks */,
+				99D1B2B62FA4485700AB4DF8 /* GoogleSignIn in Frameworks */,
 				7D7069482F8D0AD5009D473E /* RxSwift in Frameworks */,
 				7D70694B2F8D0AE4009D473E /* SnapKit in Frameworks */,
 				7D7069462F8D0AD5009D473E /* RxRelay in Frameworks */,
@@ -118,6 +120,7 @@
 				7D70694D2F8D0AF2009D473E /* Kingfisher */,
 				7D7069502F8D0AFE009D473E /* Then */,
 				7D7069532F8D0B0F009D473E /* Lottie */,
+				99D1B2B52FA4485700AB4DF8 /* GoogleSignIn */,
 			);
 			productName = Sniff;
 			productReference = 9915613E2F7E90AD0030F8BC /* Sniff.app */;
@@ -154,6 +157,7 @@
 				7D70694C2F8D0AF2009D473E /* XCRemoteSwiftPackageReference "Kingfisher" */,
 				7D70694F2F8D0AFE009D473E /* XCRemoteSwiftPackageReference "Then" */,
 				7D7069522F8D0B0F009D473E /* XCRemoteSwiftPackageReference "lottie-spm" */,
+				99D1B2B42FA4485700AB4DF8 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 9915613F2F7E90AD0030F8BC /* Products */;
@@ -198,11 +202,13 @@
 				DEVELOPMENT_TEAM = 9CSRLH87TB;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Sniff/Info.plist;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIMainStoryboardFile = "";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UIUserInterfaceStyle = Light;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -237,11 +243,13 @@
 				DEVELOPMENT_TEAM = 9CSRLH87TB;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Sniff/Info.plist;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIMainStoryboardFile = "";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UIUserInterfaceStyle = Light;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -459,6 +467,14 @@
 				minimumVersion = 4.6.0;
 			};
 		};
+		99D1B2B42FA4485700AB4DF8 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.1.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -506,6 +522,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 7D7069522F8D0B0F009D473E /* XCRemoteSwiftPackageReference "lottie-spm" */;
 			productName = Lottie;
+		};
+		99D1B2B52FA4485700AB4DF8 /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 99D1B2B42FA4485700AB4DF8 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
