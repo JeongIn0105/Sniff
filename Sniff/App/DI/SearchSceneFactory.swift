@@ -25,6 +25,8 @@ enum SearchSceneFactory {
         return SearchViewController(
             viewModel: viewModel,
             collectionRepository: dependencyContainer.makeCollectionRepository(),
+            tastingRecordRepository: dependencyContainer.makeTastingRecordRepository(),
+            localTastingNoteRepository: dependencyContainer.localTastingNoteRepository,
             showsRecentOnAppear: showsRecentOnAppear
         )
     }

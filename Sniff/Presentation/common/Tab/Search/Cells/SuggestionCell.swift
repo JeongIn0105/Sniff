@@ -22,20 +22,23 @@ final class SuggestionCell: UITableViewCell {
     private let thumbnailImageView = UIImageView().then {
         $0.contentMode = .scaleAspectFill
         $0.clipsToBounds = true
-        $0.layer.cornerRadius = 20
-        $0.backgroundColor = .systemGray5
+        $0.layer.cornerRadius = 12
+        $0.layer.cornerCurve = .continuous
+        $0.layer.borderWidth = 1
+        $0.layer.borderColor = UIColor(red: 0.93, green: 0.93, blue: 0.93, alpha: 1).cgColor
+        $0.backgroundColor = .systemGray6
     }
 
     private let nameLabel = UILabel().then {
-        $0.font = .systemFont(ofSize: 15)
+        $0.font = .systemFont(ofSize: 16, weight: .medium)
         $0.textColor = .label
         $0.numberOfLines = 2
         $0.lineBreakMode = .byWordWrapping
     }
 
     private let subTitleLabel = UILabel().then {
-        $0.font = .systemFont(ofSize: 13)
-        $0.textColor = .label
+        $0.font = .systemFont(ofSize: 16, weight: .medium)
+        $0.textColor = UIColor(red: 0.52, green: 0.52, blue: 0.52, alpha: 1) // Atomic/Neutral/700
         $0.numberOfLines = 1
     }
 
@@ -64,7 +67,7 @@ final class SuggestionCell: UITableViewCell {
         thumbnailImageView.snp.makeConstraints {
             $0.leading.equalToSuperview().offset(20)
             $0.centerY.equalToSuperview()
-            $0.size.equalTo(40)
+            $0.size.equalTo(62)
         }
 
         nameLabel.snp.makeConstraints {
@@ -101,9 +104,11 @@ final class SuggestionCell: UITableViewCell {
         subTitleLabel.text = displaySubtitle
 
         if case .brand = item {
-            subTitleLabel.textColor = .secondaryLabel
+            // 브랜드: 영문명 표시 — neutral700 (초기화에서 설정)
+            subTitleLabel.textColor = UIColor(red: 0.52, green: 0.52, blue: 0.52, alpha: 1)
         } else {
-            subTitleLabel.textColor = .label
+            // 향수 연관검색어: 브랜드명 표시
+            subTitleLabel.textColor = .secondaryLabel
         }
 
         thumbnailImageView.image = nil

@@ -43,13 +43,15 @@ final class HomePerfumeCardCell: UICollectionViewCell {
     }()
 
     private let tastingBadgeLabel: PaddingLabel = {
-        let label = PaddingLabel(insets: UIEdgeInsets(top: 4, left: 8, bottom: 4, right: 8))
+        let label = PaddingLabel(insets: UIEdgeInsets(top: 4, left: 6, bottom: 4, right: 6))
         label.text = "시향 기록"
-        label.font = .systemFont(ofSize: 10, weight: .medium)
-        label.textColor = UIColor(red: 0.43, green: 0.32, blue: 0.22, alpha: 1)
-        label.backgroundColor = UIColor(red: 0.91, green: 0.83, blue: 0.73, alpha: 1)
+        label.font = .systemFont(ofSize: 11, weight: .medium)
+        label.textColor = UIColor(red: 0.47, green: 0.39, blue: 0.31, alpha: 1)
+        label.backgroundColor = UIColor(red: 0.95, green: 0.92, blue: 0.88, alpha: 1)
         label.layer.cornerCurve = .continuous
         label.layer.masksToBounds = true
+        label.layer.borderWidth = 1.0
+        label.layer.borderColor = UIColor(red: 0.80, green: 0.75, blue: 0.68, alpha: 1).cgColor
         return label
     }()
 
@@ -101,7 +103,7 @@ final class HomePerfumeCardCell: UICollectionViewCell {
 
     private let brandLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 12, weight: .regular)
+        label.font = .systemFont(ofSize: 14, weight: .medium)
         label.textColor = .secondaryLabel
         label.numberOfLines = 1
         return label
@@ -127,7 +129,7 @@ final class HomePerfumeCardCell: UICollectionViewCell {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        tastingBadgeLabel.layer.cornerRadius = 8
+        tastingBadgeLabel.layer.cornerRadius = 4
     }
 
     override func prepareForReuse() {
@@ -143,7 +145,13 @@ final class HomePerfumeCardCell: UICollectionViewCell {
 
     private func setup() {
         contentView.backgroundColor = .clear
+
+        // cardView = 이미지 카드 영역 (정사각형)
         contentView.addSubview(cardView)
+        // 텍스트는 카드 아래 (cardView 바깥)
+        contentView.addSubview(brandLabel)
+        contentView.addSubview(perfumeNameLabel)
+        contentView.addSubview(accordsWrapView)
 
         cardView.addSubview(imageContainerView)
         imageContainerView.addSubview(placeholderCapView)
@@ -152,21 +160,21 @@ final class HomePerfumeCardCell: UICollectionViewCell {
         imageContainerView.addSubview(placeholderMessageLabel)
         imageContainerView.addSubview(bottleImageView)
         imageContainerView.addSubview(wishlistButton)
-
         cardView.addSubview(tastingBadgeLabel)
-        cardView.addSubview(brandLabel)
-        cardView.addSubview(perfumeNameLabel)
-        cardView.addSubview(accordsWrapView)
 
-        cardView.snp.makeConstraints { $0.edges.equalToSuperview() }
+        // cardView: 정사각형 이미지 카드
+        cardView.snp.makeConstraints {
+            $0.top.leading.trailing.equalToSuperview()
+            $0.height.equalTo(132)
+        }
 
+        // 이미지 컨테이너가 카드 전체를 채움
         imageContainerView.snp.makeConstraints {
-            $0.top.leading.trailing.equalToSuperview().inset(8)
-            $0.height.equalTo(140)
+            $0.edges.equalToSuperview()
         }
 
         bottleImageView.snp.makeConstraints {
-            $0.edges.equalToSuperview()
+            $0.edges.equalToSuperview().inset(8)
         }
 
         tastingBadgeLabel.snp.makeConstraints {
@@ -174,55 +182,55 @@ final class HomePerfumeCardCell: UICollectionViewCell {
         }
 
         wishlistButton.snp.makeConstraints {
-            $0.trailing.equalToSuperview().inset(0)
-            $0.bottom.equalToSuperview().inset(0)
-            $0.size.equalTo(32)
+            $0.trailing.bottom.equalToSuperview()
+            $0.size.equalTo(40)
         }
 
         placeholderCapView.snp.makeConstraints {
             $0.centerX.equalToSuperview()
-            $0.top.equalToSuperview().offset(28)
-            $0.size.equalTo(CGSize(width: 24, height: 10))
+            $0.top.equalToSuperview().offset(18)
+            $0.size.equalTo(CGSize(width: 18, height: 8))
         }
 
         placeholderBottleView.snp.makeConstraints {
             $0.center.equalToSuperview()
-            $0.size.equalTo(CGSize(width: 96, height: 96))
+            $0.size.equalTo(CGSize(width: 80, height: 80))
         }
 
         placeholderMonogramLabel.snp.makeConstraints { $0.edges.equalToSuperview() }
 
         placeholderMessageLabel.snp.makeConstraints {
-            $0.top.equalTo(placeholderBottleView.snp.bottom).offset(10)
+            $0.top.equalTo(placeholderBottleView.snp.bottom).offset(8)
             $0.centerX.equalToSuperview()
-            $0.leading.greaterThanOrEqualToSuperview().offset(16)
-            $0.trailing.lessThanOrEqualToSuperview().offset(-16)
+            $0.leading.greaterThanOrEqualToSuperview().offset(8)
+            $0.trailing.lessThanOrEqualToSuperview().offset(-8)
         }
 
+        // 텍스트 영역: 카드 아래
         brandLabel.snp.makeConstraints {
-            $0.top.equalTo(imageContainerView.snp.bottom).offset(10)
-            $0.leading.trailing.equalToSuperview().inset(8)
+            $0.top.equalTo(cardView.snp.bottom).offset(10)
+            $0.leading.trailing.equalToSuperview()
             $0.height.equalTo(16)
         }
 
         perfumeNameLabel.snp.makeConstraints {
             $0.top.equalTo(brandLabel.snp.bottom).offset(2)
-            $0.leading.trailing.equalToSuperview().inset(8)
+            $0.leading.trailing.equalToSuperview()
             $0.height.equalTo(40)
         }
 
         accordsWrapView.snp.makeConstraints {
             $0.top.equalTo(perfumeNameLabel.snp.bottom).offset(8)
-            $0.leading.trailing.equalToSuperview().inset(8)
-            $0.bottom.lessThanOrEqualToSuperview().inset(8)
+            $0.leading.trailing.equalToSuperview()
+            $0.bottom.lessThanOrEqualToSuperview()
         }
     }
 
-    func configure(with item: HomePerfumeItem, isLiked: Bool = false) {
+    func configure(with item: HomePerfumeItem, isLiked: Bool = false, hasTastingRecord: Bool? = nil) {
         brandLabel.text = PerfumePresentationSupport.displayBrand(item.brandName)
         perfumeNameLabel.text = PerfumePresentationSupport.displayPerfumeName(item.perfumeName)
         PerfumeHeartStyle.applyState(to: wishlistButton, isLiked: isLiked)
-        tastingBadgeLabel.isHidden = !item.hasTastingRecord
+        tastingBadgeLabel.isHidden = !(hasTastingRecord ?? item.hasTastingRecord)
 
         let monogram = String(item.brandName.prefix(1)).uppercased()
         placeholderMonogramLabel.text = monogram
@@ -266,7 +274,7 @@ final class HomePerfumeCardCell: UICollectionViewCell {
 
         let label = UILabel()
         label.text = displayText
-        label.font = .systemFont(ofSize: 12, weight: .regular)
+        label.font = .systemFont(ofSize: 13, weight: .medium)
         label.textColor = .secondaryLabel
 
         let stack = UIStackView(arrangedSubviews: [dotView, label])

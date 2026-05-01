@@ -25,7 +25,9 @@ enum HomeSceneFactory {
         )
         return HomeViewController(
             viewModel: viewModel,
-            collectionRepository: collectionRepository
+            collectionRepository: collectionRepository,
+            tastingRecordRepository: dependencyContainer.makeTastingRecordRepository(),
+            localTastingNoteRepository: dependencyContainer.localTastingNoteRepository
         )
     }
 }
