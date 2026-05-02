@@ -329,15 +329,19 @@ enum FragranceProfileText {
             primaryHex: "#99CFE3",
             baseHex: "#F2E8DE"
         ),
+        // Figma EllipticalGradient: Color(0.95,0.9,0.68) → Color(0.66,0.81,0.91) → Color(0.95,0.91,0.87)
         "부드럽고 청순한 취향": FragranceProfileColorPalette(
-            accentHex: "#FF8A8B",
-            primaryHex: "#EFA8B7",
-            baseHex: "#F2E8DE"
+            accentHex: "#F2E6AD",  // 연노랑 (상단 중심)
+            primaryHex: "#A8CFE8",  // 연파랑 (중간)
+            baseHex: "#F2E8DE",     // 크림 (외곽)
+            primaryLocation: 0.45
         ),
+        // 수정: 진한 핑크를 center(accent), 밝은 핑크를 middle(primary)
+        // 중심→진한핑크 → 중간→연한핑크 → 외곽→크림: blob 없는 부드러운 그라데이션
         "포근하고 여유로운 취향": FragranceProfileColorPalette(
-            accentHex: "#C95EAD",
-            primaryHex: "#E4A8CF",
-            baseHex: "#F2E8DE"
+            accentHex: "#D173AB",  // 진한 핑크-퍼플 (center/top)
+            primaryHex: "#EFA8B7", // 연한 핑크 (middle)
+            baseHex: "#F2E8DE"     // 크림 (edge/bottom)
         ),
         "달콤하고 화사한 취향": FragranceProfileColorPalette(
             accentHex: "#F38BCB",
@@ -354,10 +358,11 @@ enum FragranceProfileText {
             primaryHex: "#D7C8B6",
             baseHex: "#F2E8DE"
         ),
+        // 수정: 딥로즈를 center, 웜골드를 middle
         "짙고 강렬한 취향": FragranceProfileColorPalette(
-            accentHex: "#C8A77E",
-            primaryHex: "#B95770",
-            baseHex: "#F2E8DE"
+            accentHex: "#B95770",  // 딥로즈 (center/top)
+            primaryHex: "#C8A77E", // 웜골드 (middle)
+            baseHex: "#F2E8DE"     // 크림 (edge)
         )
     ]
 
