@@ -17,16 +17,19 @@ enum HomeSceneFactory {
         dependencyContainer: AppDependencyContainer
     ) -> HomeViewController {
         let collectionRepository = dependencyContainer.makeCollectionRepository()
+        let tastingRecordRepository = dependencyContainer.makeTastingRecordRepository()
+        let userTasteRepository = dependencyContainer.makeUserTasteRepository()
         let viewModel = HomeViewModel(
-            userTasteRepository: dependencyContainer.makeUserTasteRepository(),
+            userTasteRepository: userTasteRepository,
             collectionRepository: collectionRepository,
-            tastingRecordRepository: dependencyContainer.makeTastingRecordRepository(),
+            tastingRecordRepository: tastingRecordRepository,
             recommendPerfumesUseCase: dependencyContainer.makeRecommendPerfumesUseCase()
         )
         return HomeViewController(
             viewModel: viewModel,
+            userTasteRepository: userTasteRepository,
             collectionRepository: collectionRepository,
-            tastingRecordRepository: dependencyContainer.makeTastingRecordRepository(),
+            tastingRecordRepository: tastingRecordRepository,
             localTastingNoteRepository: dependencyContainer.localTastingNoteRepository
         )
     }

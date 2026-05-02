@@ -19,7 +19,7 @@ extension AppStrings {
             static let profileLoading = "분석 중..."
             static let best = "베스트"
             static let recommendations = "추천 향수"
-            static let guide = "추천은 취향 분석과 시향 기록, 등록한 향수를 기반으로 계속 업데이트 됩니다."
+            static let guide = "오늘의 추천 향수는 취향 프로필에 따라 추천이 업데이트됩니다.\n취향 프로필은 보유 향수, 시향 기록에 따라 변경될 수 있습니다."
             static let routePerfumeRegister = "향수 등록 화면으로 연결할 수 있어요."
             static let routeTastingNote = "시향기 작성 화면으로 연결할 수 있어요."
             static let routeTasteReport = "취향 리포트 화면으로 연결할 수 있어요."
