@@ -403,7 +403,7 @@ final class FilterViewController: UIViewController {
 
         let titleLabel = UILabel().then {
             $0.text = title
-            $0.font = .systemFont(ofSize: 15, weight: .semibold)
+            $0.font = .systemFont(ofSize: 18, weight: .bold)
             $0.textColor = .label
         }
 
@@ -434,9 +434,9 @@ final class FilterViewController: UIViewController {
             }
             headerView.addSubview(infoButton)
             infoButton.snp.makeConstraints {
-                $0.leading.equalTo(titleLabel.snp.trailing).offset(4)
+                $0.leading.equalTo(titleLabel.snp.trailing).offset(6)
                 $0.centerY.equalTo(titleLabel)
-                $0.size.equalTo(16)
+                $0.size.equalTo(18)
             }
             infoButton.rx.tap
                 .subscribe(onNext: { [weak self] in
@@ -891,7 +891,7 @@ private final class ScentFamilyInfoViewController: UIViewController {
 
     private let descriptionLabel = UILabel().then {
         $0.text = AppStrings.UIKitScreens.Filter.scentFamilyInfoBody
-        $0.font = .systemFont(ofSize: 14, weight: .regular)
+        $0.font = .systemFont(ofSize: 15, weight: .regular)
         $0.textColor = .secondaryLabel
         $0.numberOfLines = 0
     }
@@ -983,7 +983,7 @@ private final class ScentFamilyInfoRowView: UIView {
 
         let descriptionLabel = UILabel().then {
             $0.text = family.descriptionText
-            $0.font = .systemFont(ofSize: 12, weight: .regular)
+            $0.font = .systemFont(ofSize: 13, weight: .regular)
             $0.textColor = .secondaryLabel
             $0.numberOfLines = 0
         }

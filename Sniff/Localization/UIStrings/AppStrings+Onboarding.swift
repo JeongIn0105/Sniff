@@ -42,7 +42,7 @@ extension AppStrings {
 
         enum Result {
             static func title(nickname: String) -> String {
-                "\(nickname)님의 향수 취향\n분석이 완료됐어요"
+                "\(nickname)님의 취향 분석 완료!"
             }
 
             static let subtitle = "나만의 향수를 찾아볼게요"

@@ -366,6 +366,7 @@ private extension FirestoreService {
                 "vibes": result.evidenceTags.vibes,
                 "images": result.evidenceTags.images
             ],
+            "disliked_tags": result.dislikedTags,
             "recommendation_direction": [
                 "preferred_impression": result.recommendationDirection.preferredImpression,
                 "preferred_families": result.recommendationDirection.preferredFamilies,
@@ -463,6 +464,7 @@ private extension FirestoreService {
             topNotes: data["topNotes"] as? [String],
             middleNotes: data["middleNotes"] as? [String],
             baseNotes: data["baseNotes"] as? [String],
+            generalNotes: data["generalNotes"] as? [String],
             seasonRanking: seasonRanking,
             concentration: data["concentration"] as? String,
             longevity: data["longevity"] as? String,

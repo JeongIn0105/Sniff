@@ -11,112 +11,41 @@ struct OnboardingResultView: View {
 
     @ObservedObject var viewModel: OnboardingViewModel
     let onComplete: () -> Void
-    private let horizontalInset: CGFloat = 28
+    private let horizontalInset: CGFloat = 34
 
     var body: some View {
         Group {
             if let result = viewModel.tasteResult {
                 VStack(spacing: 0) {
                     Spacer()
-                        .frame(height: 62)
+                        .frame(height: 166)
 
                     Text(AppStrings.Onboarding.Result.title(nickname: viewModel.nickname))
-                        .font(.system(size: 23, weight: .bold))
+                        .font(.system(size: 25, weight: .bold))
                         .multilineTextAlignment(.center)
                         .lineSpacing(6)
                         .foregroundColor(.black)
                         .padding(.horizontal, 32)
 
-                    ScrollView(showsIndicators: false) {
-                        VStack(spacing: 0) {
-                            VStack(alignment: .leading, spacing: 26) {
-                                HStack(alignment: .top, spacing: 14) {
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .fill(resultAccentGradient(result: result))
-                                        .frame(width: 44, height: 44)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 10)
-                                                .stroke(Color.black.opacity(0.06), lineWidth: 1)
-                                        )
-
-                                    VStack(alignment: .leading, spacing: 7) {
-                                        Text(result.displayTitle)
-                                            .font(.system(size: 19, weight: .bold))
-                                            .foregroundColor(.black)
-                                            .lineSpacing(2)
-                                            .fixedSize(horizontal: false, vertical: true)
-
-                                        Text(result.displayMajorSummary)
-                                            .font(.system(size: 13, weight: .medium))
-                                            .foregroundColor(Color(.systemGray))
-                                            .lineLimit(2)
-                                    }
-                                }
-
-                                Text(result.analysisSummary)
-                                    .font(.system(size: 15, weight: .regular))
-                                    .foregroundColor(Color(.darkGray))
-                                    .lineSpacing(7)
-                                    .multilineTextAlignment(.leading)
-
-                                Rectangle()
-                                    .fill(Color(.systemGray5))
-                                    .frame(height: 1)
-
-                                VStack(alignment: .leading, spacing: 12) {
-                                    Text(AppStrings.Onboarding.recommendationFamilies)
-                                        .font(.system(size: 14, weight: .medium))
-                                        .foregroundColor(Color(.systemGray))
-
-                                    FlowLayout(spacing: 8) {
-                                        ForEach(result.recommendationDirection.preferredFamilies, id: \.self) { family in
-                                            RecommendedFamilyChip(title: family)
-                                        }
-                                    }
-                                }
-                            }
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 26)
-                            .background(
-                                RoundedRectangle(cornerRadius: 24)
-                                    .fill(Color.white)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 24)
-                                            .stroke(Color.black.opacity(0.7), lineWidth: 1)
-                                    )
-                            )
-                            .padding(.horizontal, horizontalInset)
-
-                            Text(AppStrings.Onboarding.Result.footnote)
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(Color(.systemGray))
-                                .lineSpacing(4)
-                                .multilineTextAlignment(.leading)
-                                .padding(.horizontal, horizontalInset)
-                                .padding(.top, 14)
-                        }
+                    resultCard(result)
+                        .padding(.horizontal, horizontalInset)
                         .padding(.top, 36)
-                        .padding(.bottom, 24)
-                    }
+
+                    Text(AppStrings.Onboarding.Result.footnote)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(Color(.systemGray))
+                        .lineSpacing(5)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, horizontalInset)
+                        .padding(.top, 18)
 
                     Spacer(minLength: 0)
 
-                    Button {
-                        onComplete()
-                    } label: {
-                        Text(AppStrings.Onboarding.Result.cta)
-                            .font(.system(size: 16, weight: .semibold))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 54)
-                            .background(Color(uiColor: UIColor(hex: "#1F1F1F")))
-                            .foregroundColor(.white)
-                            .cornerRadius(12)
-                    }
-                    .padding(.horizontal, horizontalInset)
-                    .padding(.bottom, 24)
+                    bottomAction
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.sniffBeige.ignoresSafeArea())
+                .background(Color.white.ignoresSafeArea())
             } else {
                 VStack(spacing: 16) {
                     Spacer()
@@ -124,8 +53,90 @@ struct OnboardingResultView: View {
                     Spacer()
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.sniffBeige.ignoresSafeArea())
+                .background(Color.white.ignoresSafeArea())
             }
+        }
+    }
+
+    private func resultCard(_ result: TasteAnalysisResult) -> some View {
+        VStack(alignment: .leading, spacing: 24) {
+            HStack(alignment: .top, spacing: 14) {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(resultAccentGradient(result: result))
+                    .frame(width: 44, height: 44)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.black.opacity(0.06), lineWidth: 1)
+                    )
+
+                VStack(alignment: .leading, spacing: 7) {
+                    Text(result.displayTitle)
+                        .font(.system(size: 19, weight: .bold))
+                        .foregroundColor(.black)
+                        .lineSpacing(2)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text(result.displayMajorSummary)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(Color(.systemGray))
+                        .lineLimit(2)
+                }
+            }
+
+            Text(result.analysisSummary)
+                .font(.system(size: 15, weight: .regular))
+                .foregroundColor(Color(.darkGray))
+                .lineSpacing(7)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Rectangle()
+                .fill(Color(.systemGray5))
+                .frame(height: 1)
+
+            VStack(alignment: .leading, spacing: 12) {
+                Text(AppStrings.Onboarding.recommendationFamilies)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(Color(.systemGray))
+
+                FlowLayout(spacing: 8) {
+                    ForEach(result.recommendationDirection.preferredFamilies, id: \.self) { family in
+                        RecommendedFamilyChip(title: family)
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 26)
+        .background(
+            RoundedRectangle(cornerRadius: 24)
+                .fill(Color(hex: "#FFFDFB"))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24)
+                        .stroke(Color.black.opacity(0.75), lineWidth: 1)
+                )
+        )
+    }
+
+    private var bottomAction: some View {
+        VStack(spacing: 0) {
+            Divider()
+                .background(Color(hex: "#EEF0F3"))
+
+            Button {
+                onComplete()
+            } label: {
+                Text(AppStrings.Onboarding.Result.cta)
+                    .font(.system(size: 16, weight: .semibold))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 54)
+                    .background(Color(hex: "#F1E8DF"))
+                    .foregroundColor(.black)
+                    .cornerRadius(12)
+            }
+            .padding(.horizontal, horizontalInset)
+            .padding(.top, 18)
+            .padding(.bottom, 18)
         }
     }
 
@@ -155,7 +166,7 @@ private struct RecommendedFamilyChip: View {
                 .fill(Color(uiColor: ScentFamilyColor.color(for: title)).opacity(0.75))
                 .frame(width: 7, height: 7)
 
-            Text(title)
+            Text(PerfumeKoreanTranslator.koreanFamily(for: title))
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(.black)
         }

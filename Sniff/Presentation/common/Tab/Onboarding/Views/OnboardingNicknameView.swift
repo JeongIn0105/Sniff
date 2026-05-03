@@ -12,18 +12,29 @@ struct OnboardingNicknameView: View {
     @ObservedObject var viewModel: OnboardingViewModel
     let onBack: () -> Void
     @FocusState private var isNicknameFieldFocused: Bool
-    private let contentWidth: CGFloat = 344
-    private let titleConfig = TitleLayoutConfig.default
+    private let horizontalInset: CGFloat = 24
 
     var body: some View {
         GeometryReader { geometry in
-            let resolvedContentWidth = min(contentWidth, geometry.size.width - (titleConfig.leadingInset * 2))
-
             ZStack {
+                Color.white
+                    .ignoresSafeArea()
+
                 VStack(alignment: .leading, spacing: 0) {
-                    onboardingHeader
-                        .padding(.top, 8)
-                        .padding(.horizontal, 20)
+                    OnboardingStepHeader(step: 1, totalSteps: 5) {
+                        isNicknameFieldFocused = false
+                        onBack()
+                    }
+                    .padding(.top, 24)
+                    .padding(.horizontal, horizontalInset)
+
+                    title
+                        .padding(.top, geometry.size.height * 0.20)
+                        .padding(.horizontal, horizontalInset)
+
+                    nicknameInputSection
+                        .padding(.top, 46)
+                        .padding(.horizontal, horizontalInset)
 
                     Spacer()
 
@@ -32,68 +43,38 @@ struct OnboardingNicknameView: View {
                         viewModel.proceedFromNickname()
                     } label: {
                         Text(AppStrings.Nickname.confirm)
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundColor(.white)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(viewModel.canProceedFromNickname ? .black : Color(hex: "#9EA6B5"))
                             .frame(maxWidth: .infinity)
-                            .frame(height: 56)
-                            .background(viewModel.canProceedFromNickname ? Color.black : Color(.systemGray4))
+                            .frame(height: 50)
+                            .background(viewModel.canProceedFromNickname ? Color(hex: "#F1E8DF") : Color(hex: "#E2E5EA"))
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                     .disabled(!viewModel.canProceedFromNickname)
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 24)
+                    .padding(.horizontal, horizontalInset)
+                    .padding(.bottom, 18)
                 }
-
-                VStack(alignment: .leading, spacing: 32) {
-                    applyTitleConfig(AppStrings.Nickname.title, config: titleConfig)
-
-                    nicknameInputSection
-                }
-                .frame(maxWidth: resolvedContentWidth, alignment: .leading)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .padding(.top, geometry.size.height * 0.26)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .background(Color.sniffBeige.ignoresSafeArea())
     }
 
-    private var onboardingHeader: some View {
-        OnboardingStepHeader(step: 1, totalSteps: 4) {
-            isNicknameFieldFocused = false
-            onBack()
-        }
+    private var title: some View {
+        Text(AppStrings.Nickname.title)
+            .font(.system(size: 22, weight: .bold))
+            .foregroundColor(.black)
+            .lineSpacing(7)
+            .multilineTextAlignment(.leading)
     }
 
     private var nicknameInputSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 10) {
-                ZStack(alignment: .trailing) {
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(Color.white.opacity(0.9))
-                        .frame(height: 48)
+            HStack {
+                Text(AppStrings.Nickname.label)
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundColor(Color(hex: "#6F7683"))
 
-                    TextField("", text: $viewModel.nickname, prompt: Text(AppStrings.Nickname.placeholder).foregroundColor(Color(.systemGray3)))
-                        .focused($isNicknameFieldFocused)
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.black)
-                        .textInputAutocapitalization(.never)
-                        .disableAutocorrection(true)
-                        .padding(.leading, 14)
-                        .padding(.trailing, 38)
-                        .frame(height: 48)
-
-                    if !viewModel.nickname.isEmpty {
-                        Button {
-                            viewModel.clearNickname()
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 18))
-                                .foregroundColor(Color(.systemGray))
-                        }
-                        .padding(.trailing, 12)
-                    }
-                }
+                Spacer()
 
                 Button {
                     isNicknameFieldFocused = false
@@ -102,12 +83,43 @@ struct OnboardingNicknameView: View {
                     }
                 } label: {
                     Text(AppStrings.Nickname.duplicateCheck)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(.black)
+                        .font(.system(size: 12, weight: .regular))
+                        .foregroundColor(Color(hex: "#4D5665"))
                         .fixedSize(horizontal: true, vertical: false)
                 }
                 .disabled(!viewModel.canCheckNicknameDuplication || viewModel.isLoading)
-                .opacity(viewModel.canCheckNicknameDuplication && !viewModel.isLoading ? 1 : 0.45)
+                .opacity(viewModel.canCheckNicknameDuplication && !viewModel.isLoading ? 1 : 0.55)
+            }
+
+            ZStack(alignment: .trailing) {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color.white)
+                    .frame(height: 44)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .stroke(nicknameBorderColor, lineWidth: 1)
+                    }
+
+                TextField("", text: $viewModel.nickname, prompt: Text(AppStrings.Nickname.placeholder).foregroundColor(Color(hex: "#9EA6B5")))
+                    .focused($isNicknameFieldFocused)
+                    .font(.system(size: 14, weight: .regular))
+                    .foregroundColor(.black)
+                    .textInputAutocapitalization(.never)
+                    .disableAutocorrection(true)
+                    .padding(.leading, 12)
+                    .padding(.trailing, 36)
+                    .frame(height: 44)
+
+                if !viewModel.nickname.isEmpty {
+                    Button {
+                        viewModel.clearNickname()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 16))
+                            .foregroundColor(Color(.systemGray3))
+                    }
+                    .padding(.trailing, 12)
+                }
             }
 
             if let message = viewModel.nicknameStatusMessage {
@@ -125,22 +137,23 @@ struct OnboardingNicknameView: View {
 
             Text(AppStrings.Nickname.description)
                 .font(.system(size: 12))
-                .foregroundColor(Color(.systemGray))
+                .foregroundColor(Color(hex: "#8C95A3"))
 
             if let welcomeMessage = viewModel.nicknameWelcomeMessage {
                 Text(welcomeMessage)
                     .font(.system(size: 12))
-                    .foregroundColor(Color(.systemGray))
+                    .foregroundColor(Color(hex: "#8C95A3"))
                     .padding(.top, 2)
             }
         }
     }
 
-    private func applyTitleConfig(_ text: String, config: TitleLayoutConfig = .default) -> some View {
-        Text(text)
-            .font(.system(size: config.fontSize, weight: config.resolvedFontWeight))
-            .foregroundColor(.black)
-            .lineSpacing(config.lineSpacing)
-            .multilineTextAlignment(.leading)
+    private var nicknameBorderColor: Color {
+        switch viewModel.nicknameValidationState {
+        case .invalid, .unavailable:
+            return Color.red
+        default:
+            return Color(hex: "#D6DAE1")
+        }
     }
 }

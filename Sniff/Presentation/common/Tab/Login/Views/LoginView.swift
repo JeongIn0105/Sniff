@@ -17,117 +17,74 @@ struct LoginView: View {
     }
 
     var body: some View {
-    ZStack {
-        Color.sniffBeige.ignoresSafeArea()
+        GeometryReader { geometry in
+            ZStack {
+                Color.white.ignoresSafeArea()
 
-        VStack(spacing: 0) {
-            Spacer()
+                VStack(spacing: 0) {
+                    Spacer()
+                        .frame(height: geometry.size.height * 0.26)
 
-            // 로고
-            VStack(spacing: 12) {
-                Text(AppStrings.AppShell.Login.title)
-                    .font(.system(size: 60, weight: .bold))
-                    .foregroundStyle(.black)
+                    Text(AppStrings.AppShell.Login.title)
+                        .font(
+                            Font.custom("Hahmlet", size: 28)
+                                .weight(.bold)
+                        )
+                        .kerning(2)
+                        .multilineTextAlignment(.center)
+                        .foregroundColor(.black)
+                        .frame(maxWidth: .infinity, alignment: .top)
 
-                Text(AppStrings.AppShell.Login.subtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(.gray)
+                    Spacer()
+
+                    loginButton(
+                        action: {
+                            let scenes = UIApplication.shared.connectedScenes
+                                .compactMap { $0 as? UIWindowScene }
+                            guard let window = scenes
+                                .flatMap(\.windows)
+                                .first(where: \.isKeyWindow)
+                                ?? scenes.flatMap(\.windows).first
+                            else { return }
+
+                            viewModel.signInWithApple(presentationAnchor: window)
+                        },
+                        label: AppStrings.AppShell.Login.appleButton
+                    )
+                    .disabled(viewModel.isLoading)
+                    .padding(.horizontal, 24)
+
+                    if viewModel.isLoading {
+                        ProgressView()
+                            .tint(.black)
+                            .padding(.top, 12)
+                    }
+
+                    Spacer()
+                        .frame(height: 56)
+                }
             }
-
-            Spacer()
-
-            // 소셜 로그인 버튼 영역
-            VStack(spacing: 12) {
-                // Apple 로그인
-                loginButton(
-                    action: {
-                        let scenes = UIApplication.shared.connectedScenes
-                            .compactMap { $0 as? UIWindowScene }
-                        guard let window = scenes
-                            .flatMap(\.windows)
-                            .first(where: \.isKeyWindow)
-                            ?? scenes.flatMap(\.windows).first
-                        else { return }
-
-                        viewModel.signInWithApple(presentationAnchor: window)
-                    },
-                    icon: Image(systemName: "apple.logo"),
-                    label: AppStrings.AppShell.Login.appleButton,
-                    foregroundColor: .white,
-                    backgroundColor: .black,
-                    strokeColor: nil
-                )
-
-                // 구글 로그인
-                loginButton(
-                    action: {
-                        let scenes = UIApplication.shared.connectedScenes
-                            .compactMap { $0 as? UIWindowScene }
-                        guard let window = scenes
-                            .flatMap(\.windows)
-                            .first(where: \.isKeyWindow)
-                            ?? scenes.flatMap(\.windows).first
-                        else { return }
-
-                        viewModel.signInWithGoogle(presentingWindow: window)
-                    },
-                    icon: Image("google_logo"),
-                    label: AppStrings.AppShell.Login.googleButton,
-                    foregroundColor: Color(red: 0.2, green: 0.2, blue: 0.2),
-                    backgroundColor: .white,
-                    strokeColor: Color(red: 0.85, green: 0.85, blue: 0.85)
-                )
-            }
-            .padding(.horizontal, 14)
-            .disabled(viewModel.isLoading)
-
-            if viewModel.isLoading {
-                ProgressView()
-                    .tint(.black)
-                    .padding(.top, 12)
-            }
-
-            Spacer().frame(height: 60)
         }
+        .toast(
+            isPresented: $viewModel.showError,
+            message: viewModel.errorMessage ?? AppStrings.AppShell.Login.defaultError
+        )
     }
-    .toast(
-        isPresented: $viewModel.showError,
-        message: viewModel.errorMessage ?? AppStrings.AppShell.Login.defaultError
-    )
-}
     // MARK: - 공용 로그인 버튼 빌더
 
     @ViewBuilder
     private func loginButton(
         action: @escaping () -> Void,
-        icon: Image,
-        label: String,
-        foregroundColor: Color,
-        backgroundColor: Color,
-        strokeColor: Color?
+        label: String
     ) -> some View {
         Button(action: action) {
-            HStack(spacing: 8) {
-                icon
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 18, height: 18)
-                    .foregroundStyle(foregroundColor)
-                Text(label)
-                    .font(.system(size: 17, weight: .medium))
-                    .foregroundStyle(foregroundColor)
-            }
+            Text(label)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(.white)
             .frame(maxWidth: .infinity)
-            .frame(height: 50)
-            .background(backgroundColor)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .overlay {
-                if let strokeColor {
-                    RoundedRectangle(cornerRadius: 8)
-                        .strokeBorder(strokeColor, lineWidth: 1)
-                }
-            }
-            .padding(.horizontal, 32)
+            .frame(height: 57)
+            .background(Color(hex: "#242424"))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
     }
 }

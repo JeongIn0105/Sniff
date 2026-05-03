@@ -108,7 +108,7 @@ final class PerfumeDetailViewController: UIViewController {
     }
 
     private let usageInfoView = UsageInfoView()
-    private let accordChipsView = ChipWrapView(style: .outline)
+    private let accordListView = ScentFamilyListView()
     private let notesView = DetailNotesView()
     private let seasonChipsView = SeasonSelectionView()
 
@@ -141,8 +141,16 @@ final class PerfumeDetailViewController: UIViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         navigationController?.setNavigationBarHidden(true, animated: animated)
+        tabBarController?.tabBar.isHidden = true
         loadLikedPerfumes()
         refreshTastingRecordState()
+    }
+
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        if isMovingFromParent || isBeingDismissed || navigationController?.isBeingDismissed == true {
+            tabBarController?.tabBar.isHidden = false
+        }
     }
 
     private func setupUI() {
@@ -167,7 +175,7 @@ final class PerfumeDetailViewController: UIViewController {
         imageStageView.addSubview(imagePlaceholderLabel)
         [brandLabel, nameLabel].forEach { infoSectionView.addSubview($0) }
         usageSectionView.embed(usageInfoView)
-        accordsSectionView.embed(accordChipsView)
+        accordsSectionView.embed(accordListView)
         notesSectionView.embed(notesView)
         seasonSectionView.embed(seasonChipsView)
         [addCollectionButton, addTastingButton].forEach { bottomBarView.addSubview($0) }
@@ -186,7 +194,7 @@ final class PerfumeDetailViewController: UIViewController {
 
         bottomBarView.snp.makeConstraints {
             $0.leading.trailing.bottom.equalToSuperview()
-            $0.height.equalTo(116)
+            $0.height.equalTo(104)
         }
 
         contentView.snp.makeConstraints {
@@ -275,16 +283,16 @@ final class PerfumeDetailViewController: UIViewController {
 
         addCollectionButton.snp.makeConstraints {
             $0.leading.equalToSuperview().offset(20)
-            $0.top.equalToSuperview().offset(14)
-            $0.height.equalTo(46)
-            $0.width.equalTo(110)
+            $0.bottom.equalTo(view.safeAreaLayoutGuide).offset(-10)
+            $0.height.equalTo(48)
         }
 
         addTastingButton.snp.makeConstraints {
             $0.leading.equalTo(addCollectionButton.snp.trailing).offset(12)
             $0.trailing.equalToSuperview().offset(-20)
-            $0.top.equalTo(addCollectionButton)
-            $0.height.equalTo(46)
+            $0.centerY.equalTo(addCollectionButton)
+            $0.height.equalTo(addCollectionButton)
+            $0.width.equalTo(addCollectionButton)
         }
 
         backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
@@ -360,20 +368,18 @@ final class PerfumeDetailViewController: UIViewController {
         nameLabel.text = PerfumePresentationSupport.displayPerfumeName(perfume.name)
 
         usageInfoView.configure(
-            concentration: PerfumePresentationSupport.displayConcentration(perfume.concentration),
-            longevity: PerfumePresentationSupport.displayLongevity(perfume.longevity),
-            sillage: PerfumePresentationSupport.displaySillage(perfume.sillage)
+            concentration: perfume.concentration,
+            longevity: perfume.longevity,
+            sillage: perfume.sillage
         )
 
-        let dominantAccordIndices = Set(
-            perfume.mainAccords.enumerated().compactMap { index, accord in
-                perfume.mainAccordStrengths[accord] == .dominant ? index : nil
+        accordListView.configure(
+            accords: perfume.mainAccords.map {
+                ScentFamilyListView.Item(
+                    rawValue: $0,
+                    displayName: PerfumePresentationSupport.displayAccord($0)
+                )
             }
-        )
-        accordChipsView.configure(
-            texts: perfume.mainAccords.map { PerfumePresentationSupport.displayAccord($0) },
-            highlightedIndices: dominantAccordIndices,
-            colorPalette: Palette.self
         )
 
         notesView.configure(
@@ -712,6 +718,7 @@ final class PerfumeDetailViewController: UIViewController {
     }
 
     private func navigateToMyPage() {
+        tabBarController?.tabBar.isHidden = false
         NotificationCenter.default.post(
             name: .mainTabSelectionRequested,
             object: MainTabSelection.my.rawValue

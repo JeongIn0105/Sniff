@@ -60,10 +60,12 @@ struct Perfume {
     let topNotes: [String]?
     let middleNotes: [String]?
     let baseNotes: [String]?
+    let generalNotes: [String]?
     let concentration: String?
     let gender: String?
     let season: [String]?
     let seasonRanking: [SeasonRankingEntry]
+    let popularity: Double?
     let situation: [String]?
     let longevity: String?
     let sillage: String?
@@ -81,10 +83,12 @@ struct Perfume {
         topNotes: [String]?,
         middleNotes: [String]?,
         baseNotes: [String]?,
+        generalNotes: [String]? = nil,
         concentration: String?,
         gender: String?,
         season: [String]?,
         seasonRanking: [SeasonRankingEntry] = [],
+        popularity: Double? = nil,
         situation: [String]?,
         longevity: String?,
         sillage: String?
@@ -106,10 +110,12 @@ struct Perfume {
         self.topNotes = topNotes
         self.middleNotes = middleNotes
         self.baseNotes = baseNotes
+        self.generalNotes = generalNotes
         self.concentration = concentration
         self.gender = gender
         self.season = season
         self.seasonRanking = seasonRanking
+        self.popularity = popularity
         self.situation = situation
         self.longevity = longevity
         self.sillage = sillage
@@ -153,7 +159,13 @@ struct Perfume {
             normalized = trimmed
         }
 
-        return normalized.addingPercentEncoding(withAllowedCharacters: .urlFragmentAllowed) ?? normalized
+        let webPURL = normalized.replacingOccurrences(
+            of: ".jpg",
+            with: ".webp",
+            options: [.caseInsensitive]
+        )
+
+        return webPURL.addingPercentEncoding(withAllowedCharacters: .urlFragmentAllowed) ?? webPURL
     }
 
     nonisolated private static func normalizeAliases(_ values: [String]) -> [String] {

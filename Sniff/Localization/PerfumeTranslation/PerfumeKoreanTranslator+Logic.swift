@@ -32,7 +32,7 @@ extension PerfumeKoreanTranslator {
         case "Water":
             return "워터"
         case "Mossy Woods":
-            return "모시 우즈"
+            return "이끼가 있는 우디"
         default:
             return korean(for: canonical)
         }

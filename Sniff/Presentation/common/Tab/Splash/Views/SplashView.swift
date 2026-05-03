@@ -14,8 +14,16 @@ struct SplashView: View {
                 .ignoresSafeArea()
 
             Text(AppStrings.AppShell.Splash.title)
-                .font(.system(size: 24, weight: .bold))
-                .foregroundColor(.white)
+                .font(
+                    Font.custom("Hahmlet", size: 28)
+                        .weight(.bold)
+                )
+                .kerning(2)
+                .multilineTextAlignment(.center)
+                .foregroundColor(Color(red: 0.95, green: 0.91, blue: 0.87))
+                .frame(maxWidth: .infinity, alignment: .top)
         }
+        .frame(width: 390, height: 844)
+        .background(.black)
     }
 }

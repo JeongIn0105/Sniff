@@ -89,7 +89,8 @@ struct PerfumeScorer {
         let noteVector = NoteToFamilyMapper.noteVector(
             topNotes: perfume.topNotes,
             middleNotes: perfume.middleNotes,
-            baseNotes: perfume.baseNotes
+            baseNotes: perfume.baseNotes,
+            generalNotes: perfume.generalNotes
         )
 
         let noteRawScore = noteVector.reduce(0.0) { partialResult, pair in
@@ -124,7 +125,22 @@ struct PerfumeScorer {
 
             // MARK: 최종 합산
             // accord 80% + note 20% + 강도 보너스
-        let total = accordScore * 0.8 + noteBonus + intensityBonus
+        let preferredScore = min(1, accordScore + noteRawScore)
+        let impressionScore = impressionScore(perfume: perfume, profile: profile)
+        let seasonScore = seasonScore(perfume: perfume, profile: profile)
+        let koreaTrendScore = min(1.0, Double(PerfumeKoreanTranslator.domesticRetailPriority(for: perfume)) / 100.0)
+        let popularityScore = popularityScore(perfume: perfume)
+        let dislikedScore = dislikedScore(perfume: perfume, profile: profile)
+
+        let weightedTotal =
+            preferredScore * 35
+            + impressionScore * 20
+            + seasonScore * 15
+            + koreaTrendScore * 10
+            + popularityScore * 10
+            - dislikedScore * 45
+
+        let total = weightedTotal + intensityBonus
 
         return PerfumeScoreBreakdown(
             familyScores: familyScores,
@@ -132,5 +148,88 @@ struct PerfumeScorer {
             intensityBonus: intensityBonus,
             total: total
         )
+    }
+
+    private func dislikedScore(perfume: Perfume, profile: UserTasteProfile) -> Double {
+        guard !profile.dislikedFamilies.isEmpty else { return 0 }
+        let disliked = Set(profile.dislikedFamilies)
+        let families = Set(ScentFamilyNormalizer.canonicalNames(for: perfume.mainAccords))
+        let noteFamilies = Set(
+            NoteToFamilyMapper.noteVector(
+                topNotes: perfume.topNotes,
+                middleNotes: perfume.middleNotes,
+                baseNotes: perfume.baseNotes,
+                generalNotes: perfume.generalNotes
+            ).keys
+        )
+        let matchedCount = disliked.intersection(families.union(noteFamilies)).count
+        guard matchedCount > 0 else { return 0 }
+        return min(1, 0.65 + Double(matchedCount) * 0.2)
+    }
+
+    private func impressionScore(perfume: Perfume, profile: UserTasteProfile) -> Double {
+        let textTokens = searchableTokens(for: perfume)
+        let preferredKeywords = profile.preferredImpressions
+            .flatMap { OnboardingTagMapper.searchKeywords(for: $0) }
+            .map { $0.lowercased() }
+        let preferredFamilies = Set(
+            profile.preferredImpressions
+                .flatMap { OnboardingTagMapper.families(for: $0) }
+                .compactMap { ScentFamilyNormalizer.canonicalName(for: $0) }
+        )
+        let perfumeFamilies = Set(ScentFamilyNormalizer.canonicalNames(for: perfume.mainAccords))
+
+        let keywordMatch = preferredKeywords.contains { keyword in
+            textTokens.contains(keyword)
+        }
+        let familyMatch = !preferredFamilies.intersection(perfumeFamilies).isEmpty
+
+        if keywordMatch && familyMatch { return 1 }
+        if keywordMatch || familyMatch { return 0.75 }
+        return 0
+    }
+
+    private func seasonScore(perfume: Perfume, profile: UserTasteProfile) -> Double {
+        let preferred = profile.preferredImpressions.joined(separator: " ")
+        let seasons = (perfume.season ?? []) + perfume.seasonRanking.map(\.name)
+        let normalized = seasons.joined(separator: " ").lowercased()
+
+        if preferred.contains("산뜻") || preferred.contains("시원") {
+            return normalized.contains("spring") || normalized.contains("summer") ? 1 : 0
+        }
+        if preferred.contains("차분") || preferred.contains("포근") {
+            return normalized.contains("fall") || normalized.contains("winter") ? 1 : 0
+        }
+        return seasons.isEmpty ? 0.4 : 0.7
+    }
+
+    private func popularityScore(perfume: Perfume) -> Double {
+        if let popularity = perfume.popularity {
+            if popularity > 100 {
+                return 1
+            }
+            if popularity > 1 {
+                return min(1, popularity / 100)
+            }
+            return max(0, popularity)
+        }
+
+        if !perfume.seasonRanking.isEmpty {
+            return min(1, perfume.seasonRanking.map(\.score).reduce(0, +) / Double(perfume.seasonRanking.count))
+        }
+        return 0.5
+    }
+
+    private func searchableTokens(for perfume: Perfume) -> String {
+        ([perfume.name, perfume.brand]
+            + perfume.mainAccords
+            + (perfume.topNotes ?? [])
+            + (perfume.middleNotes ?? [])
+            + (perfume.baseNotes ?? [])
+            + (perfume.generalNotes ?? [])
+            + (perfume.season ?? [])
+            + perfume.seasonRanking.map(\.name))
+            .joined(separator: " ")
+            .lowercased()
     }
 }

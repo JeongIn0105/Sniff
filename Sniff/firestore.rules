@@ -53,6 +53,7 @@ service cloud.firestore {
         'topNotes',
         'middleNotes',
         'baseNotes',
+        'generalNotes',
         'seasonRanking',
         'concentration',
         'longevity',
@@ -66,6 +67,7 @@ service cloud.firestore {
       && (!('topNotes' in data) || data.topNotes is list)
       && (!('middleNotes' in data) || data.middleNotes is list)
       && (!('baseNotes' in data) || data.baseNotes is list)
+      && (!('generalNotes' in data) || data.generalNotes is list)
       && (!('seasonRanking' in data) || data.seasonRanking is list)
       && (!('concentration' in data) || data.concentration is string)
       && (!('longevity' in data) || data.longevity is string)
@@ -87,6 +89,7 @@ service cloud.firestore {
         'topNotes',
         'middleNotes',
         'baseNotes',
+        'generalNotes',
         'seasonRanking',
         'longevity',
         'sillage'
@@ -104,6 +107,7 @@ service cloud.firestore {
       && (!('topNotes' in data) || data.topNotes is list)
       && (!('middleNotes' in data) || data.middleNotes is list)
       && (!('baseNotes' in data) || data.baseNotes is list)
+      && (!('generalNotes' in data) || data.generalNotes is list)
       && (!('seasonRanking' in data) || data.seasonRanking is list)
       && (!('longevity' in data) || data.longevity is string)
       && (!('sillage' in data) || data.sillage is string);
