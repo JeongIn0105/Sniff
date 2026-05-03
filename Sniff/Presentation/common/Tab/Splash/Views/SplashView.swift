@@ -10,9 +10,11 @@ import SwiftUI
 struct SplashView: View {
     var body: some View {
         ZStack {
+            // 배경: 전체 화면 검정
             Color.black
                 .ignoresSafeArea()
 
+            // 앱 이름: 화면 중앙에 배치
             Text(AppStrings.AppShell.Splash.title)
                 .font(
                     Font.custom("Hahmlet", size: 28)
@@ -21,9 +23,13 @@ struct SplashView: View {
                 .kerning(2)
                 .multilineTextAlignment(.center)
                 .foregroundColor(Color(red: 0.95, green: 0.91, blue: 0.87))
-                .frame(maxWidth: .infinity, alignment: .top)
         }
-        .frame(width: 390, height: 844)
-        .background(.black)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.black)
+        .ignoresSafeArea()
     }
+}
+
+#Preview {
+    SplashView()
 }

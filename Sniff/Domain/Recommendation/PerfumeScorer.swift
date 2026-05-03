@@ -221,14 +221,18 @@ struct PerfumeScorer {
     }
 
     private func searchableTokens(for perfume: Perfume) -> String {
-        ([perfume.name, perfume.brand]
-            + perfume.mainAccords
-            + (perfume.topNotes ?? [])
-            + (perfume.middleNotes ?? [])
-            + (perfume.baseNotes ?? [])
-            + (perfume.generalNotes ?? [])
-            + (perfume.season ?? [])
-            + perfume.seasonRanking.map(\.name))
+        var tokens: [String] = []
+        tokens.append(perfume.name)
+        tokens.append(perfume.brand)
+        tokens.append(contentsOf: perfume.mainAccords)
+        tokens.append(contentsOf: perfume.topNotes ?? [])
+        tokens.append(contentsOf: perfume.middleNotes ?? [])
+        tokens.append(contentsOf: perfume.baseNotes ?? [])
+        tokens.append(contentsOf: perfume.generalNotes ?? [])
+        tokens.append(contentsOf: perfume.season ?? [])
+        tokens.append(contentsOf: perfume.seasonRanking.map(\.name))
+
+        return tokens
             .joined(separator: " ")
             .lowercased()
     }
