@@ -47,8 +47,8 @@ final class LocalPerfumeSearchService {
 
     /// 쿼리에 매칭되는 SuggestionItem 배열을 반환 (동기, 최대 8개)
     func suggestions(for query: String) -> [SuggestionItem] {
-        let normalizedQuery = normalizeForSearch(query)
-        guard normalizedQuery.count >= 2 else { return [] }
+        let normalizedQueries = searchQueryCandidates(for: query)
+        guard !normalizedQueries.isEmpty else { return [] }
 
         indexLock.lock()
         let snapshot = index
@@ -56,7 +56,9 @@ final class LocalPerfumeSearchService {
 
         // 각 항목에 점수 계산 후 정렬
         let scored: [(entry: IndexedEntry, score: Int)] = snapshot.compactMap { entry in
-            let score = matchScore(entry: entry, query: normalizedQuery)
+            let score = normalizedQueries
+                .map { matchScore(entry: entry, query: $0) }
+                .max() ?? 0
             guard score > 0 else { return nil }
             return (entry, score)
         }
@@ -65,14 +67,18 @@ final class LocalPerfumeSearchService {
             return lhs.entry.brand.localizedCaseInsensitiveCompare(rhs.entry.brand) == .orderedAscending
         }
 
-        // 브랜드 제안 (상위 2개)
+        // 브랜드 제안 (상위 2개) — 브랜드의 대표 이미지는 해당 브랜드 첫 번째 향수 이미지 사용
         var seenBrands = Set<String>()
         var brandItems: [SuggestionItem] = []
         for item in scored {
-            let normalizedBrand = normalizeForSearch(item.entry.brand)
-            if normalizedBrand.contains(normalizedQuery) && !seenBrands.contains(normalizedBrand) {
-                seenBrands.insert(normalizedBrand)
-                brandItems.append(.brand(name: item.entry.brand))
+            let brandTokens = item.entry.searchableBrands.map(normalizeForSearch(_:))
+            if brandTokens.contains(where: { token in
+                    // 쿼리가 브랜드명을 포함하거나(token ⊇ query), 쿼리가 브랜드명으로 시작(query.hasPrefix(token))
+                    normalizedQueries.contains(where: { q in token.contains(q) || (q.hasPrefix(token) && token.count >= 2) })
+                }),
+               !seenBrands.contains(item.entry.dedupeBrandKey) {
+                seenBrands.insert(item.entry.dedupeBrandKey)
+                brandItems.append(.brand(name: item.entry.brand, imageUrl: item.entry.imageUrl))
                 if brandItems.count >= 2 { break }
             }
         }
@@ -80,7 +86,7 @@ final class LocalPerfumeSearchService {
         // 향수 제안 (상위 6개)
         let perfumeItems: [SuggestionItem] = scored
             .prefix(6)
-            .map { .perfume(name: $0.entry.name, brand: $0.entry.brand) }
+            .map { .perfume(name: $0.entry.name, brand: $0.entry.brand, imageUrl: $0.entry.imageUrl) }
 
         // 브랜드 먼저, 향수 뒤 (전체 최대 8개)
         return Array((brandItems + perfumeItems).prefix(8))
@@ -97,7 +103,7 @@ final class LocalPerfumeSearchService {
         for p in fragellaPerfumes {
             let key = dedupeKey(name: p.name, brand: p.brand)
             guard seenKeys.insert(key).inserted else { continue }
-            entries.append(IndexedEntry(name: p.name, brand: p.brand))
+            entries.append(makeIndexedEntry(name: p.name, brand: p.brand, imageUrl: p.imageUrl))
         }
 
         // 2. Firestore 보유 향수
@@ -105,18 +111,18 @@ final class LocalPerfumeSearchService {
             for item in collection {
                 let key = dedupeKey(name: item.name, brand: item.brand)
                 guard seenKeys.insert(key).inserted else { continue }
-                entries.append(IndexedEntry(name: item.name, brand: item.brand))
+                entries.append(makeIndexedEntry(name: item.name, brand: item.brand, imageUrl: item.imageUrl))
             }
         }
 
-        // 3. Firestore LIKE 향수
+        // 3. Firestore LIKE 향수 (LikedPerfume 모델은 imageURL — 대문자)
         if let liked = try? await firestoreService.fetchLikedPerfumes() {
             for item in liked {
                 let key = dedupeKey(name: item.name, brand: item.brand)
                 guard seenKeys.insert(key).inserted else { continue }
-                entries.append(IndexedEntry(name: item.name, brand: item.brand))
+                entries.append(makeIndexedEntry(name: item.name, brand: item.brand, imageUrl: item.imageURL))
             }
-        } 
+        }
 
         await MainActor.run {
             self.index = entries
@@ -144,13 +150,13 @@ final class LocalPerfumeSearchService {
     // MARK: - Private: 매칭 점수
 
     private func matchScore(entry: IndexedEntry, query: String) -> Int {
-        let name = normalizeForSearch(entry.name)
-        let brand = normalizeForSearch(entry.brand)
+        let names = entry.searchableNames.map(normalizeForSearch(_:))
+        let brands = entry.searchableBrands.map(normalizeForSearch(_:))
 
-        if brand == query   { return 1000 }
-        if name == query    { return 900 }
-        if brand.contains(query) { return 800 }
-        if name.contains(query)  { return 700 }
+        if brands.contains(query) { return 1000 }
+        if names.contains(query) { return 900 }
+        if brands.contains(where: { $0.contains(query) }) { return 800 }
+        if names.contains(where: { $0.contains(query) }) { return 700 }
         return 0
     }
 
@@ -164,8 +170,43 @@ final class LocalPerfumeSearchService {
             .joined()
     }
 
+    private func searchQueryCandidates(for query: String) -> [String] {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        let candidates = [trimmed, PerfumeKoreanTranslator.toEnglishQuery(trimmed)]
+            .compactMap { $0 }
+            .map(normalizeForSearch(_:))
+            .filter { $0.count >= 2 }
+
+        var seen = Set<String>()
+        return candidates.filter { seen.insert($0).inserted }
+    }
+
     private func dedupeKey(name: String, brand: String) -> String {
         "\(normalizeForSearch(brand))__\(normalizeForSearch(name))"
+    }
+
+    private func makeIndexedEntry(name: String, brand: String, imageUrl: String? = nil) -> IndexedEntry {
+        IndexedEntry(
+            name: name,
+            brand: brand,
+            searchableNames: uniqueSearchValues([
+                name,
+                PerfumePresentationSupport.displayPerfumeName(name)
+            ]),
+            searchableBrands: uniqueSearchValues([
+                brand,
+                PerfumePresentationSupport.displayBrand(brand)
+            ]),
+            imageUrl: imageUrl
+        )
+    }
+
+    private func uniqueSearchValues(_ values: [String]) -> [String] {
+        var seen = Set<String>()
+        return values
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .filter { seen.insert(normalizeForSearch($0)).inserted }
     }
 }
 
@@ -174,6 +215,14 @@ final class LocalPerfumeSearchService {
 private struct IndexedEntry {
     let name: String
     let brand: String
+    let searchableNames: [String]
+    let searchableBrands: [String]
+    /// 썸네일 이미지 URL (연관 검색어 셀 표시용)
+    let imageUrl: String?
+
+    var dedupeBrandKey: String {
+        brand.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
 }
 
 /// FragellaService 내부의 DiskCacheEntry와 동일한 구조

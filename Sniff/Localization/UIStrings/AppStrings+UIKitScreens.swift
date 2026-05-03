@@ -19,7 +19,7 @@ extension AppStrings {
             static let profileLoading = "분석 중..."
             static let best = "베스트"
             static let recommendations = "추천 향수"
-            static let guide = "추천은 취향 분석과 시향 기록, 등록한 향수를 기반으로 계속 업데이트 됩니다."
+            static let guide = "오늘의 추천 향수는 취향 프로필에 따라 추천이 업데이트됩니다.\n취향 프로필은 보유 향수, 시향 기록에 따라 변경될 수 있습니다."
             static let routePerfumeRegister = "향수 등록 화면으로 연결할 수 있어요."
             static let routeTastingNote = "시향기 작성 화면으로 연결할 수 있어요."
             static let routeTasteReport = "취향 리포트 화면으로 연결할 수 있어요."
@@ -34,6 +34,12 @@ extension AppStrings {
 
         enum Search {
             static let placeholder = "향수명 또는 브랜드를 검색하세요"
+            static let registerTitle = "향수 등록"
+            static let registerPlaceholder = "향수 이름이나 브랜드를 검색해보세요"
+            static let registerConfirmMessage = "이 향수를 내 향수에 등록할까요?"
+            static let registerAction = "등록하기"
+            static let registerSuccess = "내 향수에 등록했어요"
+            static let registerDuplicate = "이미 등록된 향수예요"
             static let sortRecommended = "추천순 ▾"
             static let recentTitle = "최근 검색어"
             static let clearAll = "모두 지우기"
@@ -71,8 +77,8 @@ extension AppStrings {
             static let middleNotes = "미들"
             static let baseNotes = "베이스"
             static let imagePlaceholder = "이미지 준비중입니다"
-            static let addCollection = "향수 등록"
-            static let addedCollection = "향수 등록됨"
+            static let addCollection = "보유향수 등록"
+            static let addedCollection = "보유향수 등록됨"
             static let addTasting = "시향기록 남기기"
             static let tastingSavedTitle = "시향 기록 저장 완료"
 
@@ -89,12 +95,13 @@ extension AppStrings {
             static let moodImage = "분위기 / 이미지"
             static let concentration = "농도"
             static let season = "계절"
-            static let concentrationInfoTitle = "농도 설명"
-            static let scentFamilyInfoTitle = "향 계열 설명"
-            static let scentFamilyInfoBody = "Fragrance Wheel 기준 계열이에요. 각 계열이 어떤 향인지 빠르게 확인할 수 있어요."
+            static let concentrationInfoTitle = "농도 정보"
+            static let concentrationInfoBody = "향수의 농도에 따라 향의 진함과 지속 시간이 달라져요."
+            static let scentFamilyInfoTitle = "향 계열 정보"
+            static let scentFamilyInfoBody = "향의 성격을 나누는 기준이에요. 선호하는 계열을 선택하면 더 잘 맞는 향수를 찾는 데 도움이 돼요."
 
             static func applyCount(_ count: Int) -> String {
-                "향수 \(count)개 보기"
+                "\(count)개 향수 보기"
             }
         }
     }

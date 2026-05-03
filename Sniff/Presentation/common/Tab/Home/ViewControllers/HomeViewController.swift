@@ -9,24 +9,65 @@ import UIKit
 import SnapKit
 import RxSwift
 import RxCocoa
-import SwiftUI
 
 final class HomeViewController: UIViewController {
 
     private enum Layout {
-        static let horizontalInset: CGFloat = 20
-        static let cardWidth: CGFloat = 154
-        static let cardHeight: CGFloat = 256
-        static let cardSpacing: CGFloat = 14
+        static let horizontalInset: CGFloat = 16
+        static let cardWidth: CGFloat = 132
+        static let cardHeight: CGFloat = 226  // Figma Card/perfume_M: 132(이미지) + 94(텍스트+향계열)
+        static let cardSpacing: CGFloat = 16
+    }
+
+    private enum Typography {
+        static func hahmlet(size: CGFloat, weight: UIFont.Weight) -> UIFont {
+            let preferredName: String
+            switch weight {
+            case .bold, .heavy, .black:
+                preferredName = "Hahmlet-Bold"
+            case .medium, .semibold:
+                preferredName = "Hahmlet-Medium"
+            default:
+                preferredName = "Hahmlet"
+            }
+
+            return UIFont(name: preferredName, size: size)
+                ?? UIFont(name: "Hahmlet", size: size)
+                ?? .systemFont(ofSize: size, weight: weight)
+        }
+
+        static func pretendard(size: CGFloat, weight: UIFont.Weight) -> UIFont {
+            let preferredName: String
+            switch weight {
+            case .semibold:
+                // Pretendard-SemiBold 없으면 Bold로 fallback
+                preferredName = "Pretendard-SemiBold"
+            case .medium:
+                preferredName = "Pretendard-Medium"
+            case .bold, .heavy, .black:
+                preferredName = "Pretendard-Bold"
+            default:
+                preferredName = "Pretendard-Regular"
+            }
+
+            return UIFont(name: preferredName, size: size)
+                ?? UIFont(name: "Pretendard-Medium", size: size)
+                ?? UIFont(name: "Pretendard", size: size)
+                ?? .systemFont(ofSize: size, weight: weight)
+        }
     }
 
     private let viewModel: HomeViewModel
+    private let userTasteRepository: UserTasteRepositoryType
     private let collectionRepository: CollectionRepositoryType
+    private let tastingRecordRepository: TastingRecordRepositoryType
+    private let localTastingNoteRepository: LocalTastingNoteRepository
     private let disposeBag = DisposeBag()
     private var recommendations: [HomePerfumeItem] = []
     private var currentProfileItem: HomeViewModel.HomeProfileItem?
     private var currentBannerItem: HomeTasteBannerItem?
     private var likedPerfumeIDs = Set<String>()
+    private var tastingNoteKeys = Set<String>()
 
     private let scrollView = UIScrollView()
     private let contentView = UIView()
@@ -34,15 +75,25 @@ final class HomeViewController: UIViewController {
 
     private let titleLabel: UILabel = {
         let label = UILabel()
-        label.text = AppStrings.UIKitScreens.Home.title
-        label.font = .systemFont(ofSize: 26, weight: .bold)
+        label.attributedText = NSAttributedString(
+            string: AppStrings.UIKitScreens.Home.title,
+            attributes: [
+                .font: Typography.hahmlet(size: 24, weight: .bold),
+                .kern: 2
+            ]
+        )
         label.textColor = .label
         return label
     }()
 
     private let addPerfumeButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setImage(UIImage(systemName: "plus"), for: .normal)
+button.setImage(UIImage(systemName: "plus"), for: .normal)
+button.setPreferredSymbolConfiguration(
+    UIImage.SymbolConfiguration(pointSize: 24, weight: .regular),
+    forImageIn: .normal
+)
+
         button.tintColor = .label
         button.accessibilityLabel = AppStrings.UIKitScreens.PerfumeDetail.addCollection
         return button
@@ -71,7 +122,7 @@ final class HomeViewController: UIViewController {
 
     private let profileHeadlineLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 26, weight: .bold)
+        label.font = Typography.hahmlet(size: 24, weight: .bold)
         label.textColor = .label
         label.numberOfLines = 2
         return label
@@ -79,9 +130,9 @@ final class HomeViewController: UIViewController {
 
     private let profileSummaryLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 14, weight: .regular)
-        label.textColor = UIColor(white: 0.22, alpha: 0.82)
-        label.numberOfLines = 3
+        label.font = Typography.pretendard(size: 13, weight: .medium)
+        label.textColor = UIColor(red: 0.30, green: 0.30, blue: 0.30, alpha: 1)
+        label.numberOfLines = 2
         return label
     }()
 
@@ -95,8 +146,9 @@ final class HomeViewController: UIViewController {
     private let recommendationTitleLabel: UILabel = {
         let label = UILabel()
         label.text = AppStrings.Home.recommendTitle
-        label.font = .systemFont(ofSize: 18, weight: .bold)
-        label.textColor = .label
+        // Figma: Pretendard, 18, semibold, Color(0.13, 0.13, 0.13)
+        label.font = Typography.pretendard(size: 18, weight: .semibold)
+        label.textColor = UIColor(red: 0.13, green: 0.13, blue: 0.13, alpha: 1)
         return label
     }()
 
@@ -112,17 +164,19 @@ final class HomeViewController: UIViewController {
 
     private let guideContainerView: UIView = {
         let view = UIView()
-        view.backgroundColor = UIColor(red: 0.985, green: 0.984, blue: 0.982, alpha: 1)
-        view.layer.cornerRadius = 18
+        view.backgroundColor = UIColor(red: 0.98, green: 0.98, blue: 0.98, alpha: 1)
+        view.layer.cornerRadius = 8
         view.layer.cornerCurve = .continuous
-        view.layer.borderWidth = 1
-        view.layer.borderColor = UIColor.separator.withAlphaComponent(0.08).cgColor
+        // Figma: border 없음
         return view
     }()
 
     private let guideIconView: UIImageView = {
-        let imageView = UIImageView(image: UIImage(systemName: "info.circle"))
-        imageView.tintColor = .tertiaryLabel
+        let imageView = UIImageView()
+        // Figma: 테두리 원형 물음표 → questionmark.circle (회색 단색)
+        let sizeConfig = UIImage.SymbolConfiguration(pointSize: 16, weight: .medium)
+        imageView.image = UIImage(systemName: "questionmark.circle", withConfiguration: sizeConfig)
+        imageView.tintColor = UIColor(red: 0.69, green: 0.69, blue: 0.69, alpha: 1)
         imageView.contentMode = .scaleAspectFit
         return imageView
     }()
@@ -130,18 +184,24 @@ final class HomeViewController: UIViewController {
     private let guideLabel: UILabel = {
         let label = UILabel()
         label.text = AppStrings.UIKitScreens.Home.guide
-        label.font = .systemFont(ofSize: 11, weight: .regular)
-        label.textColor = UIColor.secondaryLabel.withAlphaComponent(0.72)
+        label.font = UIFont(name: "Pretendard-Medium", size: 12) ?? .systemFont(ofSize: 12, weight: .medium)
+        label.textColor = UIColor(red: 0.69, green: 0.69, blue: 0.69, alpha: 1)
         label.numberOfLines = 0
         return label
     }()
 
     init(
         viewModel: HomeViewModel,
-        collectionRepository: CollectionRepositoryType
+        userTasteRepository: UserTasteRepositoryType,
+        collectionRepository: CollectionRepositoryType,
+        tastingRecordRepository: TastingRecordRepositoryType,
+        localTastingNoteRepository: LocalTastingNoteRepository
     ) {
         self.viewModel = viewModel
+        self.userTasteRepository = userTasteRepository
         self.collectionRepository = collectionRepository
+        self.tastingRecordRepository = tastingRecordRepository
+        self.localTastingNoteRepository = localTastingNoteRepository
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -149,20 +209,44 @@ final class HomeViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        // 상태바 영역까지 레이아웃 확장
+        edgesForExtendedLayout = .all
+        extendedLayoutIncludesOpaqueBars = true
         setupUI()
         bind()
+        observeProfileChange()
+    }
+
+    // contentInsetAdjustmentBehavior = .never 사용 시 탭바 safe area 수동 설정
+    override func viewSafeAreaInsetsDidChange() {
+        super.viewSafeAreaInsetsDidChange()
+        scrollView.contentInset = UIEdgeInsets(
+            top: 0,
+            left: 0,
+            bottom: view.safeAreaInsets.bottom,
+            right: 0
+        )
+        scrollView.scrollIndicatorInsets = scrollView.contentInset
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        // 네비게이션 바 투명 처리 → 상태바 배경 투명화
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithTransparentBackground()
+        navigationController?.navigationBar.standardAppearance = appearance
+        navigationController?.navigationBar.scrollEdgeAppearance = appearance
         loadLikedPerfumes()
+        loadTastingNoteKeys()
     }
 }
 
 private extension HomeViewController {
 
     func setupUI() {
+        // 최상단 bounce 영역: 그라데이션 베이스 크림 색상
         view.backgroundColor = .systemBackground
+        // 그라데이션 영역(351pt) 아래는 흰색 배경
         contentView.backgroundColor = .systemBackground
 
         recommendationCollectionView.delegate = self
@@ -173,6 +257,8 @@ private extension HomeViewController {
         )
 
         view.addSubview(scrollView)
+        scrollView.contentInsetAdjustmentBehavior = .never  // 상태바 영역까지 그라데이션 확장
+        scrollView.backgroundColor = .clear  // view.backgroundColor(크림)가 상단 bounce 시 투과되도록
         scrollView.addSubview(contentView)
         contentView.addSubview(topGradientView)
 
@@ -198,31 +284,34 @@ private extension HomeViewController {
     }
 
     func makeConstraints() {
-        scrollView.snp.makeConstraints { $0.edges.equalTo(view.safeAreaLayoutGuide) }
+        scrollView.snp.makeConstraints { $0.edges.equalToSuperview() }
         contentView.snp.makeConstraints {
             $0.edges.equalToSuperview()
             $0.width.equalTo(scrollView)
         }
 
+        // Figma 기준: 배경 그라데이션 W=390(풀너비), H=351 고정
         topGradientView.snp.makeConstraints {
             $0.top.leading.trailing.equalToSuperview()
-            $0.bottom.equalTo(profileHeroCard.snp.bottom).offset(20)
+            $0.height.equalTo(351)
         }
 
         titleLabel.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(24)
-            $0.leading.equalToSuperview().offset(20)
+            $0.top.equalTo(view.safeAreaLayoutGuide.snp.top).offset(8)
+            $0.leading.equalToSuperview().offset(16)
         }
 
         addPerfumeButton.snp.makeConstraints {
             $0.centerY.equalTo(titleLabel)
-            $0.trailing.equalToSuperview().inset(20)
-            $0.size.equalTo(28)
+            $0.trailing.equalToSuperview().inset(16)
+            $0.size.equalTo(24)
         }
 
         profileHeroCard.snp.makeConstraints {
-            $0.top.equalTo(titleLabel.snp.bottom).offset(92)
+            // Figma: 킁킁 아래 최소 16pt 간격, 향 계열 태그는 그라데이션 하단에서 20pt 위
+            $0.top.greaterThanOrEqualTo(titleLabel.snp.bottom).offset(16)
             $0.leading.trailing.equalToSuperview()
+            $0.bottom.equalTo(topGradientView.snp.bottom).offset(-20)
         }
 
         profileTitleLabel.snp.makeConstraints {
@@ -246,54 +335,73 @@ private extension HomeViewController {
         }
 
         profileSummaryLabel.snp.makeConstraints {
-            $0.top.equalTo(profileHeadlineLabel.snp.bottom).offset(14)
+            $0.top.equalTo(profileHeadlineLabel.snp.bottom).offset(8)
             $0.leading.trailing.equalToSuperview().inset(20)
         }
 
         profileTagStack.snp.makeConstraints {
-            $0.top.equalTo(profileSummaryLabel.snp.bottom).offset(18)
+            $0.top.equalTo(profileSummaryLabel.snp.bottom).offset(20)
             $0.leading.equalToSuperview().offset(20)
             $0.trailing.lessThanOrEqualToSuperview().inset(20)
             $0.bottom.equalToSuperview()
         }
 
+        // Figma: 그라데이션 영역 끝(351pt)에서 26pt 아래
         recommendationTitleLabel.snp.makeConstraints {
-            $0.top.equalTo(profileHeroCard.snp.bottom).offset(44)
-            $0.leading.equalToSuperview().offset(20)
+            $0.top.equalTo(topGradientView.snp.bottom).offset(24)
+            $0.leading.equalToSuperview().offset(16)
         }
 
         recommendationCollectionView.snp.makeConstraints {
-            $0.top.equalTo(recommendationTitleLabel.snp.bottom).offset(14)
+            $0.top.equalTo(recommendationTitleLabel.snp.bottom).offset(12)
             $0.leading.trailing.equalToSuperview()
             $0.height.equalTo(Layout.cardHeight)
         }
 
         guideContainerView.snp.makeConstraints {
-            $0.top.equalTo(recommendationCollectionView.snp.bottom).offset(20)
-            $0.leading.trailing.equalToSuperview().inset(20)
-            $0.bottom.equalToSuperview().inset(24)
+            $0.top.equalTo(recommendationCollectionView.snp.bottom).offset(34)  // Figma: 34pt gap
+            $0.leading.trailing.equalToSuperview().inset(16)  // Figma: 16pt 좌우 여백 → 358pt 너비
+            $0.bottom.equalToSuperview().inset(20)
         }
 
         guideIconView.snp.makeConstraints {
-            $0.top.leading.equalToSuperview().inset(14)
-            $0.size.equalTo(16)
+            // Figma: HStack alignment .center → centerY, leading 12pt, size 20×20
+            $0.leading.equalToSuperview().inset(12)
+            $0.centerY.equalToSuperview()
+            $0.size.equalTo(20)
         }
 
         guideLabel.snp.makeConstraints {
-            $0.top.bottom.equalToSuperview().inset(14)
-            $0.leading.equalTo(guideIconView.snp.trailing).offset(8)
-            $0.trailing.equalToSuperview().inset(14)
+            // Figma: padding vertical 16pt, HStack spacing 12pt, trailing inset 12pt
+            $0.top.bottom.equalToSuperview().inset(16)
+            $0.leading.equalTo(guideIconView.snp.trailing).offset(14)  // Figma: 14pt
+            $0.trailing.equalToSuperview().inset(12)
         }
     }
 
     @objc func profileCardTapped() {
         guard let item = currentProfileItem else { return }
-        let profileVC = TasteProfileViewController(profileItem: item)
+        let profileVC = TasteProfileViewController(profileItem: item, userTasteRepository: userTasteRepository)
         navigationController?.pushViewController(profileVC, animated: true)
     }
 }
 
 private extension HomeViewController {
+
+    func observeProfileChange() {
+        NotificationCenter.default.addObserver(
+            forName: .tasteProfileDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let self,
+                  let title = notification.userInfo?["title"] as? String,
+                  let families = notification.userInfo?["families"] as? [String] else { return }
+            // 배너 타이틀 즉시 갱신
+            self.profileHeadlineLabel.text = title
+            self.topGradientView.configure(title: title, fallbackFamilies: Array(families.prefix(2)))
+        }
+    }
 
     func bind() {
         let input = HomeViewModel.Input(
@@ -320,6 +428,14 @@ private extension HomeViewController {
                 owner.profileHeadlineLabel.text = item.title
                 owner.profileSummaryLabel.text = item.summary
                 owner.updateProfileTags(with: owner.currentProfileItem?.profile, banner: item)
+
+                if owner.currentProfileItem == nil, !item.familyText.isEmpty {
+                    let families = item.familyText
+                        .components(separatedBy: "·")
+                        .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                        .filter { !$0.isEmpty }
+                    owner.topGradientView.configure(title: item.title, fallbackFamilies: families)
+                }
             }
             .disposed(by: disposeBag)
     }
@@ -334,6 +450,10 @@ private extension HomeViewController {
                     owner.profileSummaryLabel.text = item.profile.analysisSummary
                 }
                 owner.updateProfileTags(with: item.profile, banner: owner.currentBannerItem)
+                owner.topGradientView.configure(
+                    title: item.profile.displayTitle,
+                    fallbackFamilies: Array(item.profile.displayFamilies.prefix(2))
+                )
             }
             .disposed(by: disposeBag)
     }
@@ -392,12 +512,13 @@ private extension HomeViewController {
     func makeTagLabel(text: String) -> UIView {
         let dotView = UIView()
         dotView.backgroundColor = ScentFamilyColor.color(for: text)
-        dotView.layer.cornerRadius = 3
+        dotView.layer.cornerRadius = 4
 
         let label = UILabel()
         label.text = text
-        label.font = .systemFont(ofSize: 11, weight: .medium)
-        label.textColor = UIColor(white: 0.42, alpha: 1)
+        // Figma: Pretendard, 12, medium, Color(0.52, 0.52, 0.52)
+        label.font = Typography.pretendard(size: 12, weight: .medium)
+        label.textColor = UIColor(red: 0.52, green: 0.52, blue: 0.52, alpha: 1)
 
         let stack = UIStackView(arrangedSubviews: [dotView, label])
         stack.axis = .horizontal
@@ -411,12 +532,12 @@ private extension HomeViewController {
         container.addSubview(stack)
 
         dotView.snp.makeConstraints {
-            $0.size.equalTo(CGSize(width: 6, height: 6))
+            $0.size.equalTo(CGSize(width: 8, height: 8))
         }
 
         stack.snp.makeConstraints {
-            $0.top.bottom.equalToSuperview().inset(7)
-            $0.leading.trailing.equalToSuperview().inset(10)
+            $0.top.bottom.equalToSuperview().inset(5)
+            $0.leading.trailing.equalToSuperview().inset(12)
         }
 
         return container
@@ -436,7 +557,7 @@ private extension HomeViewController {
         case "Citrus": return "시트러스"
         case "Fruity": return "프루티"
         case "Green": return "그린"
-        case "Water": return "워터리"
+        case "Water": return "워터"
         case "Aromatic": return "아로마틱"
         default: return family
         }
@@ -491,6 +612,35 @@ private extension HomeViewController {
                 self?.likedPerfumeIDs = Set(items.map(\.id))
                 self?.recommendationCollectionView.reloadData()
             })
+            .disposed(by: disposeBag)
+    }
+
+    func loadTastingNoteKeys() {
+        // 1단계: CoreData 로컬에서 즉시 반영 (동기) — Firestore 동기화 전에도 배지 표시
+        if let localNotes = try? localTastingNoteRepository.loadNotes() {
+            tastingNoteKeys = Set(localNotes.flatMap {
+                PerfumePresentationSupport.recordMatchingKeys(
+                    perfumeName: $0.perfumeName,
+                    brandName: $0.brandName
+                )
+            })
+            recommendationCollectionView.reloadData()
+        }
+
+        // 2단계: Firestore에서 추가 병합 (비동기) — 다른 기기 기록까지 포함
+        tastingRecordRepository.fetchTastingRecords()
+            .observe(on: MainScheduler.instance)
+            .subscribe(onSuccess: { [weak self] records in
+                guard let self else { return }
+                let remoteKeys = Set(records.flatMap {
+                    PerfumePresentationSupport.recordMatchingKeys(
+                        perfumeName: $0.perfumeName,
+                        brandName: $0.brandName
+                    )
+                })
+                self.tastingNoteKeys.formUnion(remoteKeys)
+                self.recommendationCollectionView.reloadData()
+            }, onFailure: { _ in })
             .disposed(by: disposeBag)
     }
 
@@ -567,7 +717,17 @@ extension HomeViewController: UICollectionViewDataSource {
 
         let item = visibleRecommendations[indexPath.item]
         let collectionID = Perfume.collectionDocumentID(from: item.id)
-        cell.configure(with: item, isLiked: likedPerfumeIDs.contains(collectionID))
+        let hasTastingRecord = !tastingNoteKeys.isDisjoint(
+            with: PerfumePresentationSupport.recordMatchingKeys(
+                perfumeName: item.perfumeName,
+                brandName: item.brandName
+            )
+        )
+        cell.configure(
+            with: item,
+            isLiked: likedPerfumeIDs.contains(collectionID),
+            hasTastingRecord: hasTastingRecord
+        )
         cell.wishlistButton.rx.tap
             .subscribe(onNext: { [weak self] in
                 guard let self else { return }
@@ -627,27 +787,22 @@ private final class PaddingLabel: UILabel {
     }
 }
 
-private final class HomeGradientView: UIView {
+final class HomeGradientView: UIView {
     private let gradientLayer = CAGradientLayer()
-    private let beigeOverlayView = UIView()
+
+    // Figma 기준 base 크림 색상: Color(red: 0.95, green: 0.91, blue: 0.87)
+    private static let baseCream = UIColor(red: 0.95, green: 0.91, blue: 0.87, alpha: 1)
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         isUserInteractionEnabled = false
-        backgroundColor = UIColor(red: 0.96, green: 0.92, blue: 0.88, alpha: 1)
-        gradientLayer.colors = [
-            UIColor(red: 0.84, green: 0.49, blue: 0.58, alpha: 1).cgColor,
-            UIColor(red: 0.95, green: 0.69, blue: 0.78, alpha: 1).cgColor,
-            UIColor(red: 0.96, green: 0.92, blue: 0.88, alpha: 0.92).cgColor,
-            UIColor(red: 0.96, green: 0.92, blue: 0.88, alpha: 1).cgColor
-        ]
-        gradientLayer.locations = [0.0, 0.52, 0.82, 1.0]
-        gradientLayer.startPoint = CGPoint(x: 0.12, y: 0.0)
-        gradientLayer.endPoint = CGPoint(x: 0.88, y: 1.0)
+        backgroundColor = HomeGradientView.baseCream
+        // Figma EllipticalGradient: center UnitPoint(x: 0.48, y: 0) → 상단 중앙에서 방사형
+        gradientLayer.type = .radial
+        gradientLayer.startPoint = CGPoint(x: 0.48, y: 0.0)
+        gradientLayer.endPoint = CGPoint(x: 1.0, y: 1.0)
         layer.addSublayer(gradientLayer)
-
-        beigeOverlayView.backgroundColor = UIColor(red: 0.96, green: 0.92, blue: 0.88, alpha: 0.22)
-        addSubview(beigeOverlayView)
+        applyDefaultGradient()
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -655,6 +810,50 @@ private final class HomeGradientView: UIView {
     override func layoutSubviews() {
         super.layoutSubviews()
         gradientLayer.frame = bounds
-        beigeOverlayView.frame = bounds
+    }
+
+    func configure(topFamilies: [String]) {
+        let top1Color = topFamilies.first.map { ScentFamilyColor.color(for: $0) }
+        let top2Color = topFamilies.dropFirst().first.map { ScentFamilyColor.color(for: $0) }
+
+        let color20 = (top2Color ?? top1Color?.softened(amount: 0.25)
+            ?? UIColor(red: 0.95, green: 0.90, blue: 0.68, alpha: 1))
+            .softened(amount: 0.20)
+        let color45 = (top1Color
+            ?? UIColor(red: 0.66, green: 0.81, blue: 0.91, alpha: 1))
+            .softened(amount: 0.30)
+
+        gradientLayer.colors = [
+            color20.cgColor,
+            color45.cgColor,
+            HomeGradientView.baseCream.cgColor
+        ]
+        gradientLayer.locations = [0.0, 0.45, 1.00]
+    }
+
+    func configure(title: String, fallbackFamilies: [String]) {
+        guard let palette = FragranceProfileText.profileColorPalette(forTitle: title) else {
+            configure(topFamilies: fallbackFamilies)
+            return
+        }
+
+        gradientLayer.colors = [
+            UIColor(hex: palette.accentHex).cgColor,
+            UIColor(hex: palette.primaryHex).cgColor,
+            UIColor(hex: palette.baseHex).cgColor
+        ]
+        // location 0.0부터 시작: 중심에 고형색 원(blob) 없이 부드러운 방사형 그라데이션
+        gradientLayer.locations = [0.0, NSNumber(value: palette.primaryLocation), 1.00]
+    }
+
+    // Figma EllipticalGradient 기본값:
+    // Color(red: 0.95, green: 0.9, blue: 0.68) → Color(red: 0.66, green: 0.81, blue: 0.91) → cream
+    private func applyDefaultGradient() {
+        gradientLayer.colors = [
+            UIColor(red: 0.95, green: 0.90, blue: 0.68, alpha: 1).cgColor,
+            UIColor(red: 0.66, green: 0.81, blue: 0.91, alpha: 1).cgColor,
+            HomeGradientView.baseCream.cgColor
+        ]
+        gradientLayer.locations = [0.0, 0.45, 1.00]
     }
 }

@@ -13,31 +13,40 @@ struct OnboardingStepHeader: View {
     let onBack: (() -> Void)?
 
     var body: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 16) {
             if let onBack {
                 Button(action: onBack) {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(.system(size: 26, weight: .medium))
                         .foregroundColor(.black)
-                        .frame(width: 28, height: 28)
+                        .frame(width: 24, height: 32)
                 }
             } else {
                 Color.clear
-                    .frame(width: 28, height: 28)
+                    .frame(width: 24, height: 32)
             }
 
-            HStack(spacing: 4) {
-                ForEach(0..<totalSteps, id: \.self) { index in
+            GeometryReader { proxy in
+                ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(index < step ? Color.black : Color(.systemGray5))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 6)
+                        .fill(Color(hex: "#F3F3F3"))
+
+                    Capsule()
+                        .fill(Color(hex: "#F1E8DF"))
+                        .frame(width: proxy.size.width * progress)
                 }
             }
+            .frame(height: 14)
 
             Text("\(step)/\(totalSteps)")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(Color(.systemGray))
+                .font(.system(size: 23, weight: .regular))
+                .foregroundColor(Color(hex: "#9EA6B5"))
+                .frame(width: 42, alignment: .trailing)
         }
+    }
+
+    private var progress: CGFloat {
+        guard totalSteps > 0 else { return 0 }
+        return min(max(CGFloat(step) / CGFloat(totalSteps), 0), 1)
     }
 }

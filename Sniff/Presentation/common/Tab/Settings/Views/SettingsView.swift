@@ -20,45 +20,16 @@ struct SettingsView: View {
     var body: some View {
         VStack(spacing: 0) {
             customHeader
-            Divider()
 
             ScrollView(showsIndicators: false) {
-                VStack(spacing: 24) {
-                    settingsSection {
-                        accountCell
-                    }
+                VStack(alignment: .leading, spacing: 0) {
+                    accountCell
 
-                    settingsSection {
-                        NavigationLink {
-                            PrivacyPolicyView()
-                        } label: {
-                            settingsRow(title: AppStrings.Profile.SettingsScreen.privacyPolicy)
-                        }
-                        .buttonStyle(.plain)
-
-                        settingsRow(
-                            title: AppStrings.Profile.SettingsScreen.appVersion,
-                            trailing: AppStrings.Profile.SettingsScreen.currentVersion(viewModel.appVersion),
-                            showsChevron: false
-                        )
-
-                        Button {
-                            viewModel.showLogoutAlert = true
-                        } label: {
-                            settingsRow(title: AppStrings.Profile.SettingsScreen.logout, tint: .red, showsChevron: false)
-                        }
-                        .buttonStyle(.plain)
-
-                        NavigationLink {
-                            SettingsSceneFactory.makeWithdrawView(nickname: viewModel.nickname)
-                        } label: {
-                            settingsRow(title: AppStrings.Profile.SettingsScreen.withdraw, tint: Color(.systemGray), showsChevron: false)
-                        }
-                        .buttonStyle(.plain)
-                    }
+                    settingsList
+                        .padding(.top, 54)
                 }
                 .padding(.horizontal, 20)
-                .padding(.top, 24)
+                .padding(.top, 3)
             }
         }
         .background(Color(.systemBackground).ignoresSafeArea())
@@ -91,7 +62,7 @@ struct SettingsView: View {
                 dismiss()
             } label: {
                 Image(systemName: "chevron.left")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.system(size: 22, weight: .semibold))
                     .foregroundColor(.primary)
                     .frame(width: 44, height: 44)
             }
@@ -103,39 +74,78 @@ struct SettingsView: View {
             Spacer()
         }
         .padding(.horizontal, 12)
-        .padding(.top, 8)
-        .padding(.bottom, 4)
+        .padding(.top, -6)
+        .padding(.bottom, 16)
     }
 
     private var accountCell: some View {
-        HStack(alignment: .center, spacing: 0) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(viewModel.nickname)
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(.primary)
+        VStack(alignment: .leading, spacing: 8) {
+            Text(viewModel.nickname)
+                .font(.system(size: 19, weight: .semibold))
+                .foregroundColor(.primary)
+                .lineLimit(1)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(minHeight: 26, alignment: .leading)
 
-                if let email = viewModel.email, !email.isEmpty {
-                    Text(email)
-                        .font(.system(size: 13))
-                        .foregroundColor(.secondary)
-                        .lineLimit(1)
-                }
+            if let email = viewModel.email, !email.isEmpty {
+                Text(email)
+                    .font(.system(size: 15))
+                    .foregroundColor(Color(.systemGray2))
+                    .lineLimit(1)
             }
-
-            Spacer()
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 18)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func settingsSection<Content: View>(
-        @ViewBuilder content: () -> Content
-    ) -> some View {
+    private var settingsList: some View {
         VStack(spacing: 0) {
-            content()
+            NavigationLink {
+                PrivacyPolicyView()
+            } label: {
+                settingsRow(title: AppStrings.Profile.SettingsScreen.privacyPolicy)
+            }
+            .buttonStyle(.plain)
+
+            separator
+
+            settingsRow(
+                title: AppStrings.Profile.SettingsScreen.appVersion,
+                trailing: AppStrings.Profile.SettingsScreen.currentVersion(viewModel.appVersion),
+                showsChevron: false
+            )
+
+            separator
+
+            Button {
+                viewModel.showLogoutAlert = true
+            } label: {
+                settingsRow(
+                    title: AppStrings.Profile.SettingsScreen.logout,
+                    tint: Color(red: 1, green: 0.26, blue: 0.26),
+                    showsChevron: false
+                )
+            }
+            .buttonStyle(.plain)
+
+            separator
+
+            NavigationLink {
+                SettingsSceneFactory.makeWithdrawView(nickname: viewModel.nickname)
+            } label: {
+                settingsRow(
+                    title: AppStrings.Profile.SettingsScreen.withdraw,
+                    tint: Color(.systemGray2),
+                    showsChevron: false
+                )
+            }
+            .buttonStyle(.plain)
         }
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    private var separator: some View {
+        Rectangle()
+            .fill(Color(.systemGray5))
+            .frame(height: 1)
     }
 
     private func settingsRow(
@@ -146,7 +156,7 @@ struct SettingsView: View {
     ) -> some View {
         HStack(spacing: 12) {
             Text(title)
-                .font(.system(size: 16))
+                .font(.system(size: 16, weight: .regular))
                 .foregroundColor(tint)
 
             Spacer()
@@ -159,12 +169,11 @@ struct SettingsView: View {
 
             if showsChevron {
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(Color(.systemGray3))
             }
         }
-        .padding(.horizontal, 16)
-        .frame(height: 54)
+        .frame(height: 55)
         .contentShape(Rectangle())
     }
 }

@@ -53,6 +53,7 @@ service cloud.firestore {
         'topNotes',
         'middleNotes',
         'baseNotes',
+        'generalNotes',
         'seasonRanking',
         'concentration',
         'longevity',
@@ -66,6 +67,7 @@ service cloud.firestore {
       && (!('topNotes' in data) || data.topNotes is list)
       && (!('middleNotes' in data) || data.middleNotes is list)
       && (!('baseNotes' in data) || data.baseNotes is list)
+      && (!('generalNotes' in data) || data.generalNotes is list)
       && (!('seasonRanking' in data) || data.seasonRanking is list)
       && (!('concentration' in data) || data.concentration is string)
       && (!('longevity' in data) || data.longevity is string)
@@ -87,6 +89,7 @@ service cloud.firestore {
         'topNotes',
         'middleNotes',
         'baseNotes',
+        'generalNotes',
         'seasonRanking',
         'longevity',
         'sillage'
@@ -104,6 +107,7 @@ service cloud.firestore {
       && (!('topNotes' in data) || data.topNotes is list)
       && (!('middleNotes' in data) || data.middleNotes is list)
       && (!('baseNotes' in data) || data.baseNotes is list)
+      && (!('generalNotes' in data) || data.generalNotes is list)
       && (!('seasonRanking' in data) || data.seasonRanking is list)
       && (!('longevity' in data) || data.longevity is string)
       && (!('sillage' in data) || data.sillage is string);
@@ -142,6 +146,46 @@ service cloud.firestore {
       && (!('concentration' in data) || data.concentration is string)
       && (!('createdAt' in data) || data.createdAt != null)
       && data.updatedAt != null;
+    }
+
+    function isValidAccordCache(data) {
+      return data.keys().hasOnly([
+        'accord',
+        'subFamily',
+        'confidence',
+        'source',
+        'createdAt',
+        'updatedAt'
+      ])
+      && data.accord is string
+      && data.subFamily is string
+      && data.confidence is number
+      && data.confidence >= 0
+      && data.confidence <= 1
+      && data.source is string
+      && data.createdAt != null
+      && data.updatedAt != null;
+    }
+
+    function isValidProfileHistory(data) {
+      return data.keys().hasOnly([
+        'title',
+        'families',
+        'scentVector',
+        'collectionCount',
+        'tastingCount',
+        'stage',
+        'createdAt'
+      ])
+      && data.title is string
+      && data.families is list
+      && data.scentVector is map
+      && data.collectionCount is int
+      && data.collectionCount >= 0
+      && data.tastingCount is int
+      && data.tastingCount >= 0
+      && data.stage is string
+      && data.createdAt != null;
     }
 
     match /users/{userId} {
@@ -184,6 +228,20 @@ service cloud.firestore {
           && resource.data.createdAt == request.resource.data.createdAt;
         allow delete: if isOwner(userId);
       }
+
+      match /profileHistory/{historyId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && isValidProfileHistory(request.resource.data);
+        allow update: if false;
+        allow delete: if isOwner(userId);
+      }
+    }
+
+    match /accordCache/{accordId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn()
+        && isValidAccordCache(request.resource.data);
     }
   }
 }

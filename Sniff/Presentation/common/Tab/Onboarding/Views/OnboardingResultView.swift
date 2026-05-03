@@ -11,88 +11,41 @@ struct OnboardingResultView: View {
 
     @ObservedObject var viewModel: OnboardingViewModel
     let onComplete: () -> Void
+    private let horizontalInset: CGFloat = 34
 
     var body: some View {
         Group {
             if let result = viewModel.tasteResult {
                 VStack(spacing: 0) {
                     Spacer()
-                        .frame(height: 72)
+                        .frame(height: 166)
 
                     Text(AppStrings.Onboarding.Result.title(nickname: viewModel.nickname))
-                        .font(.system(size: 24, weight: .bold))
+                        .font(.system(size: 25, weight: .bold))
                         .multilineTextAlignment(.center)
-                        .lineSpacing(4)
+                        .lineSpacing(6)
+                        .foregroundColor(.black)
                         .padding(.horizontal, 32)
 
-                    ScrollView(showsIndicators: false) {
-                        VStack(spacing: 28) {
-                            VStack(alignment: .leading, spacing: 20) {
-                                VStack(spacing: 0) {
-                                    Text(result.displayTitle)
-                                        .font(.system(size: 20, weight: .bold))
-                                        .foregroundColor(.black)
-                                        .multilineTextAlignment(.center)
-                                        .lineSpacing(2)
-                                        .frame(maxWidth: .infinity)
-                                }
-                                .frame(maxWidth: .infinity)
+                    resultCard(result)
+                        .padding(.horizontal, horizontalInset)
+                        .padding(.top, 36)
 
-                                Divider()
-
-                                Text(result.analysisSummary)
-                                    .font(.system(size: 15, weight: .medium))
-                                    .foregroundColor(Color(.systemGray))
-                                    .lineSpacing(5)
-                                    .multilineTextAlignment(.leading)
-
-                                Divider()
-
-                                VStack(alignment: .leading, spacing: 12) {
-                                    Text(AppStrings.Onboarding.recommendationFamilies)
-                                        .font(.system(size: 15, weight: .semibold))
-                                        .foregroundColor(Color(.systemGray))
-
-                                    FlowLayout(spacing: 10) {
-                                        ForEach(result.recommendationDirection.preferredFamilies, id: \.self) { family in
-                                            RecommendedFamilyChip(title: family)
-                                        }
-                                    }
-                                }
-                            }
-                            .padding(24)
-                            .background(
-                                RoundedRectangle(cornerRadius: 28)
-                                    .fill(Color.white.opacity(0.94))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 28)
-                                            .stroke(Color.black, lineWidth: 1.2)
-                                    )
-                            )
-                            .padding(.horizontal, 20)
-                        }
-                        .padding(.top, 34)
-                        .padding(.bottom, 24)
-                    }
+                    Text(AppStrings.Onboarding.Result.footnote)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(Color(.systemGray))
+                        .lineSpacing(5)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, horizontalInset)
+                        .padding(.top, 18)
 
                     Spacer(minLength: 0)
 
-                    Button {
-                        onComplete()
-                    } label: {
-                        Text(AppStrings.Onboarding.Result.cta)
-                            .font(.system(size: 17, weight: .semibold))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 56)
-                            .background(Color.black)
-                            .foregroundColor(.white)
-                            .cornerRadius(16)
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 24)
+                    bottomAction
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.sniffBeige.ignoresSafeArea())
+                .background(Color.white.ignoresSafeArea())
             } else {
                 VStack(spacing: 16) {
                     Spacer()
@@ -100,9 +53,107 @@ struct OnboardingResultView: View {
                     Spacer()
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.sniffBeige.ignoresSafeArea())
+                .background(Color.white.ignoresSafeArea())
             }
         }
+    }
+
+    private func resultCard(_ result: TasteAnalysisResult) -> some View {
+        VStack(alignment: .leading, spacing: 24) {
+            HStack(alignment: .top, spacing: 14) {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(resultAccentGradient(result: result))
+                    .frame(width: 44, height: 44)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.black.opacity(0.06), lineWidth: 1)
+                    )
+
+                VStack(alignment: .leading, spacing: 7) {
+                    Text(result.displayTitle)
+                        .font(.system(size: 19, weight: .bold))
+                        .foregroundColor(.black)
+                        .lineSpacing(2)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text(result.displayMajorSummary)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(Color(.systemGray))
+                        .lineLimit(2)
+                }
+            }
+
+            Text(result.analysisSummary)
+                .font(.system(size: 15, weight: .regular))
+                .foregroundColor(Color(.darkGray))
+                .lineSpacing(7)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Rectangle()
+                .fill(Color(.systemGray5))
+                .frame(height: 1)
+
+            VStack(alignment: .leading, spacing: 12) {
+                Text(AppStrings.Onboarding.recommendationFamilies)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(Color(.systemGray))
+
+                FlowLayout(spacing: 8) {
+                    ForEach(result.recommendationDirection.preferredFamilies, id: \.self) { family in
+                        RecommendedFamilyChip(title: family)
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 26)
+        .background(
+            RoundedRectangle(cornerRadius: 24)
+                .fill(Color(hex: "#FFFDFB"))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24)
+                        .stroke(Color.black.opacity(0.75), lineWidth: 1)
+                )
+        )
+    }
+
+    private var bottomAction: some View {
+        VStack(spacing: 0) {
+            Divider()
+                .background(Color(hex: "#EEF0F3"))
+
+            Button {
+                onComplete()
+            } label: {
+                Text(AppStrings.Onboarding.Result.cta)
+                    .font(.system(size: 16, weight: .semibold))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 54)
+                    .background(Color(hex: "#F1E8DF"))
+                    .foregroundColor(.black)
+                    .cornerRadius(12)
+            }
+            .padding(.horizontal, horizontalInset)
+            .padding(.top, 18)
+            .padding(.bottom, 18)
+        }
+    }
+
+    private func resultAccentGradient(result: TasteAnalysisResult) -> LinearGradient {
+        let families = result.recommendationDirection.preferredFamilies
+        let first = families.first.map { Color(uiColor: ScentFamilyColor.color(for: $0)) } ?? Color.sniffBeige
+        let second = families.dropFirst().first.map { Color(uiColor: ScentFamilyColor.color(for: $0)) } ?? Color.white
+
+        return LinearGradient(
+            colors: [
+                first.opacity(0.55),
+                second.opacity(0.35),
+                Color.white.opacity(0.9)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
     }
 }
 
@@ -112,19 +163,19 @@ private struct RecommendedFamilyChip: View {
     var body: some View {
         HStack(spacing: 8) {
             Circle()
-                .fill(Color.scentFloral.opacity(0.75))
+                .fill(Color(uiColor: ScentFamilyColor.color(for: title)).opacity(0.75))
                 .frame(width: 7, height: 7)
 
-            Text(title)
-                .font(.system(size: 14, weight: .semibold))
+            Text(PerfumeKoreanTranslator.koreanFamily(for: title))
+                .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(.black)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(Color.white.opacity(0.9))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Color.white)
         .overlay(
             Capsule()
-                .stroke(Color.gray.opacity(0.45), lineWidth: 1)
+                .stroke(Color.gray.opacity(0.32), lineWidth: 1)
         )
         .clipShape(Capsule())
     }

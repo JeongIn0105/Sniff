@@ -20,6 +20,7 @@ struct LikedPerfume: Identifiable {
     let topNotes: [String]?
     let middleNotes: [String]?
     let baseNotes: [String]?
+    let generalNotes: [String]?
     let seasonRanking: [SeasonRankingEntry]
     let concentration: String?
     let longevity: String?
@@ -44,6 +45,7 @@ extension LikedPerfume {
             topNotes: topNotes,
             middleNotes: middleNotes,
             baseNotes: baseNotes,
+            generalNotes: generalNotes,
             concentration: concentration,
             gender: nil,
             season: nil,

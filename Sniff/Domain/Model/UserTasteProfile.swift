@@ -11,18 +11,34 @@
 
 import Foundation
 
-enum RecommendationStage {
+enum RecommendationStage: Sendable {
     case onboardingOnly
     case onboardingCollection
     case earlyTasting
     case heavyTasting
 }
 
-struct UserTasteProfile {
+extension RecommendationStage {
+    var historyValue: String {
+        switch self {
+        case .onboardingOnly:
+            return "onboardingOnly"
+        case .onboardingCollection:
+            return "onboardingCollection"
+        case .earlyTasting:
+            return "earlyTasting"
+        case .heavyTasting:
+            return "heavyTasting"
+        }
+    }
+}
+
+struct UserTasteProfile: Sendable {
     let tasteTitle: String?
     let analysisSummary: String
     let preferredImpressions: [String]
     let preferredFamilies: [String]       // 상위 5개 계열 이름 (display용)
+    let dislikedFamilies: [String]
     let intensityLevel: String
     let safeStartingPoint: String
 

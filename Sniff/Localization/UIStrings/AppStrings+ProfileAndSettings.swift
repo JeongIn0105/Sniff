@@ -45,11 +45,11 @@ extension AppStrings {
         enum Withdraw {
             static let title = "회원 탈퇴"
             static let appName = AppStrings.AppShell.appName
-            static let guide = "탈퇴하기 전 유의사항을 확인해주세요"
+            static let guide = "탈퇴하기 전 아래의 유의사항을 확인해주세요"
             static let noticeTitle = "계정 탈퇴 유의사항"
             static let noticeBody = "계정 탈퇴 시 서비스에 등록된 개인정보와 서비스 이용 중 작성하신 모든 글이 영구적으로 삭제되며, 다시는 복구할 수 없습니다."
             static let agreement = "계정 탈퇴 유의사항을 확인했습니다."
-            static let action = "계정 탈퇴"
+            static let action = "다음"
             static let confirmTitle = "정말 탈퇴하시겠습니까?"
             static let confirmMessage = "탈퇴 시 모든 데이터가 영구적으로 삭제되며\n복구할 수 없습니다."
             static let confirmDestructive = "탈퇴"

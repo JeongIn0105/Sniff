@@ -76,6 +76,11 @@ enum FragellaResponseParser {
                 ?? stringArrayValue(forKeys: ["middle_notes", "middleNotes", "heart_notes"], in: dictionary),
             baseNotes: noteNames(in: dictionary, keys: ["Base", "base"])
                 ?? stringArrayValue(forKeys: ["base_notes", "baseNotes"], in: dictionary),
+            generalNotes: noteNames(in: dictionary, keys: ["General", "general", "All", "all"])
+                ?? stringArrayValue(
+                    forKeys: ["general_notes", "generalNotes", "General Notes", "notes", "Notes"],
+                    in: dictionary
+                ),
             concentration: stringValue(
                 forKeys: ["concentration", "Concentration", "OilType", "oilType", "oil_type", "Oil Type"],
                 in: dictionary
@@ -84,6 +89,10 @@ enum FragellaResponseParser {
             season: seasonRankingNames(in: dictionary)
                 ?? stringArrayValue(forKeys: ["season", "seasons"], in: dictionary),
             seasonRanking: seasonRankingEntries(in: dictionary),
+            popularity: numericValue(
+                forKeys: ["popularity", "Popularity", "popularity_score", "rating", "score", "votes"],
+                in: dictionary
+            ),
             situation: stringArrayValue(
                 forKeys: ["situation", "situations", "occasion", "occasions"],
                 in: dictionary

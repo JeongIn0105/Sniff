@@ -309,19 +309,9 @@ private func prioritizedHomeAccords(_ perfume: Perfume, profile: UserTasteProfil
 
 private func makeHomeBanner(from profile: UserTasteProfile) -> HomeTasteBannerItem {
     let familyText = profile.displayFamilySummary
-    let summary: String
-    if !profile.safeStartingPoint.isEmpty {
-        summary = profile.safeStartingPoint
-    } else if !profile.analysisSummary.isEmpty {
-        summary = profile.analysisSummary
-    } else if !familyText.isEmpty {
-        summary = AppStrings.Home.familySummary(familyText)
-    } else {
-        summary = AppStrings.Home.emptySummary
-    }
     return HomeTasteBannerItem(
-        title: profile.displayTitle,
-        summary: summary,
+        title: "오늘의 향",
+        summary: "취향에 맞는 향수를 골라봤어요",
         familyText: familyText
     )
 }

@@ -15,23 +15,7 @@ struct RecommendationQueryBuilder {
     }
 
     private func mapFamilyToSearchQueries(_ family: String) -> [String] {
-        switch family {
-        case "Citrus": return ["citrus", "fresh"]
-        case "Water": return ["aquatic", "fresh"]
-        case "Green": return ["green", "fresh"]
-        case "Floral": return ["floral"]
-        case "Soft Floral": return ["soft floral", "floral"]
-        case "Floral Amber": return ["floral amber", "amber", "floral"]
-        case "Fruity": return ["fruity", "floral"]
-        case "Soft Amber": return ["soft amber", "vanilla", "amber"]
-        case "Amber": return ["amber"]
-        case "Woods": return ["woody", "woods"]
-        case "Woody Amber": return ["woody", "amber"]
-        case "Dry Woods": return ["dry woods", "woody"]
-        case "Mossy Woods": return ["mossy woods", "woody"]
-        case "Aromatic": return ["aromatic", "fresh"]
-        default: return []
-        }
+        OnboardingTagMapper.searchKeywordsForFamily(family)
     }
 
     private func buildSearchTerms(from profile: UserTasteProfile) -> [String] {

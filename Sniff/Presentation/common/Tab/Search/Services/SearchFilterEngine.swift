@@ -76,6 +76,9 @@ enum SearchFilterEngine {
         switch sort {
         case .recommended:
             return perfumes
+        case .latest:
+            // 최신 등록순 — 데이터 모델에 날짜 필드가 없으므로 원본 역순(최근 추가 우선)으로 처리
+            return perfumes.reversed()
         case .nameAsc:
             return perfumes.sorted {
                 let lhsKey = normalizedSortKey($0.name)

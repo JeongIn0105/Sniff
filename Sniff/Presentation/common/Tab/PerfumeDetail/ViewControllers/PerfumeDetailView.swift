@@ -16,13 +16,13 @@ import SwiftUI
 final class PerfumeDetailViewController: UIViewController {
 
     enum Palette {
-        static let background = UIColor(hex: "#2E2C29")
-        static let surface = UIColor(hex: "#33312E")
-        static let border = UIColor(hex: "#4B4740")
-        static let card = UIColor(hex: "#252421")
-        static let textPrimary = UIColor(hex: "#F4F1EA")
-        static let textSecondary = UIColor(hex: "#D2CCC1")
-        static let textMuted = UIColor(hex: "#A9A295")
+        static let background = UIColor.systemBackground
+        static let surface = UIColor.systemBackground
+        static let border = UIColor(hex: "#E9E9E9")
+        static let card = UIColor.systemBackground
+        static let textPrimary = UIColor(hex: "#1F1F1F")
+        static let textSecondary = UIColor(hex: "#7A7A7A")
+        static let textMuted = UIColor(hex: "#B5B5B5")
     }
 
     private let viewModel: PerfumeDetailViewModel
@@ -108,30 +108,28 @@ final class PerfumeDetailViewController: UIViewController {
     }
 
     private let usageInfoView = UsageInfoView()
-    private let accordChipsView = ChipWrapView(style: .outline)
+    private let accordListView = ScentFamilyListView()
     private let notesView = DetailNotesView()
     private let seasonChipsView = SeasonSelectionView()
 
     private let addCollectionButton = UIButton(type: .system).then {
         $0.setTitle(AppStrings.UIKitScreens.PerfumeDetail.addCollection, for: .normal)
         $0.titleLabel?.font = .systemFont(ofSize: 15, weight: .medium)
-        $0.setTitleColor(Palette.textPrimary, for: .normal)
-        $0.backgroundColor = .clear
+        $0.setTitleColor(Palette.textSecondary, for: .normal)
+        $0.backgroundColor = UIColor(hex: "#F6F6F8")
         $0.layer.cornerRadius = 12
-        $0.layer.borderWidth = 1
-        $0.layer.borderColor = Palette.border.cgColor
     }
 
     private let addTastingButton = UIButton(type: .system).then {
         $0.setTitle(AppStrings.UIKitScreens.PerfumeDetail.addTasting, for: .normal)
         $0.titleLabel?.font = .systemFont(ofSize: 15, weight: .semibold)
-        $0.setTitleColor(Palette.background, for: .normal)
-        $0.backgroundColor = UIColor(hex: "#F3F0EA")
+        $0.setTitleColor(.white, for: .normal)
+        $0.backgroundColor = Palette.textPrimary
         $0.layer.cornerRadius = 12
     }
 
     private let loadingIndicator = UIActivityIndicatorView(style: .medium).then {
-        $0.color = .white
+        $0.color = Palette.textPrimary
     }
 
     override func viewDidLoad() {
@@ -143,8 +141,16 @@ final class PerfumeDetailViewController: UIViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         navigationController?.setNavigationBarHidden(true, animated: animated)
+        tabBarController?.tabBar.isHidden = true
         loadLikedPerfumes()
         refreshTastingRecordState()
+    }
+
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        if isMovingFromParent || isBeingDismissed || navigationController?.isBeingDismissed == true {
+            tabBarController?.tabBar.isHidden = false
+        }
     }
 
     private func setupUI() {
@@ -163,13 +169,13 @@ final class PerfumeDetailViewController: UIViewController {
         ].forEach { contentView.addSubview($0) }
 
         topBarView.addSubview(backButton)
+        topBarView.addSubview(likeButton)
         heroSectionView.addSubview(imageStageView)
         imageStageView.addSubview(bottleImageView)
         imageStageView.addSubview(imagePlaceholderLabel)
-        imageStageView.addSubview(likeButton)
         [brandLabel, nameLabel].forEach { infoSectionView.addSubview($0) }
         usageSectionView.embed(usageInfoView)
-        accordsSectionView.embed(accordChipsView)
+        accordsSectionView.embed(accordListView)
         notesSectionView.embed(notesView)
         seasonSectionView.embed(seasonChipsView)
         [addCollectionButton, addTastingButton].forEach { bottomBarView.addSubview($0) }
@@ -188,7 +194,7 @@ final class PerfumeDetailViewController: UIViewController {
 
         bottomBarView.snp.makeConstraints {
             $0.leading.trailing.bottom.equalToSuperview()
-            $0.height.equalTo(116)
+            $0.height.equalTo(104)
         }
 
         contentView.snp.makeConstraints {
@@ -204,6 +210,12 @@ final class PerfumeDetailViewController: UIViewController {
             $0.leading.equalToSuperview().offset(20)
             $0.centerY.equalToSuperview()
             $0.size.equalTo(28)
+        }
+
+        likeButton.snp.makeConstraints {
+            $0.trailing.equalToSuperview().inset(20)
+            $0.centerY.equalTo(backButton)
+            $0.size.equalTo(32)
         }
 
         heroSectionView.snp.makeConstraints {
@@ -226,12 +238,6 @@ final class PerfumeDetailViewController: UIViewController {
             $0.center.equalToSuperview()
             $0.leading.greaterThanOrEqualToSuperview().offset(24)
             $0.trailing.lessThanOrEqualToSuperview().offset(-24)
-        }
-
-        likeButton.snp.makeConstraints {
-            $0.trailing.equalToSuperview().offset(-18)
-            $0.bottom.equalToSuperview().offset(-18)
-            $0.size.equalTo(32)
         }
 
         infoSectionView.snp.makeConstraints {
@@ -272,21 +278,21 @@ final class PerfumeDetailViewController: UIViewController {
         }
 
         bottomBarView.backgroundColor = Palette.background
-        bottomBarView.layer.borderWidth = 1
+        bottomBarView.layer.borderWidth = 0
         bottomBarView.layer.borderColor = Palette.border.cgColor
 
         addCollectionButton.snp.makeConstraints {
             $0.leading.equalToSuperview().offset(20)
-            $0.top.equalToSuperview().offset(14)
-            $0.height.equalTo(46)
-            $0.width.equalTo(110)
+            $0.bottom.equalTo(view.safeAreaLayoutGuide).offset(-10)
+            $0.height.equalTo(48)
         }
 
         addTastingButton.snp.makeConstraints {
             $0.leading.equalTo(addCollectionButton.snp.trailing).offset(12)
             $0.trailing.equalToSuperview().offset(-20)
-            $0.top.equalTo(addCollectionButton)
-            $0.height.equalTo(46)
+            $0.centerY.equalTo(addCollectionButton)
+            $0.height.equalTo(addCollectionButton)
+            $0.width.equalTo(addCollectionButton)
         }
 
         backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
@@ -362,20 +368,18 @@ final class PerfumeDetailViewController: UIViewController {
         nameLabel.text = PerfumePresentationSupport.displayPerfumeName(perfume.name)
 
         usageInfoView.configure(
-            concentration: PerfumePresentationSupport.displayConcentration(perfume.concentration),
-            longevity: PerfumePresentationSupport.displayLongevity(perfume.longevity),
-            sillage: PerfumePresentationSupport.displaySillage(perfume.sillage)
+            concentration: perfume.concentration,
+            longevity: perfume.longevity,
+            sillage: perfume.sillage
         )
 
-        let dominantAccordIndices = Set(
-            perfume.mainAccords.enumerated().compactMap { index, accord in
-                perfume.mainAccordStrengths[accord] == .dominant ? index : nil
+        accordListView.configure(
+            accords: perfume.mainAccords.map {
+                ScentFamilyListView.Item(
+                    rawValue: $0,
+                    displayName: PerfumePresentationSupport.displayAccord($0)
+                )
             }
-        )
-        accordChipsView.configure(
-            texts: perfume.mainAccords.map { PerfumePresentationSupport.displayAccord($0) },
-            highlightedIndices: dominantAccordIndices,
-            colorPalette: Palette.self
         )
 
         notesView.configure(
@@ -714,6 +718,7 @@ final class PerfumeDetailViewController: UIViewController {
     }
 
     private func navigateToMyPage() {
+        tabBarController?.tabBar.isHidden = false
         NotificationCenter.default.post(
             name: .mainTabSelectionRequested,
             object: MainTabSelection.my.rawValue

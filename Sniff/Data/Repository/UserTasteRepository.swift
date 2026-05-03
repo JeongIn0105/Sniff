@@ -68,6 +68,58 @@ final class UserTasteRepository: UserTasteRepositoryType {
         }
     }
 
+    func fetchTasteProfileHistory() -> Single<[TasteProfileHistoryEntry]> {
+        Single.create { [weak self] single in
+            guard let self else {
+                single(.success([]))
+                return Disposables.create()
+            }
+
+            let task = Task {
+                do {
+                    let history = try await self.firestoreService.fetchTasteProfileHistory()
+                    single(.success(history))
+                } catch {
+                    single(.success([]))
+                }
+            }
+
+            return Disposables.create {
+                task.cancel()
+            }
+        }
+    }
+
+    func recordTasteProfileHistoryIfNeeded(
+        profile: UserTasteProfile,
+        collectionCount: Int,
+        tastingCount: Int
+    ) -> Single<[TasteProfileHistoryEntry]> {
+        Single.create { [weak self] single in
+            guard let self else {
+                single(.success([]))
+                return Disposables.create()
+            }
+
+            let task = Task {
+                do {
+                    let history = try await self.firestoreService.recordTasteProfileHistoryIfNeeded(
+                        profile: profile,
+                        collectionCount: collectionCount,
+                        tastingCount: tastingCount
+                    )
+                    single(.success(history))
+                } catch {
+                    single(.success([]))
+                }
+            }
+
+            return Disposables.create {
+                task.cancel()
+            }
+        }
+    }
+
     func analyzeTaste(input: TasteAnalysisInput) async throws -> TasteAnalysisResult {
         guard let geminiService else {
             throw AppSecretsError.missingValue("GEMINI_API_KEY")
@@ -119,7 +171,28 @@ final class UserTasteRepository: UserTasteRepositoryType {
             tasteAnalysis: refreshedAnalysis,
             experienceLevel: user.experienceLevel
         )
+
+        // 재분석 후 변경된 프로필을 히스토리에 기록
+        // title 또는 대표 계열이 달라진 경우에만 Firestore에 새 항목 추가
+        let updatedProfile = aggregator.aggregate(
+            onboarding: refreshedAnalysis,
+            collection: collectionItems,
+            tastingRecords: recordItems
+        )
+        _ = try? await firestoreService.recordTasteProfileHistoryIfNeeded(
+            profile: updatedProfile,
+            collectionCount: collectionItems.count,
+            tastingCount: recordItems.count
+        )
+
         return refreshedAnalysis
+    }
+
+    func applyHistoricalProfile(_ entry: TasteProfileHistoryEntry) async throws {
+        // Firestore taste_title 업데이트
+        try await firestoreService.applyHistoricalProfile(title: entry.title)
+        // UserDefaults 캐시 초기화 → 다음 fetch 시 Firestore에서 최신 데이터 로드
+        defaults.removeObject(forKey: CacheKey.latestTasteAnalysis)
     }
 
     func checkNicknameAvailability(_ nickname: String) async throws -> Bool {

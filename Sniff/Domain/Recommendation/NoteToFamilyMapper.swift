@@ -58,7 +58,8 @@ enum NoteToFamilyMapper {
     static func noteVector(
         topNotes: [String]?,
         middleNotes: [String]?,
-        baseNotes: [String]?
+        baseNotes: [String]?,
+        generalNotes: [String]? = nil
     ) -> [String: Double] {
         var vector: [String: Double] = [:]
 
@@ -75,6 +76,7 @@ enum NoteToFamilyMapper {
         accumulate(topNotes,    position: .top)
         accumulate(middleNotes, position: .middle)
         accumulate(baseNotes,   position: .base)
+        accumulate(generalNotes, position: .middle)
 
         let canonicalized = Dictionary(grouping: vector.compactMap { key, value -> (String, Double)? in
             guard let family = ScentFamilyNormalizer.canonicalName(for: key) else { return nil }

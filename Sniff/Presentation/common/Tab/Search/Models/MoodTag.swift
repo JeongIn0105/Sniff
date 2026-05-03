@@ -57,9 +57,9 @@ enum ScentFamilyFilter: String, CaseIterable, Codable {
         case .woodyAmber:
             return "우디 앰버"
         case .mossyWoods:
-            return "모시 우즈"
+            return "이끼가 있는 우디"
         case .dryWoods:
-            return "드라이 우즈"
+            return "마른 우디"
         }
     }
 
@@ -275,6 +275,7 @@ struct SearchFilter: Equatable {
 
 enum SortOption: String, CaseIterable {
     case recommended = "추천순"
+    case latest      = "최신순"
     case nameAsc     = "이름 순 (ㄱ~ㅎ)"
     case nameDesc    = "이름 역순 (ㅎ~ㄱ)"
 
@@ -282,6 +283,8 @@ enum SortOption: String, CaseIterable {
         switch self {
         case .recommended:
             return AppStrings.DomainDisplay.SearchFilters.sortRecommended
+        case .latest:
+            return AppStrings.DomainDisplay.SearchFilters.sortLatest
         case .nameAsc:
             return AppStrings.DomainDisplay.SearchFilters.sortNameAsc
         case .nameDesc:

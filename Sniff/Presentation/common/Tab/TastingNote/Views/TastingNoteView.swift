@@ -38,7 +38,7 @@ struct TastingNoteView: View {
 
                 if let message = viewModel.toastMessage {
                     toastBanner(message)
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal, 16)
                         .padding(.bottom, 96)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
@@ -93,7 +93,7 @@ struct TastingNoteView: View {
     }
 
     private var normalHeaderView: some View {
-        VStack(alignment: .leading, spacing: 22) {
+        VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .center) {
                 Text(viewModel.perfumeScope?.title ?? "시향기")
                     .font(.system(size: 26, weight: .bold))
@@ -110,53 +110,59 @@ struct TastingNoteView: View {
                 .disabled(viewModel.isEmpty)
                 .opacity(viewModel.isEmpty ? 0.35 : 1)
             }
+            .padding(.horizontal, 16)
+            .frame(maxWidth: .infinity)
+            .frame(height: 52, alignment: .center)
 
-            HStack(spacing: 9) {
+            HStack(alignment: .center, spacing: 10) {
                 filterChip(title: "전체 시향기", filter: .all)
                 filterChip(title: "보유 향수", filter: .owned)
                 filterChip(title: "LIKE 향수", filter: .liked)
                 Spacer(minLength: 0)
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity)
+            .background(Color(.systemBackground))
         }
-        .padding(.horizontal, 24)
-        .padding(.top, 22)
-        .padding(.bottom, 9)
+        .padding(.top, 4)
         .overlay(alignment: .bottom) {
             Rectangle()
-                .fill(Color(.systemGray5))
+                .fill(Color(red: 0.93, green: 0.93, blue: 0.93))
                 .frame(height: 0.6)
         }
     }
 
+    // MARK: - 편집 모드 헤더 (와이어프레임: 제목 medium, 삭제 버튼 medium)
     private var editHeaderView: some View {
-        HStack(spacing: 10) {
+        HStack(alignment: .center, spacing: 16) {
             Button {
                 viewModel.toggleDeleteMode()
             } label: {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 26, weight: .medium))
                     .foregroundColor(.black)
-                    .frame(width: 44, height: 44, alignment: .leading)
+                    .frame(width: 24, height: 24, alignment: .center)
             }
 
             Text("시향 기록 편집")
-                .font(.system(size: 25, weight: .bold))
+                .font(.custom("Pretendard", size: 20).weight(.medium))
                 .foregroundColor(.black)
+                .lineLimit(1)
 
             Spacer()
 
             Button("삭제") {
                 viewModel.requestDeleteSelected()
             }
-            .font(.system(size: 17, weight: .semibold))
-            .foregroundColor(Color(red: 0.92, green: 0.16, blue: 0.14))
+            .font(.custom("Pretendard", size: 18).weight(.medium))
+            .foregroundColor(Color(red: 1, green: 0.26, blue: 0.26))
             .opacity(viewModel.hasSelectedNotes ? 1 : 0.35)
             .disabled(!viewModel.hasSelectedNotes)
         }
-        .padding(.leading, 20)
-        .padding(.trailing, 24)
-        .padding(.top, 22)
-        .padding(.bottom, 18)
+        .padding(.horizontal, 16)
+        .frame(maxWidth: .infinity)
+        .frame(height: 52, alignment: .center)
     }
 
     private var emptyStateView: some View {
@@ -224,14 +230,14 @@ struct TastingNoteView: View {
                     }
 
                     Divider()
-                        .padding(.leading, viewModel.isDeleteMode ? 86 : 24)
-                        .opacity(0.55)
+                        .padding(.leading, 16)
+                        .padding(.trailing, 16)
+                        .foregroundColor(Color(red: 0.93, green: 0.93, blue: 0.93))
                 }
 
                 Spacer()
                     .frame(height: viewModel.isDeleteMode ? 110 : 140)
             }
-            .padding(.top, viewModel.isDeleteMode ? 0 : 10)
         }
     }
 
@@ -239,15 +245,17 @@ struct TastingNoteView: View {
         Button {
             viewModel.showFormSheet = true
         } label: {
-            HStack(spacing: 10) {
+            HStack(alignment: .center, spacing: 8) {
                 Image(systemName: "plus")
                     .font(.system(size: 22, weight: .regular))
+                    .frame(width: 24, height: 24)
 
                 Text("시향기 등록")
                     .font(.system(size: 18, weight: .semibold))
             }
             .foregroundColor(.white)
-            .padding(.horizontal, 22)
+            .padding(.leading, 12)
+            .padding(.trailing, 16)
             .frame(height: 52)
             .background(Color.black)
             .clipShape(Capsule())
@@ -268,33 +276,46 @@ struct TastingNoteView: View {
             viewModel.selectFilter(filter)
         } label: {
             Text(title)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(isSelected ? .white : .primary)
+                .font(.custom("Pretendard", size: 14).weight(.medium))
+                .foregroundColor(Color(red: 0.1, green: 0.1, blue: 0.1))
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)
-                .padding(.horizontal, 14)
-                .frame(height: 34)
-                .background(isSelected ? Color.black : Color(.systemBackground))
+                .padding(.horizontal, 18)
+                .padding(.vertical, 10)
+                .frame(height: 40)
+                .background(isSelected ? Color(red: 0.96, green: 0.93, blue: 0.89) : Color(.systemBackground))
                 .clipShape(Capsule())
                 .overlay(
                     Capsule()
-                        .stroke(isSelected ? Color.clear : Color(.systemGray), lineWidth: 1.5)
+                        .inset(by: 0.5)
+                        .stroke(isSelected ? Color(red: 0.86, green: 0.83, blue: 0.79) : Color(red: 0.79, green: 0.79, blue: 0.79), lineWidth: 1)
                 )
         }
     }
 
     private func toastBanner(_ message: String) -> some View {
-        Text(message)
-            .font(.system(size: 15, weight: .medium))
-            .foregroundColor(.white)
-            .padding(.horizontal, 20)
-            .frame(maxWidth: .infinity)
-            .frame(height: 52)
-            .background(Color.black.opacity(0.85))
-            .clipShape(RoundedRectangle(cornerRadius: 10))
+        HStack(alignment: .center, spacing: 8) {
+            Image(systemName: "questionmark.circle")
+                .font(.system(size: 20, weight: .medium))
+                .foregroundColor(Color(red: 0.69, green: 0.69, blue: 0.69))
+                .frame(width: 20, height: 20)
+
+            Text(message)
+                .font(.custom("Pretendard", size: 16).weight(.medium))
+                .foregroundColor(.white)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity)
+        .frame(height: 52, alignment: .center)
+        .background(Color(red: 0.49, green: 0.48, blue: 0.45))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }
 
+// MARK: - 일반 모드 행 (와이어프레임: 고정 frame 제거, vertical padding 12)
 private struct TastingNoteTextRowView: View {
 
     let note: TastingNote
@@ -302,76 +323,81 @@ private struct TastingNoteTextRowView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(PerfumePresentationSupport.displayPerfumeName(note.perfumeName))
-                .font(.system(size: 17, weight: .regular))
-                .foregroundColor(.black)
+                .font(.custom("Pretendard", size: 16).weight(.semibold))
+                .foregroundColor(Color(red: 0.07, green: 0.07, blue: 0.07))
                 .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
             Text(PerfumePresentationSupport.displayBrand(note.brandName))
-                .font(.system(size: 15, weight: .regular))
-                .foregroundColor(Color(.systemGray))
+                .font(.custom("Pretendard", size: 14).weight(.regular))
+                .foregroundColor(Color(red: 0.52, green: 0.52, blue: 0.52))
                 .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
             Text(note.updatedAt.tastingNoteFormat)
-                .font(.system(size: 14, weight: .regular))
-                .foregroundColor(Color(.systemGray3))
+                .font(.custom("Pretendard", size: 13).weight(.regular))
+                .foregroundColor(Color(red: 0.65, green: 0.65, blue: 0.65))
                 .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 24)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
         .contentShape(Rectangle())
     }
 }
 
+// MARK: - 편집 모드 행 (와이어프레임: 체크박스 center 정렬, spacing 16, vertical padding 12)
 private struct TastingNoteEditRowView: View {
 
     let note: TastingNote
     let isSelected: Bool
 
     var body: some View {
-        HStack(alignment: .top, spacing: 14) {
+        HStack(alignment: .center, spacing: 16) {
             checkbox
-                .padding(.top, 2)
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(PerfumePresentationSupport.displayPerfumeName(note.perfumeName))
-                    .font(.system(size: 17, weight: .regular))
-                    .foregroundColor(.black)
+                    .font(.custom("Pretendard", size: 16).weight(.semibold))
+                    .foregroundColor(Color(red: 0.07, green: 0.07, blue: 0.07))
                     .lineLimit(1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
                 Text(PerfumePresentationSupport.displayBrand(note.brandName))
-                    .font(.system(size: 15, weight: .regular))
-                    .foregroundColor(Color(.systemGray))
+                    .font(.custom("Pretendard", size: 14).weight(.regular))
+                    .foregroundColor(Color(red: 0.52, green: 0.52, blue: 0.52))
                     .lineLimit(1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
                 Text(note.updatedAt.tastingNoteFormat)
-                    .font(.system(size: 14, weight: .regular))
-                    .foregroundColor(Color(.systemGray3))
+                    .font(.custom("Pretendard", size: 13).weight(.regular))
+                    .foregroundColor(Color(red: 0.65, green: 0.65, blue: 0.65))
                     .lineLimit(1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
-
-            Spacer(minLength: 0)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.leading, 20)
-        .padding(.trailing, 24)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
         .contentShape(Rectangle())
     }
 
     private var checkbox: some View {
         RoundedRectangle(cornerRadius: 4)
-            .stroke(isSelected ? Color.black : Color(.systemGray), lineWidth: 1.5)
-            .frame(width: 25, height: 25)
+            .fill(isSelected ? Color.black : Color.white)
+            .overlay {
+                RoundedRectangle(cornerRadius: 4)
+                    .inset(by: 0.5)
+                    .stroke(isSelected ? Color.black : Color(red: 0.52, green: 0.52, blue: 0.52), lineWidth: 1)
+            }
+            .frame(width: 20, height: 20)
             .overlay {
                 if isSelected {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.black)
-                        .overlay {
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(.white)
-                        }
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.white)
                 }
             }
     }

@@ -123,9 +123,9 @@ extension AppStrings {
         static let ratingTitle = "향 선호도"
         static let moodTitle = "분위기&이미지"
         static let memoTitle = "시향 메모"
-        static let memoPlaceholder = "향수에 대한 느낌을 자유롭게 기록해주세요 (최소 20자)"
+        static let memoPlaceholder = "향수에 대한 느낌을 자유롭게 기록해주세요 (최소 10자)"
         static let reset = "초기화"
-        static let save = "작성 완료하기"
+        static let save = "작성 완료"
     }
 }
 

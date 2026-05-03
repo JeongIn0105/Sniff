@@ -12,6 +12,7 @@ extension AppStrings.DomainDisplay {
         nonisolated static let needsCollectionOrRecord = "향수를 등록하거나 시향 기록을 남기면 취향이 더 선명해져요"
         nonisolated static let needsTastingRecord = "시향 기록을 남기면 취향이 더 정확해져요"
         nonisolated static let updatedFromTasting = "시향 기록 기반으로 업데이트됐어요"
+        nonisolated static let invalidTitle = "취향 분석 결과를 다시 확인해야 해요"
 
         nonisolated static func tastingCount(_ count: Int) -> String {
             "시향 기록 \(count)개"

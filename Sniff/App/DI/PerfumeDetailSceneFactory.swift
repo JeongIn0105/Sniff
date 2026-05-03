@@ -5,7 +5,7 @@
 //  Created by Codex on 2026.04.17.
 //
 
-import Foundation
+import UIKit
 
 enum PerfumeDetailSceneFactory {
 
@@ -23,11 +23,11 @@ enum PerfumeDetailSceneFactory {
             perfume: perfume,
             perfumeCatalogRepository: dependencyContainer.makePerfumeCatalogRepository()
         )
-        return PerfumeDetailViewController(
+        return configuredDetailViewController(PerfumeDetailViewController(
             viewModel: viewModel,
             collectionRepository: collectionRepository,
             tastingRecordRepository: tastingRecordRepository
-        )
+        ))
     }
 
     static func makeViewController(perfumeId: String) -> PerfumeDetailViewController {
@@ -44,10 +44,17 @@ enum PerfumeDetailSceneFactory {
             perfumeId: perfumeId,
             perfumeCatalogRepository: dependencyContainer.makePerfumeCatalogRepository()
         )
-        return PerfumeDetailViewController(
+        return configuredDetailViewController(PerfumeDetailViewController(
             viewModel: viewModel,
             collectionRepository: collectionRepository,
             tastingRecordRepository: tastingRecordRepository
-        )
+        ))
+    }
+
+    private static func configuredDetailViewController(
+        _ viewController: PerfumeDetailViewController
+    ) -> PerfumeDetailViewController {
+        viewController.hidesBottomBarWhenPushed = true
+        return viewController
     }
 }

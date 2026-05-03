@@ -167,10 +167,13 @@ final class TastingNoteViewModel: ObservableObject {
 
         guard let note = noteToDelete else { return }
         do {
+            let displayName = PerfumePresentationSupport.displayPerfumeName(note.perfumeName)
             try await localRepository.delete(note)
             notes = try localRepository.loadNotes()
             noteToDelete = nil
             isDeleteMode = false
+            // 삭제 성공 토스트 표시
+            showDeleteToast(firstName: displayName, count: 1)
         } catch {
             errorMessage = AppStrings.ViewModelMessages.TastingNote.deleteFailed
         }
@@ -222,11 +225,40 @@ final class TastingNoteViewModel: ObservableObject {
             toastMessage = nil
         }
     }
+
+    // MARK: - 삭제 완료 토스트
+    // 예시: "크리드 어벤투스 시향기가 삭제되었습니다." / "크리드 어벤투스...외 1개 시향기가 삭제되었습니다."
+
+    private func showDeleteToast(firstName: String, count: Int) {
+        let message: String
+        if count <= 1 {
+            message = "\(firstName) 시향기가 삭제되었습니다."
+        } else {
+            message = "\(firstName)...외 \(count - 1)개 시향기가 삭제되었습니다."
+        }
+        toastMessage = message
+        toastTask?.cancel()
+        toastTask = Task {
+            try? await Task.sleep(nanoseconds: 2_500_000_000)
+            guard !Task.isCancelled else { return }
+            toastMessage = nil
+        }
+    }
  
     func clearError() { errorMessage = nil }
 
     private func deleteSelectedNotes() async {
         guard !selectedNoteIDs.isEmpty else { return }
+
+        // 삭제 전 이름 캡처 (토스트 메시지용)
+        let notesToDelete = notes.filter { note in
+            guard let id = note.id else { return false }
+            return selectedNoteIDs.contains(id)
+        }
+        let firstName = PerfumePresentationSupport.displayPerfumeName(
+            notesToDelete.first?.perfumeName ?? ""
+        )
+        let count = notesToDelete.count
 
         do {
             try await localRepository.delete(ids: selectedNoteIDs)
@@ -234,6 +266,8 @@ final class TastingNoteViewModel: ObservableObject {
             selectedNoteIDs.removeAll()
             isDeleteMode = false
             showDeleteAlert = false
+            // 삭제 성공 토스트 표시
+            showDeleteToast(firstName: firstName, count: count)
         } catch {
             errorMessage = "삭제 중 오류가 발생했어요"
         }

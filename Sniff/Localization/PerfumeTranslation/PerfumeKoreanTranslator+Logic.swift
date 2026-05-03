@@ -26,6 +26,22 @@ extension PerfumeKoreanTranslator {
         accords.map { korean(for: $0) }
     }
 
+    nonisolated static func koreanFamily(for family: String) -> String {
+        let canonical = ScentFamilyNormalizer.canonicalName(for: family) ?? family
+        switch canonical {
+        case "Water":
+            return "워터"
+        case "Mossy Woods":
+            return "이끼가 있는 우디"
+        default:
+            return korean(for: canonical)
+        }
+    }
+
+    nonisolated static func koreanFamilies(for families: [String]) -> [String] {
+        families.map { koreanFamily(for: $0) }
+    }
+
     nonisolated static func koreanBrand(for brand: String) -> String {
         let trimmed = brand.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return brand }
@@ -33,10 +49,6 @@ extension PerfumeKoreanTranslator {
         if let korean = brandToKorean[trimmed] { return korean }
         if let korean = lowerBrandToKorean[trimmed.lowercased()] { return korean }
         return normalizedBrandToKorean[normalizeBrandKey(trimmed)] ?? trimmed
-    }
-
-    nonisolated static func isDomesticRetailFocusedBrand(_ brand: String) -> Bool {
-        domesticRetailPriority(for: brand) > 0
     }
 
     nonisolated static func domesticRetailPriority(for brand: String) -> Int {
@@ -157,6 +169,7 @@ extension PerfumeKoreanTranslator {
 
         if let english = koreanToAccord[trimmed] { return english }
         if let english = koreanToBrand[trimmed] { return english }
+        if let english = koreanToPerfumeName[trimmed] { return english }
 
         let words = trimmed.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
         var translatedWords: [String] = []
@@ -168,6 +181,13 @@ extension PerfumeKoreanTranslator {
             for len in stride(from: min(3, words.count - i), through: 1, by: -1) {
                 let phrase = words[i..<(i + len)].joined(separator: " ")
                 if let eng = koreanToBrand[phrase] {
+                    translatedWords.append(eng)
+                    i += len
+                    anyTranslated = true
+                    matched = true
+                    break
+                }
+                if let eng = koreanToPerfumeName[phrase] {
                     translatedWords.append(eng)
                     i += len
                     anyTranslated = true
@@ -193,6 +213,13 @@ extension PerfumeKoreanTranslator {
         if anyTranslated { return translatedWords.joined(separator: " ") }
 
         for (korean, english) in koreanToBrand {
+            if trimmed.localizedCaseInsensitiveContains(korean) {
+                let replaced = trimmed.replacingOccurrences(of: korean, with: english, options: .caseInsensitive)
+                if replaced != trimmed { return replaced }
+            }
+        }
+
+        for (korean, english) in koreanToPerfumeName {
             if trimmed.localizedCaseInsensitiveContains(korean) {
                 let replaced = trimmed.replacingOccurrences(of: korean, with: english, options: .caseInsensitive)
                 if replaced != trimmed { return replaced }

@@ -15,66 +15,77 @@ struct LoginView: View {
     init(viewModel: LoginViewModel) {
         self._viewModel = StateObject(wrappedValue: viewModel)
     }
-    
+
     var body: some View {
-        ZStack {
-            Color.sniffBeige.ignoresSafeArea()
-            
-            VStack(spacing: 0) {
-                Spacer()
-                
-                // 로고
-                VStack(spacing: 12) {
+        GeometryReader { geometry in
+            ZStack {
+                Color.white.ignoresSafeArea()
+
+                VStack(spacing: 0) {
+                    Spacer()
+                        .frame(height: geometry.size.height * 0.26)
+
                     Text(AppStrings.AppShell.Login.title)
-                        .font(.system(size: 60, weight: .bold))
-                        .foregroundStyle(.black)
-                    Text(AppStrings.AppShell.Login.subtitle)
-                        .font(.subheadline)
-                        .foregroundStyle(.gray)
-                }
-                
-                Spacer()
-                
-                // 커스텀 Apple 로그인 버튼
-                Button {
-                    // isKeyWindow 기준으로 키 윈도우를 탐색합니다.
-                    // windows.first는 키 윈도우를 보장하지 않으므로 사용하지 않습니다.
-                    let scenes = UIApplication.shared.connectedScenes
-                        .compactMap { $0 as? UIWindowScene }
-                    guard let window = scenes
-                        .flatMap(\.windows)
-                        .first(where: \.isKeyWindow)
-                        ?? scenes.flatMap(\.windows).first
-                    else { return }
-                    viewModel.signInWithApple(presentationAnchor: window)
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "apple.logo")
-                            .font(.system(size: 17, weight: .medium))
-                            .foregroundStyle(.white)
-                        Text(AppStrings.AppShell.Login.appleButton)
-                            .font(.system(size: 17, weight: .medium))
-                            .foregroundStyle(.white)
+                        .font(
+                            Font.custom("Hahmlet", size: 28)
+                                .weight(.bold)
+                        )
+                        .kerning(2)
+                        .multilineTextAlignment(.center)
+                        .foregroundColor(.black)
+                        .frame(maxWidth: .infinity, alignment: .top)
+
+                    Spacer()
+
+                    loginButton(
+                        action: {
+                            let scenes = UIApplication.shared.connectedScenes
+                                .compactMap { $0 as? UIWindowScene }
+                            guard let window = scenes
+                                .flatMap(\.windows)
+                                .first(where: \.isKeyWindow)
+                                ?? scenes.flatMap(\.windows).first
+                            else { return }
+
+                            viewModel.signInWithApple(presentationAnchor: window)
+                        },
+                        label: AppStrings.AppShell.Login.appleButton
+                    )
+                    .disabled(viewModel.isLoading)
+                    .padding(.horizontal, 24)
+
+                    if viewModel.isLoading {
+                        ProgressView()
+                            .tint(.black)
+                            .padding(.top, 12)
                     }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .background(.black)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .padding(.horizontal, 32)
+
+                    Spacer()
+                        .frame(height: 56)
                 }
-                .disabled(viewModel.isLoading)
-                
-                if viewModel.isLoading {
-                    ProgressView()
-                        .tint(.black)
-                        .padding(.top, 16)
-                }
-                
-                Spacer().frame(height: 60)
             }
         }
-        .toast(isPresented: $viewModel.showError,
-               message: viewModel.errorMessage ?? AppStrings.AppShell.Login.defaultError)
+        .toast(
+            isPresented: $viewModel.showError,
+            message: viewModel.errorMessage ?? AppStrings.AppShell.Login.defaultError
+        )
+    }
+    // MARK: - 공용 로그인 버튼 빌더
+
+    @ViewBuilder
+    private func loginButton(
+        action: @escaping () -> Void,
+        label: String
+    ) -> some View {
+        Button(action: action) {
+            Text(label)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .frame(height: 57)
+            .background(Color(hex: "#242424"))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
     }
 }
 
@@ -82,7 +93,7 @@ struct LoginView: View {
 struct ToastModifier: ViewModifier {
     @Binding var isPresented: Bool
     let message: String
-    
+
     func body(content: Content) -> some View {
         ZStack(alignment: .bottom) {
             content

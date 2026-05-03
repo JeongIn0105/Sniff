@@ -19,6 +19,7 @@ struct CollectedPerfume {
     let topNotes: [String]?
     let middleNotes: [String]?
     let baseNotes: [String]?
+    let generalNotes: [String]?
     let seasonRanking: [SeasonRankingEntry]
     let concentration: String?
     let longevity: String?
@@ -40,6 +41,7 @@ struct CollectedPerfume {
         topNotes: [String]? = nil,
         middleNotes: [String]? = nil,
         baseNotes: [String]? = nil,
+        generalNotes: [String]? = nil,
         seasonRanking: [SeasonRankingEntry] = [],
         concentration: String? = nil,
         longevity: String? = nil,
@@ -56,6 +58,7 @@ struct CollectedPerfume {
         self.topNotes = topNotes
         self.middleNotes = middleNotes
         self.baseNotes = baseNotes
+        self.generalNotes = generalNotes
         self.seasonRanking = seasonRanking
         self.concentration = concentration
         self.longevity = longevity
@@ -101,6 +104,7 @@ extension CollectedPerfume {
             topNotes: topNotes,
             middleNotes: middleNotes,
             baseNotes: baseNotes,
+            generalNotes: generalNotes,
             concentration: concentration,
             gender: nil,
             season: nil,

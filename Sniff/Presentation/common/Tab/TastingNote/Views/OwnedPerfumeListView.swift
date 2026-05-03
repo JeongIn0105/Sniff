@@ -10,12 +10,12 @@ struct OwnedPerfumeListView: View {
 
     @StateObject private var viewModel: OwnedPerfumeListViewModel
     @Environment(\.dismiss) private var dismiss
-    @State private var showsMonthlyUsageInfo = false
+    @State private var showsRegisterSearch = false
     private enum Layout {
-        static let horizontalPadding: CGFloat = PerfumeGridCardLayout.gridHorizontalPadding
-        static let columnSpacing: CGFloat = PerfumeGridCardLayout.gridColumnSpacing
-        static let rowSpacing: CGFloat = PerfumeGridCardLayout.gridRowSpacing
-        static let selectionInset: CGFloat = 5
+        static let horizontalPadding: CGFloat = 16
+        static let columnSpacing: CGFloat = 14
+        static let rowSpacing: CGFloat = 32
+        static let selectionInset: CGFloat = 8
     }
 
     init(viewModel: OwnedPerfumeListViewModel) {
@@ -65,6 +65,10 @@ struct OwnedPerfumeListView: View {
             Text(viewModel.errorMessage ?? "")
         }
         .animation(.easeInOut(duration: 0.2), value: viewModel.toastMessage)
+        .sheet(isPresented: $showsRegisterSearch) {
+            SearchRegisterContainerView()
+                .ignoresSafeArea()
+        }
     }
 
     // MARK: - 헤더
@@ -82,58 +86,39 @@ struct OwnedPerfumeListView: View {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundColor(.primary)
-                    .frame(width: 44, height: 44)
+                    .frame(width: 36, height: 44)
             }
 
             // 타이틀 (왼쪽 정렬)
             if viewModel.isEditMode {
                 Text(AppStrings.TastingNoteUI.OwnedList.editTitle)
-                    .font(.system(size: 24, weight: .bold))
+                    .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(.primary)
             } else {
                 HStack(spacing: 6) {
                     Text(AppStrings.TastingNoteUI.OwnedList.title)
-                        .font(.system(size: 24, weight: .bold))
+                        .font(.system(size: 20, weight: .semibold))
                         .foregroundColor(.primary)
 
                     Text(AppStrings.TastingNoteUI.OwnedList.count(viewModel.perfumeCount))
-                        .font(.system(size: 22, weight: .medium))
+                        .font(.system(size: 16, weight: .medium))
                         .foregroundColor(Color(.systemGray2))
 
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.22)) {
-                            showsMonthlyUsageInfo.toggle()
-                        }
-                    } label: {
-                        ZStack {
-                            if showsMonthlyUsageInfo {
-                                Text(AppStrings.CollectionUsageLimits.monthlyUsage(
-                                    viewModel.monthlyUsageCount,
-                                    limit: viewModel.monthlyUsageLimit
-                                ))
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(Color(.systemGray))
-                                .padding(.horizontal, 9)
-                                .frame(height: 26)
-                                .background(Color(.systemGray6))
-                                .clipShape(Capsule())
-                                .transition(.move(edge: .trailing).combined(with: .opacity))
-                            } else {
-                                Text("!")
-                                    .font(.system(size: 13, weight: .bold))
-                                    .foregroundColor(Color(.systemGray))
-                                    .frame(width: 22, height: 22)
-                                    .background(Color(.systemGray6))
-                                    .clipShape(Circle())
-                                    .transition(.move(edge: .trailing).combined(with: .opacity))
-                            }
-                        }
-                    }
-                    .buttonStyle(.plain)
                 }
             }
 
             Spacer()
+
+            if !viewModel.isEditMode {
+                Button {
+                    showsRegisterSearch = true
+                } label: {
+                    Text("+ 향수 등록하기")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.primary)
+                }
+                .padding(.trailing, 14)
+            }
 
             // 편집 / 삭제 버튼
             Button(viewModel.isEditMode ? AppStrings.TastingNoteUI.OwnedList.delete : AppStrings.TastingNoteUI.OwnedList.edit) {
@@ -143,14 +128,14 @@ struct OwnedPerfumeListView: View {
                     viewModel.toggleEditMode()
                 }
             }
-            .font(.system(size: 16, weight: .medium))
-            .foregroundColor(viewModel.isEditMode ? .red : .primary)
+            .font(.system(size: 18, weight: .medium))
+            .foregroundColor(viewModel.isEditMode ? Color(red: 1, green: 0.26, blue: 0.26) : Color(.systemGray))
             .disabled(viewModel.isEditMode && !viewModel.hasSelection)
             .opacity(viewModel.isEditMode && !viewModel.hasSelection ? 0.35 : 1)
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 15)
         .padding(.top, 14)
-        .padding(.bottom, 20)
+        .padding(.bottom, 12)
     }
 
     // MARK: - 빈 상태
@@ -164,6 +149,18 @@ struct OwnedPerfumeListView: View {
             Text(AppStrings.TastingNoteUI.OwnedList.emptyMessage)
                 .font(.system(size: 16))
                 .foregroundColor(Color(.systemGray2))
+            Button {
+                showsRegisterSearch = true
+            } label: {
+                Text("+ 향수 등록하기")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 18)
+                    .frame(height: 44)
+                    .background(Color.black)
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            }
+            .padding(.top, 12)
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -217,9 +214,7 @@ struct OwnedPerfumeListView: View {
             )
 
             if viewModel.isEditMode {
-                Image(systemName: viewModel.selectedPerfumeIDs.contains(perfume.id) ? "checkmark.square.fill" : "square")
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundColor(viewModel.selectedPerfumeIDs.contains(perfume.id) ? Color(.systemGray) : Color(.systemGray3))
+                selectionCheckbox(isSelected: viewModel.selectedPerfumeIDs.contains(perfume.id))
                     .padding(.top, Layout.selectionInset)
                     .padding(.leading, Layout.selectionInset)
             }
@@ -234,6 +229,7 @@ struct OwnedPerfumeListView: View {
         ZStack(alignment: .bottomTrailing) {
             NavigationLink {
                 PerfumeDetailContainerView(perfume: perfume.sourcePerfume)
+                    .toolbar(.hidden, for: .navigationBar)
             } label: {
                 PerfumeGridCardView(
                     imageURL: perfume.imageURL,
@@ -259,15 +255,55 @@ struct OwnedPerfumeListView: View {
     }
 
     private func toastView(_ message: String) -> some View {
-        Text(message)
-            .font(.system(size: 15, weight: .medium))
-            .foregroundColor(.white)
-            .padding(.horizontal, 20)
-            .frame(maxWidth: .infinity)
-            .frame(height: 52)
-            .background(Color.black.opacity(0.85))
-            .clipShape(RoundedRectangle(cornerRadius: 10))
+        HStack(alignment: .center, spacing: 8) {
+            Image(systemName: "exclamationmark.circle.fill")
+                .frame(width: 24, height: 24)
+                .foregroundColor(Color.white.opacity(0.5))
+
+            Text(message)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(.white)
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity)
+        .background(Color(red: 0.18, green: 0.16, blue: 0.14))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .opacity(0.8)
     }
+
+    private func selectionCheckbox(isSelected: Bool) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 4)
+                .fill(isSelected ? Color.black : Color.white)
+
+            RoundedRectangle(cornerRadius: 4)
+                .stroke(isSelected ? Color.black : Color(.systemGray), lineWidth: 1.5)
+
+            if isSelected {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.white)
+            }
+        }
+        .frame(width: 24, height: 24)
+    }
+}
+
+private struct SearchRegisterContainerView: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> UINavigationController {
+        let searchViewController = SearchSceneFactory.makeSearchViewController(
+            showsRecentOnAppear: true,
+            mode: .register
+        )
+        let navigationController = UINavigationController(rootViewController: searchViewController)
+        navigationController.navigationBar.isHidden = true
+        return navigationController
+    }
+
+    func updateUIViewController(_ uiViewController: UINavigationController, context: Context) {}
 }
 
 // MARK: - Preview
