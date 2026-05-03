@@ -40,10 +40,11 @@ final class HomeViewController: UIViewController {
         return label
     }()
 
-    private let searchButton: UIButton = {
+    private let addPerfumeButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setImage(UIImage(systemName: "magnifyingglass"), for: .normal)
+        button.setImage(UIImage(systemName: "plus"), for: .normal)
         button.tintColor = .label
+        button.accessibilityLabel = AppStrings.UIKitScreens.PerfumeDetail.addCollection
         return button
     }()
 
@@ -177,7 +178,7 @@ private extension HomeViewController {
 
         [
             titleLabel,
-            searchButton,
+            addPerfumeButton,
             profileHeroCard,
             recommendationTitleLabel,
             recommendationCollectionView,
@@ -213,7 +214,7 @@ private extension HomeViewController {
             $0.leading.equalToSuperview().offset(20)
         }
 
-        searchButton.snp.makeConstraints {
+        addPerfumeButton.snp.makeConstraints {
             $0.centerY.equalTo(titleLabel)
             $0.trailing.equalToSuperview().inset(20)
             $0.size.equalTo(28)
@@ -309,7 +310,7 @@ private extension HomeViewController {
         bindProfile(output.profile)
         bindRecommendations(output.recommendations)
         bindRoute(output.route)
-        bindSearchButton()
+        bindAddPerfumeButton()
     }
 
     func bindBanner(_ banner: Driver<HomeTasteBannerItem>) {
@@ -352,8 +353,8 @@ private extension HomeViewController {
             .disposed(by: disposeBag)
     }
 
-    func bindSearchButton() {
-        searchButton.rx.tap
+    func bindAddPerfumeButton() {
+        addPerfumeButton.rx.tap
             .subscribe(onNext: { [weak self] in
                 let searchViewController = SearchSceneFactory.makeSearchViewController(
                     dependencyContainer: AppDependencyContainer.shared,
