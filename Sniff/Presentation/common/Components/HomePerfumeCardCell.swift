@@ -224,6 +224,7 @@ final class HomePerfumeCardCell: UICollectionViewCell {
          $0.leading.trailing.equalToSuperview()
          $0.bottom.lessThanOrEqualToSuperview()
        }
+    }
 
     func configure(with item: HomePerfumeItem, isLiked: Bool = false, hasTastingRecord: Bool? = nil) {
         brandLabel.text = PerfumePresentationSupport.displayBrand(item.brandName)

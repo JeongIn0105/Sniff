@@ -22,6 +22,7 @@ final class SearchViewController: UIViewController {
     private let tastingRecordRepository: TastingRecordRepositoryType
     private let localTastingNoteRepository: LocalTastingNoteRepository
     private let showsRecentOnAppear: Bool
+    private let mode: PerfumeSearchMode
     private let disposeBag = DisposeBag()
 
     private let searchTextRelay = BehaviorRelay<String>(value: "")
@@ -46,6 +47,7 @@ final class SearchViewController: UIViewController {
     private var suggestions: [SuggestionItem] = []
     private var keyboardInset: CGFloat = 0
     private var likedPerfumeIDs = Set<String>()
+    private var collectedPerfumeIDs = Set<String>()
     private var tastingNoteKeys = Set<String>()
     private var hasHandledRecentOnAppear = false
 
@@ -72,6 +74,13 @@ final class SearchViewController: UIViewController {
                 .foregroundColor: UIColor.secondaryLabel
             ]
         )
+    }
+
+    private let modeTitleLabel = UILabel().then {
+        $0.text = AppStrings.UIKitScreens.Search.registerTitle
+        $0.font = .systemFont(ofSize: 22, weight: .bold)
+        $0.textColor = .label
+        $0.isHidden = true
     }
 
     private let landingGuideLabel = UILabel().then {
@@ -214,13 +223,15 @@ private let sortButton = UIButton(type: .system).then {
         collectionRepository: CollectionRepositoryType,
         tastingRecordRepository: TastingRecordRepositoryType,
         localTastingNoteRepository: LocalTastingNoteRepository,
-        showsRecentOnAppear: Bool = false
+        showsRecentOnAppear: Bool = false,
+        mode: PerfumeSearchMode = .browse
     ) {
         self.viewModel = viewModel
         self.collectionRepository = collectionRepository
         self.tastingRecordRepository = tastingRecordRepository
         self.localTastingNoteRepository = localTastingNoteRepository
         self.showsRecentOnAppear = showsRecentOnAppear
+        self.mode = mode
         self.currentState = showsRecentOnAppear ? .initial : .landing
         super.init(nibName: nil, bundle: nil)
     }
@@ -247,11 +258,14 @@ private let sortButton = UIButton(type: .system).then {
         navigationController?.setNavigationBarHidden(true, animated: false)
         if case .result = currentState {
             backButton.isHidden = false
+        } else if mode == .register {
+            backButton.isHidden = false
         } else {
             backButton.isHidden = (navigationController?.viewControllers.count ?? 0) <= 1
         }
         updateSearchBarLeadingConstraint()
         loadLikedPerfumes()
+        loadCollectedPerfumes()
         loadTastingNoteKeys()
     }
 
@@ -270,6 +284,7 @@ private extension SearchViewController {
 
     func setupUI() {
         view.backgroundColor = .systemBackground
+        configureMode()
 
 
         setupRecentHeader()
@@ -293,16 +308,17 @@ private extension SearchViewController {
     }
 
     func addSubviews() {
-        [backButton, searchBar, resultHeaderView,
+        [backButton, modeTitleLabel, searchBar, resultHeaderView,
          landingGuideLabel,
          brandSectionLabel, brandEmptyLabel, brandTableView,
          tableView, perfumeCollectionView, emptyView].forEach {
             view.addSubview($0)
         }
 
-[resultCountLabel, countSeparatorView, filterButton, sortButton].forEach {
-    resultHeaderView.addSubview($0)
-}
+        [resultCountLabel, countSeparatorView, filterButton, sortButton].forEach {
+            resultHeaderView.addSubview($0)
+        }
+    }
 
     func makeConstraints() {
         backButton.snp.makeConstraints {
@@ -311,8 +327,17 @@ private extension SearchViewController {
             $0.size.equalTo(28)
         }
 
+        modeTitleLabel.snp.makeConstraints {
+            $0.top.equalTo(view.safeAreaLayoutGuide).offset(12)
+            $0.leading.trailing.equalToSuperview().inset(24)
+        }
+
         searchBar.snp.makeConstraints {
-            $0.top.equalTo(view.safeAreaLayoutGuide).offset(10)
+            if mode == .register {
+                $0.top.equalTo(modeTitleLabel.snp.bottom).offset(8)
+            } else {
+                $0.top.equalTo(view.safeAreaLayoutGuide).offset(10)
+            }
             searchBarLeadingToBackConstraint = $0.leading.equalTo(backButton.snp.trailing).offset(4).constraint
             searchBarLeadingToSuperviewConstraint = $0.leading.equalToSuperview().offset(20).constraint
             $0.trailing.equalToSuperview().offset(-8)
@@ -605,6 +630,10 @@ private extension SearchViewController {
         backButton.rx.tap
             .subscribe(onNext: { [weak self] in
                 guard let self else { return }
+                if self.mode == .register {
+                    self.navigationController?.dismiss(animated: true)
+                    return
+                }
                 if (self.navigationController?.viewControllers.count ?? 0) > 1 {
                     self.navigationController?.popViewController(animated: true)
                 } else {
@@ -614,6 +643,19 @@ private extension SearchViewController {
                 }
             })
             .disposed(by: disposeBag)
+    }
+
+    func configureMode() {
+        guard mode == .register else { return }
+        modeTitleLabel.isHidden = false
+        searchBar.placeholder = AppStrings.UIKitScreens.Search.registerPlaceholder
+        searchBar.searchTextField.attributedPlaceholder = NSAttributedString(
+            string: AppStrings.UIKitScreens.Search.registerPlaceholder,
+            attributes: [
+                .font: UIFont.systemFont(ofSize: 14, weight: .regular),
+                .foregroundColor: UIColor.secondaryLabel
+            ]
+        )
     }
 }
 
@@ -643,7 +685,7 @@ private extension SearchViewController {
         brandTableView.isHidden = true
         perfumeCollectionView.isHidden = true
         emptyView.isHidden = true
-        backButton.isHidden = (navigationController?.viewControllers.count ?? 0) <= 1
+        backButton.isHidden = mode == .register ? false : (navigationController?.viewControllers.count ?? 0) <= 1
         updateSearchBarLeadingConstraint()
         searchBar.showsCancelButton = false
         updateRecentTableChrome()
@@ -659,7 +701,7 @@ private extension SearchViewController {
         brandTableView.isHidden = true
         perfumeCollectionView.isHidden = true
         emptyView.isHidden = true
-        backButton.isHidden = (navigationController?.viewControllers.count ?? 0) <= 1
+        backButton.isHidden = mode == .register ? false : (navigationController?.viewControllers.count ?? 0) <= 1
         updateSearchBarLeadingConstraint()
         searchBar.showsCancelButton = false
         tableView.tableHeaderView = nil
@@ -688,7 +730,7 @@ private extension SearchViewController {
         perfumeCollectionView.isHidden = true
         emptyView.isHidden = false
         brandEmptyLabel.isHidden = false
-        backButton.isHidden = (navigationController?.viewControllers.count ?? 0) <= 1
+        backButton.isHidden = mode == .register ? false : (navigationController?.viewControllers.count ?? 0) <= 1
         updateSearchBarLeadingConstraint()
         searchBar.showsCancelButton = false
         brandSectionLabel.attributedText = makeCountAttributed(AppStrings.UIKitScreens.Search.brandCount(0))
@@ -879,6 +921,48 @@ private extension SearchViewController {
                 self?.likedPerfumeIDs = Set(items.map(\.id))
                 self?.reloadPerfumeResults()
             }, onFailure: { _ in })
+            .disposed(by: disposeBag)
+    }
+
+    private func loadCollectedPerfumes() {
+        collectionRepository.fetchCollection()
+            .observe(on: MainScheduler.instance)
+            .subscribe(onSuccess: { [weak self] items in
+                self?.collectedPerfumeIDs = Set(items.map(\.id))
+            }, onFailure: { _ in })
+            .disposed(by: disposeBag)
+    }
+
+    private func presentRegisterConfirmation(for perfume: Perfume) {
+        let collectionID = perfume.collectionDocumentID
+        guard !collectedPerfumeIDs.contains(collectionID) else {
+            showAppToast(message: AppStrings.UIKitScreens.Search.registerDuplicate)
+            return
+        }
+
+        let alert = UIAlertController(
+            title: nil,
+            message: AppStrings.UIKitScreens.Search.registerConfirmMessage,
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: AppStrings.UIKitScreens.cancel, style: .cancel))
+        alert.addAction(UIAlertAction(title: AppStrings.UIKitScreens.Search.registerAction, style: .default) { [weak self] _ in
+            self?.saveCollectedPerfume(perfume)
+        })
+        present(alert, animated: true)
+    }
+
+    private func saveCollectedPerfume(_ perfume: Perfume) {
+        let collectionID = perfume.collectionDocumentID
+        collectionRepository.saveCollectedPerfume(perfume, memo: nil)
+            .observe(on: MainScheduler.instance)
+            .subscribe(onCompleted: { [weak self] in
+                self?.collectedPerfumeIDs.insert(collectionID)
+                self?.showAppToast(message: AppStrings.UIKitScreens.Search.registerSuccess)
+                NotificationCenter.default.post(name: .perfumeCollectionDidChange, object: nil)
+            }, onError: { [weak self] error in
+                self?.presentSaveFailure(error)
+            })
             .disposed(by: disposeBag)
     }
 
@@ -1150,6 +1234,10 @@ extension SearchViewController: UICollectionViewDataSource, UICollectionViewDele
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         let perfume = filteredPerfumeResults[indexPath.item]
+        if mode == .register {
+            presentRegisterConfirmation(for: perfume)
+            return
+        }
         let detailVC = PerfumeDetailSceneFactory.makeViewController(perfume: perfume)
         navigationController?.pushViewController(detailVC, animated: true)
     }

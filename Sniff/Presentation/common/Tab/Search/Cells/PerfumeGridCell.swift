@@ -33,7 +33,7 @@ private let imageContainerView = UIView().then {
 }
 
     private let bottleImageView = UIImageView().then {
-        $0.contentMode = .scaleAspectFill
+        $0.contentMode = .scaleAspectFit
         $0.clipsToBounds = true
     }
 

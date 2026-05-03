@@ -19,6 +19,7 @@ extension AppStrings {
             static let title = AppShell.appName
             static let subtitle = "나만의 향수 취향을 찾아보세요"
             static let appleButton = "Apple 계정으로 로그인"
+            static let googleButton = "Google 계정으로 로그인"
             static let defaultError = "로그인에 실패했습니다."
             static let invalidCredential = "인증 정보를 처리할 수 없습니다."
         }

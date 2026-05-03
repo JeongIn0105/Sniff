@@ -12,12 +12,14 @@ struct TasteAnalysisResult: Codable {
     let analysisSummary: String
     let evidenceTags: EvidenceTags
     let recommendationDirection: RecommendationDirection
+    let dislikedTags: [String]
 
     enum CodingKeys: String, CodingKey {
         case tasteTitle = "taste_title"
         case analysisSummary = "analysis_summary"
         case evidenceTags = "evidence_tags"
         case recommendationDirection = "recommendation_direction"
+        case dislikedTags = "disliked_tags"
     }
 
     enum LegacyCodingKeys: String, CodingKey {
@@ -31,12 +33,14 @@ struct TasteAnalysisResult: Codable {
         tasteTitle: String? = nil,
         analysisSummary: String,
         evidenceTags: EvidenceTags,
-        recommendationDirection: RecommendationDirection
+        recommendationDirection: RecommendationDirection,
+        dislikedTags: [String] = []
     ) {
         self.tasteTitle = FragranceProfileText.validatedTasteTitle(tasteTitle)
         self.analysisSummary = analysisSummary
         self.evidenceTags = evidenceTags
         self.recommendationDirection = recommendationDirection
+        self.dislikedTags = dislikedTags
     }
 
     init(from decoder: Decoder) throws {
@@ -52,6 +56,7 @@ struct TasteAnalysisResult: Codable {
             RecommendationDirection.self,
             forKey: .recommendationDirection
         )
+        dislikedTags = try container.decodeIfPresent([String].self, forKey: .dislikedTags) ?? []
     }
 
     func encode(to encoder: Encoder) throws {
@@ -60,6 +65,7 @@ struct TasteAnalysisResult: Codable {
         try container.encode(analysisSummary, forKey: .analysisSummary)
         try container.encode(evidenceTags, forKey: .evidenceTags)
         try container.encode(recommendationDirection, forKey: .recommendationDirection)
+        try container.encode(dislikedTags, forKey: .dislikedTags)
     }
 }
 

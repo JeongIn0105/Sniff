@@ -678,6 +678,7 @@ extension MyPageViewModel {
                 analysisSummary: "시트러스나 워터리 계열처럼 가볍고 산뜻한 향으로 부담 없이 시작해보시는 걸 추천해요.",
                 preferredImpressions: ["깨끗한", "자연스러운"],
                 preferredFamilies: ["Citrus", "Water"],
+                dislikedFamilies: [],
                 intensityLevel: "light",
                 safeStartingPoint: "Citrus",
                 familyScores: ["Citrus": 0.6, "Water": 0.4],

@@ -35,14 +35,16 @@ struct PreferenceAggregator {
         let weights = weights(for: stage)
 
         let onboardingVec              = onboardingVector(from: onboarding)
+        let dislikedOnboardingVec      = OnboardingTagMapper.weightedVector(for: onboarding.dislikedTags)
         let collectionVec              = collectionVector(from: collection)
         let (positiveVec, negativeVec) = tastingVectors(from: tastingRecords)
+        let combinedNegativeVec = normalize(negativeVec.merging(dislikedOnboardingVec) { $0 + $1 })
 
         let scentVector = buildScentVector(
             onboardingVec: onboardingVec,
             collectionVec: collectionVec,
             positiveVec: positiveVec,
-            negativeVec: negativeVec,
+            negativeVec: combinedNegativeVec,
             weights: weights
         )
 
@@ -57,6 +59,7 @@ struct PreferenceAggregator {
             analysisSummary: onboarding.analysisSummary,
             preferredImpressions: onboarding.recommendationDirection.preferredImpression,
             preferredFamilies: Array(sortedFamilies.prefix(5)),
+            dislikedFamilies: Array(dislikedOnboardingVec.keys),
             intensityLevel: onboarding.recommendationDirection.intensityLevel,
             safeStartingPoint: onboarding.recommendationDirection.safeStartingPoint,
             familyScores: legacyScores,

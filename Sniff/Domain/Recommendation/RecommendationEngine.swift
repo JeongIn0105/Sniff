@@ -61,8 +61,27 @@ final class RecommendationEngine {
 
                 return RecommendationResult(
                     profile: profile,
-                    perfumes: Array(recommendations.prefix(10))
+                    perfumes: self.limitBrandDuplication(recommendations, maxPerBrand: 2, limit: 10)
                 )
             }
+    }
+
+    private func limitBrandDuplication(
+        _ recommendations: [RecommendedPerfume],
+        maxPerBrand: Int,
+        limit: Int
+    ) -> [RecommendedPerfume] {
+        var counts: [String: Int] = [:]
+        var result: [RecommendedPerfume] = []
+
+        for recommendation in recommendations {
+            let key = recommendation.perfume.brand.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            guard counts[key, default: 0] < maxPerBrand else { continue }
+            counts[key, default: 0] += 1
+            result.append(recommendation)
+            if result.count == limit { break }
+        }
+
+        return result
     }
 }

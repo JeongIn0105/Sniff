@@ -8,6 +8,10 @@
 import Foundation
 
 enum OnboardingStep {
+    case dislikedScents
+    case preferredScent
+    case seasonMood
+    case impression
     case nickname
     case experience
     case vibe

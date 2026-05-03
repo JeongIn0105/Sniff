@@ -51,6 +51,7 @@ extension FirestoreService {
             topNotes: data["topNotes"] as? [String],
             middleNotes: data["middleNotes"] as? [String],
             baseNotes: data["baseNotes"] as? [String],
+            generalNotes: data["generalNotes"] as? [String],
             seasonRanking: seasonRanking,
             concentration: data["concentration"] as? String,
             longevity: data["longevity"] as? String,

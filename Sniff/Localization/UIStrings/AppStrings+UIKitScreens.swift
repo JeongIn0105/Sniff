@@ -34,6 +34,12 @@ extension AppStrings {
 
         enum Search {
             static let placeholder = "향수명 또는 브랜드를 검색하세요"
+            static let registerTitle = "향수 등록"
+            static let registerPlaceholder = "향수 이름이나 브랜드를 검색해보세요"
+            static let registerConfirmMessage = "이 향수를 내 향수에 등록할까요?"
+            static let registerAction = "등록하기"
+            static let registerSuccess = "내 향수에 등록했어요"
+            static let registerDuplicate = "이미 등록된 향수예요"
             static let sortRecommended = "추천순 ▾"
             static let recentTitle = "최근 검색어"
             static let clearAll = "모두 지우기"
@@ -71,8 +77,8 @@ extension AppStrings {
             static let middleNotes = "미들"
             static let baseNotes = "베이스"
             static let imagePlaceholder = "이미지 준비중입니다"
-            static let addCollection = "향수 등록"
-            static let addedCollection = "향수 등록됨"
+            static let addCollection = "보유향수 등록"
+            static let addedCollection = "보유향수 등록됨"
             static let addTasting = "시향기록 남기기"
             static let tastingSavedTitle = "시향 기록 저장 완료"
 

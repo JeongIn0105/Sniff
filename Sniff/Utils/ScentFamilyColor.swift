@@ -177,6 +177,7 @@ enum ScentFamilyColor {
              normalized.contains("아로마틱"),
              normalized.contains("fougere"),
              normalized.contains("푸제르"),
+             normalized.contains("스파이시"),
              normalized.contains("spic"):
             return Palette.aromatic
         case normalized.contains("citrus"),
