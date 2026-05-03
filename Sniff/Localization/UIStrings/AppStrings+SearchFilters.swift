@@ -31,6 +31,7 @@ extension AppStrings.DomainDisplay {
         nonisolated static let eauFraicheDescription = "아주 옅고 가벼운 타입으로 짧게 향을 더하는 느낌에 가까워요.\n지속 시간 1~2시간"
 
         nonisolated static let sortRecommended = "추천순"
+        nonisolated static let sortLatest      = "최신순"
         nonisolated static let sortNameAsc = "이름 순 (ㄱ~ㅎ)"
         nonisolated static let sortNameDesc = "이름 역순 (ㅎ~ㄱ)"
 

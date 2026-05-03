@@ -12,8 +12,12 @@ import RxRelay
 
 final class RecentSearchStore: RecentSearchStoreType {
 
-    // 계정별로 분리된 UserDefaults 키 (UID 포함)
+    // MARK: - Properties
+
+    /// 계정별로 분리된 최근 검색어 UserDefaults 키
     private let key: String
+    /// 계정별로 분리된 자동저장 설정 UserDefaults 키
+    private let autoSaveKey: String
     private let maxCount = 10
     private let searchesRelay: BehaviorRelay<[RecentSearch]>
 
@@ -21,19 +25,36 @@ final class RecentSearchStore: RecentSearchStoreType {
         searchesRelay.asObservable()
     }
 
+    /// 자동저장 활성화 여부 — 기본값 true (최초 진입 시 켜짐 상태)
+    var isAutoSaveEnabled: Bool {
+        UserDefaults.standard.object(forKey: autoSaveKey) as? Bool ?? true
+    }
+
+    // MARK: - Init
+
     /// userID: Firebase Auth의 현재 유저 UID. nil이면 비로그인 상태로 간주해 공유 키 사용.
     init(userID: String?) {
-        let resolvedKey: String
+        let suffix: String
         if let uid = userID, !uid.isEmpty {
-            resolvedKey = "sniff.recentSearches.\(uid)"
+            suffix = uid
         } else {
-            resolvedKey = "sniff.recentSearches.anonymous"
+            suffix = "anonymous"
         }
-        self.key = resolvedKey
-        searchesRelay = BehaviorRelay(value: Self.load(key: resolvedKey))
+        self.key = "sniff.recentSearches.\(suffix)"
+        self.autoSaveKey = "sniff.autoSave.\(suffix)"
+        searchesRelay = BehaviorRelay(value: Self.load(key: "sniff.recentSearches.\(suffix)"))
+    }
+
+    // MARK: - RecentSearchStoreType
+
+    func setAutoSaveEnabled(_ enabled: Bool) {
+        UserDefaults.standard.set(enabled, forKey: autoSaveKey)
     }
 
     func save(query: String) {
+        // 자동저장이 꺼져 있으면 아무것도 하지 않음
+        guard isAutoSaveEnabled else { return }
+
         let trimmed = query.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
 
@@ -60,6 +81,8 @@ final class RecentSearchStore: RecentSearchStoreType {
         searchesRelay.accept([])
         UserDefaults.standard.removeObject(forKey: key)
     }
+
+    // MARK: - Private Helpers
 
     private static func load(key: String) -> [RecentSearch] {
         guard
