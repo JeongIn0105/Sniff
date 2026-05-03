@@ -11,6 +11,7 @@ import UIKit
 extension Notification.Name {
     static let mainTabSelectionRequested = Notification.Name("sniff.mainTabSelectionRequested")
     static let perfumeCollectionDidChange = Notification.Name("sniff.perfumeCollectionDidChange")
+    static let tasteProfileDidChange = Notification.Name("sniff.tasteProfileDidChange")
 }
 
 enum MainTabSelection: Int, Hashable {
@@ -26,6 +27,7 @@ struct MainTabView: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             HomeTabContainerView()
+                .ignoresSafeArea(.all, edges: .top)  // 상태바 영역까지 그라데이션 확장
                 .tabItem {
                     Image(systemName: "house")
                     Text(AppStrings.AppShell.MainTab.home)

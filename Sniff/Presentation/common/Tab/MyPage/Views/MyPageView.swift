@@ -77,6 +77,9 @@ struct MyPageView: View {
             .onReceive(NotificationCenter.default.publisher(for: .perfumeCollectionDidChange)) { _ in
                 Task { await viewModel.load() }
             }
+            .onReceive(NotificationCenter.default.publisher(for: .tasteProfileDidChange)) { _ in
+                Task { await viewModel.load() }
+            }
             .alert(AppStrings.Profile.errorTitle, isPresented: Binding(
                 get: { viewModel.errorMessage != nil },
                 set: { if !$0 { viewModel.clearError() } }
@@ -138,7 +141,7 @@ struct MyPageView: View {
     private var tasteProfileNavigation: some View {
         if let tasteProfileItem = viewModel.tasteProfileItem {
             NavigationLink {
-                TasteProfileDestinationView(profileItem: tasteProfileItem)
+                TasteProfileDestinationView(profileItem: tasteProfileItem, userTasteRepository: viewModel.userTasteRepository)
                     .toolbar(.hidden, for: .navigationBar)
             } label: {
                 tasteProfileRow(title: tasteProfileItem.profile.displayTitle)
@@ -390,9 +393,10 @@ private struct CheckerboardProfilePlaceholder: View {
 
 private struct TasteProfileDestinationView: UIViewControllerRepresentable {
     let profileItem: HomeViewModel.HomeProfileItem
+    let userTasteRepository: UserTasteRepositoryType
 
     func makeUIViewController(context: Context) -> TasteProfileViewController {
-        TasteProfileViewController(profileItem: profileItem)
+        TasteProfileViewController(profileItem: profileItem, userTasteRepository: userTasteRepository)
     }
 
     func updateUIViewController(_ uiViewController: TasteProfileViewController, context: Context) {}

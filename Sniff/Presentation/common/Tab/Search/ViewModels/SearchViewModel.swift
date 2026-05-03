@@ -58,6 +58,13 @@ final class SearchViewModel {
     private let activeFilterRelay = BehaviorRelay<SearchFilter>(value: SearchFilter())
     private let currentSortRelay = BehaviorRelay<SortOption>(value: .recommended)
 
+    // MARK: - 자동저장 상태
+    /// View가 구독할 수 있는 자동저장 활성화 여부 Observable
+    var autoSaveEnabled: Observable<Bool> {
+        autoSaveEnabledRelay.asObservable()
+    }
+    private let autoSaveEnabledRelay: BehaviorRelay<Bool>
+
         // MARK: - Init
     init(
         perfumeCatalogRepository: PerfumeCatalogRepositoryType,
@@ -70,8 +77,17 @@ final class SearchViewModel {
         self.localSearch = localSearch
         self.initialState = initialState
         self.stateRelay = BehaviorRelay<SearchState>(value: initialState)
+        self.autoSaveEnabledRelay = BehaviorRelay<Bool>(value: recentSearchStore.isAutoSaveEnabled)
         // 로컬 검색 인덱스를 백그라운드에서 미리 구축 (API 호출 없음)
         localSearch.buildIndex()
+    }
+
+    // MARK: - 자동저장 토글
+
+    /// 자동저장 켜기/끄기 — View에서 사용자 액션 후 호출
+    func setAutoSaveEnabled(_ enabled: Bool) {
+        recentSearchStore.setAutoSaveEnabled(enabled)
+        autoSaveEnabledRelay.accept(enabled)
     }
 
         // MARK: - Transform
@@ -84,6 +100,10 @@ final class SearchViewModel {
             .distinctUntilChanged()
             .subscribe(onNext: { [weak self] text in
                 guard let self else { return }
+                if case let .result(query) = self.stateRelay.value,
+                   text == query.trimmingCharacters(in: .whitespacesAndNewlines) {
+                    return
+                }
                 if text.isEmpty {
                     if case .suggesting = self.stateRelay.value {
                         self.stateRelay.accept(.initial)
@@ -104,7 +124,7 @@ final class SearchViewModel {
         input.beginEditing
             .subscribe(onNext: { [weak self] in
                 guard let self else { return }
-                if self.stateRelay.value.query == nil, self.stateRelay.value != .initial {
+                if self.stateRelay.value != .initial {
                     self.stateRelay.accept(.initial)
                 }
             })
@@ -271,6 +291,8 @@ final class SearchViewModel {
         for normalizedQuery in normalizedQueries {
             if normalizedBrandValues.contains(normalizedQuery) { return 1_000 }
             if normalizedBrandValues.contains(where: { $0.contains(normalizedQuery) }) { return 800 }
+            // 쿼리가 브랜드명으로 시작하는 경우 (예: "크리드어벤투스" → 브랜드 "크리드" 매칭)
+            if normalizedBrandValues.contains(where: { normalizedQuery.hasPrefix($0) && $0.count >= 2 }) { return 600 }
         }
         return 0
     }

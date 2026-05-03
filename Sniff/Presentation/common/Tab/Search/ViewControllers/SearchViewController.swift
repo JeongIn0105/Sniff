@@ -16,6 +16,51 @@ import Kingfisher
 
 final class SearchViewController: UIViewController {
 
+    private enum SearchStyle {
+        static let neutral950 = UIColor(red: 0.13, green: 0.13, blue: 0.13, alpha: 1)
+        static let neutral400 = UIColor(red: 0.69, green: 0.69, blue: 0.69, alpha: 1)
+        static let searchBackground = UIColor(red: 0.96, green: 0.96, blue: 0.96, alpha: 1)
+        static let clearButtonEditingBackground = UIColor.black.withAlphaComponent(0.5)
+        static let clearButtonResultBackground = UIColor(red: 0.74, green: 0.74, blue: 0.74, alpha: 0.5)
+
+        static func pretendard(size: CGFloat, weight: UIFont.Weight) -> UIFont {
+            let preferredName: String
+            switch weight {
+            case .semibold:
+                preferredName = "Pretendard-SemiBold"
+            case .medium:
+                preferredName = "Pretendard-Medium"
+            case .bold, .heavy, .black:
+                preferredName = "Pretendard-Bold"
+            default:
+                preferredName = "Pretendard-Regular"
+            }
+
+            return UIFont(name: preferredName, size: size)
+                ?? UIFont(name: "Pretendard-Medium", size: size)
+                ?? UIFont(name: "Pretendard", size: size)
+                ?? .systemFont(ofSize: size, weight: weight)
+        }
+
+        static func searchIconImage(color: UIColor = .black) -> UIImage {
+            let format = UIGraphicsImageRendererFormat()
+            format.scale = UIScreen.main.scale
+
+            return UIGraphicsImageRenderer(size: CGSize(width: 24, height: 24), format: format).image { _ in
+                let path = UIBezierPath()
+                path.lineWidth = 3
+                path.lineCapStyle = .round
+                path.lineJoinStyle = .round
+
+                color.setStroke()
+                UIBezierPath(ovalIn: CGRect(x: 3, y: 3, width: 13.5, height: 13.5)).stroke()
+                path.move(to: CGPoint(x: 14.5, y: 14.5))
+                path.addLine(to: CGPoint(x: 21, y: 21))
+                path.stroke()
+            }.withRenderingMode(.alwaysOriginal)
+        }
+    }
+
         // MARK: - Properties
     private let viewModel: SearchViewModel
     private let collectionRepository: CollectionRepositoryType
@@ -51,10 +96,18 @@ final class SearchViewController: UIViewController {
     private var tastingNoteKeys = Set<String>()
     private var hasHandledRecentOnAppear = false
 
+    // MARK: - 자동저장 상태
+    /// ViewModel에서 받아온 자동저장 활성화 여부 로컬 캐시
+    private var isAutoSaveEnabled = true
+    /// 키보드가 현재 화면에 올라와 있는지 여부
+    private var isKeyboardVisible = false
+    private var pendingAutoSaveEnabled = false
+
         // MARK: - UI Components
 
     private let backButton = UIButton(type: .system).then {
-        $0.setImage(UIImage(systemName: "chevron.left"), for: .normal)
+        let config = UIImage.SymbolConfiguration(pointSize: 20, weight: .semibold)
+        $0.setImage(UIImage(systemName: "chevron.left", withConfiguration: config), for: .normal)
         $0.tintColor = .label
         $0.isHidden = true
         $0.contentHorizontalAlignment = .center
@@ -65,23 +118,50 @@ final class SearchViewController: UIViewController {
         $0.placeholder = AppStrings.UIKitScreens.Search.placeholder
         $0.searchBarStyle = .minimal
         $0.returnKeyType = .search
-        $0.searchTextField.font = .systemFont(ofSize: 15, weight: .regular)
-        $0.searchTextField.clearButtonMode = .whileEditing
+        $0.searchTextField.font = SearchStyle.pretendard(size: 16, weight: .medium)
+        $0.searchTextField.clearButtonMode = .never
         $0.searchTextField.attributedPlaceholder = NSAttributedString(
             string: AppStrings.UIKitScreens.Search.placeholder,
             attributes: [
-                .font: UIFont.systemFont(ofSize: 14, weight: .regular),
-                .foregroundColor: UIColor.secondaryLabel
+                .font: SearchStyle.pretendard(size: 16, weight: .medium),
+                .foregroundColor: SearchStyle.neutral400
             ]
         )
     }
 
+    // MARK: - register mode 전용 타이틀 (refactor branch)
     private let modeTitleLabel = UILabel().then {
         $0.text = AppStrings.UIKitScreens.Search.registerTitle
         $0.font = .systemFont(ofSize: 22, weight: .bold)
         $0.textColor = .label
         $0.isHidden = true
     }
+
+    // MARK: - 검색바 액세서리 버튼 (main branch)
+    private let searchSubmitButton: UIButton = {
+        var config = UIButton.Configuration.plain()
+        config.image = SearchStyle.searchIconImage(color: .black)
+        config.baseForegroundColor = .black
+        config.contentInsets = .zero
+        let button = UIButton(configuration: config)
+        button.imageView?.contentMode = .scaleAspectFit
+        return button
+    }()
+    private let searchClearButton: UIButton = {
+        // X 버튼: Figma 스펙 — 20×20 pill, black 50% 배경, 흰색 xmark 아이콘
+        let btn = UIButton(type: .custom)
+        btn.backgroundColor = SearchStyle.clearButtonEditingBackground
+        btn.layer.cornerRadius = 10
+        btn.layer.cornerCurve = .continuous
+        btn.clipsToBounds = true
+        let xImage = UIImage(
+            systemName: "xmark",
+            withConfiguration: UIImage.SymbolConfiguration(pointSize: 9, weight: .bold)
+        )
+        btn.setImage(xImage, for: .normal)
+        btn.tintColor = .white
+        return btn
+    }()
 
     private let landingGuideLabel = UILabel().then {
         $0.font = .systemFont(ofSize: 14)
@@ -150,6 +230,7 @@ private let sortButton = UIButton(type: .system).then {
     private lazy var tableView = UITableView().then {
         $0.register(RecentSearchCell.self, forCellReuseIdentifier: RecentSearchCell.identifier)
         $0.register(SuggestionCell.self, forCellReuseIdentifier: SuggestionCell.identifier)
+        $0.register(SearchMessageCell.self, forCellReuseIdentifier: SearchMessageCell.identifier)
         $0.separatorStyle = .none
         $0.rowHeight = UITableView.automaticDimension
         $0.estimatedRowHeight = 68
@@ -194,20 +275,86 @@ private let sortButton = UIButton(type: .system).then {
     private let recentHeaderView = UIView()
     private let recentTitleLabel = UILabel().then {
         $0.text = AppStrings.UIKitScreens.Search.recentTitle
-        $0.font = .systemFont(ofSize: 16, weight: .semibold)
+        $0.font = SearchStyle.pretendard(size: 18, weight: .semibold)
+        $0.textColor = SearchStyle.neutral950
+    }
+
+    // MARK: - 연관 검색어 헤더
+
+    /// 타이핑 중(suggesting) 상태에서 테이블뷰 상단에 표시되는 "연관 검색어" 헤더뷰
+    private let suggestionHeaderView = UIView()
+    private let suggestionTitleLabel = UILabel().then {
+        $0.text = "연관 검색어"
+        $0.font = SearchStyle.pretendard(size: 18, weight: .semibold)
+        $0.textColor = UIColor(red: 0.13, green: 0.13, blue: 0.13, alpha: 1) // Atomic/Neutral/950
     }
     private let clearAllButton = UIButton(type: .system).then {
         $0.setTitle(AppStrings.UIKitScreens.Search.clearAll, for: .normal)
         $0.setTitleColor(.systemRed, for: .normal)
-        $0.titleLabel?.font = .systemFont(ofSize: 13)
+        $0.titleLabel?.font = SearchStyle.pretendard(size: 14, weight: .medium)
+        $0.contentHorizontalAlignment = .left
         $0.isHidden = true
     }
     private let recentFooterView = UIView()
-    private let footerClearAllButton = UIButton(type: .system).then {
+    // MARK: - 자동저장 목록 푸터
+
+    /// 최근 검색어 화면(initial state) 목록 바로 아래에 표시되는 자동저장 설정 바
+    private let autoSaveBarView = UIView().then {
+        $0.backgroundColor = UIColor(red: 0.96, green: 0.95, blue: 0.93, alpha: 1)
+    }
+    /// 바 상단 얇은 구분선
+    private let autoSaveBarTopLine = UIView().then {
+        $0.backgroundColor = UIColor(red: 0.88, green: 0.86, blue: 0.83, alpha: 1)
+    }
+    /// "자동저장 켜기" / "자동저장 끄기" 토글 버튼
+    private let autoSaveToggleButton = UIButton(type: .system).then {
+        $0.setTitleColor(UIColor(red: 0.39, green: 0.39, blue: 0.39, alpha: 1), for: .normal)
+        $0.titleLabel?.font = .systemFont(ofSize: 13, weight: .regular)
+    }
+    /// 최근 검색어 모두 지우기 버튼
+    private let autoSaveClearAllButton = UIButton(type: .system).then {
         $0.setTitle(AppStrings.UIKitScreens.Search.clearAll, for: .normal)
         $0.setTitleColor(.systemRed, for: .normal)
-        $0.titleLabel?.font = .systemFont(ofSize: 14, weight: .medium)
-        $0.contentHorizontalAlignment = .left
+        $0.titleLabel?.font = .systemFont(ofSize: 13, weight: .regular)
+    }
+    /// 닫기 버튼 — 키보드 내리기
+    private let autoSaveCloseButton = UIButton(type: .system).then {
+        $0.setTitle("닫기", for: .normal)
+        $0.setTitleColor(UIColor(red: 0.39, green: 0.39, blue: 0.39, alpha: 1), for: .normal)
+        $0.titleLabel?.font = .systemFont(ofSize: 13, weight: .regular)
+    }
+
+    private let autoSaveAlertOverlayView = UIView().then {
+        $0.backgroundColor = UIColor.black.withAlphaComponent(0.18)
+        $0.isHidden = true
+    }
+    private let autoSaveAlertCardView = UIView().then {
+        $0.backgroundColor = .systemBackground
+        $0.layer.cornerRadius = 24
+        $0.layer.cornerCurve = .continuous
+        $0.clipsToBounds = true
+    }
+    private let autoSaveAlertMessageLabel = UILabel().then {
+        $0.font = .systemFont(ofSize: 18, weight: .semibold)
+        $0.textColor = .label
+        $0.numberOfLines = 0
+        $0.textAlignment = .left
+    }
+    private let autoSaveAlertCancelButton = UIButton(type: .system).then {
+        $0.setTitle(AppStrings.UIKitScreens.cancel, for: .normal)
+        $0.setTitleColor(.label, for: .normal)
+        $0.titleLabel?.font = .systemFont(ofSize: 16, weight: .semibold)
+        $0.backgroundColor = UIColor(red: 0.93, green: 0.91, blue: 0.87, alpha: 1)
+        $0.layer.cornerRadius = 18
+        $0.layer.cornerCurve = .continuous
+    }
+    private let autoSaveAlertConfirmButton = UIButton(type: .system).then {
+        $0.setTitle(AppStrings.UIKitScreens.confirm, for: .normal)
+        $0.setTitleColor(.white, for: .normal)
+        $0.titleLabel?.font = .systemFont(ofSize: 16, weight: .semibold)
+        $0.backgroundColor = UIColor(red: 0.18, green: 0.17, blue: 0.16, alpha: 1)
+        $0.layer.cornerRadius = 18
+        $0.layer.cornerCurve = .continuous
     }
 
     private var resultHeaderTopToGuideConstraint: Constraint?
@@ -260,6 +407,10 @@ private let sortButton = UIButton(type: .system).then {
             backButton.isHidden = false
         } else if mode == .register {
             backButton.isHidden = false
+        } else if case .initial = currentState {
+            backButton.isHidden = false
+        } else if case .suggesting = currentState {
+            backButton.isHidden = false
         } else {
             backButton.isHidden = (navigationController?.viewControllers.count ?? 0) <= 1
         }
@@ -276,6 +427,15 @@ private let sortButton = UIButton(type: .system).then {
         hasHandledRecentOnAppear = true
         searchBar.becomeFirstResponder()
     }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+
+        if tableView.tableFooterView === autoSaveBarView,
+           autoSaveBarView.frame.width != tableView.bounds.width {
+            configureAutoSaveFooter()
+        }
+    }
 }
 
 private extension SearchViewController {
@@ -286,37 +446,133 @@ private extension SearchViewController {
         view.backgroundColor = .systemBackground
         configureMode()
 
-
+        configureSearchBarAppearance()
         setupRecentHeader()
+        setupSuggestionHeader()
         addSubviews()
         makeConstraints()
         updateSearchBarLeadingConstraint()
         resultHeaderTopToBrandConstraint?.deactivate()
         resultHeaderTopToBrandEmptyConstraint?.deactivate()
+
+        // 자동저장 토글 버튼 초기 타이틀 설정
+        updateAutoSaveToggleTitle()
+        updateAutoSaveBarItems()
+    }
+
+    func configureSearchBarAppearance() {
+        // UISearchBar 자체 배경 완전 제거 → pill(searchTextField)만 노출
+        searchBar.backgroundImage = UIImage()
+        searchBar.backgroundColor = .clear
+        searchBar.isTranslucent = true
+        searchBar.setImage(UIImage(), for: .search, state: .normal)
+        searchBar.searchTextField.backgroundColor = SearchStyle.searchBackground
+        // 와이어프레임처럼 낮은 pill 형태
+        searchBar.searchTextField.layer.cornerRadius = 20
+        searchBar.searchTextField.layer.cornerCurve = .continuous
+        searchBar.searchTextField.clipsToBounds = true
+        searchBar.searchTextField.textColor = SearchStyle.neutral950
+        searchBar.searchTextField.borderStyle = .none
+        searchBar.searchTextField.snp.remakeConstraints {
+            $0.top.bottom.equalToSuperview()
+            $0.leading.trailing.equalToSuperview()
+            $0.height.equalTo(40)
+        }
+
+        searchBar.searchTextField.attributedPlaceholder = NSAttributedString(
+            string: AppStrings.UIKitScreens.Search.placeholder,
+            attributes: [
+                .font: SearchStyle.pretendard(size: 16, weight: .medium),
+                .foregroundColor: SearchStyle.neutral400
+            ]
+        )
+        searchBar.searchTextField.textAlignment = .left
+        // UISearchTextField 자체 기본 여백 약 8pt를 감안해 실제 텍스트 시작점을 16pt에 맞춘다.
+        searchBar.searchTextField.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 8, height: 1))
+        searchBar.searchTextField.leftViewMode = .always
+        searchBar.searchTextField.rightView = UIView(frame: CGRect(x: 0, y: 0, width: 48, height: 1))
+        searchBar.searchTextField.rightViewMode = .always
+        installSearchBarAccessoryButtonsIfNeeded()
+        updateSearchBarAccessory(for: searchBar.text ?? "")
+    }
+
+    func updateSearchBarAccessory(for text: String) {
+        let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        searchSubmitButton.isHidden = !trimmedText.isEmpty
+        searchClearButton.isHidden = trimmedText.isEmpty
+        updateSearchClearButtonAppearance()
+    }
+
+    func updateSearchClearButtonAppearance() {
+        if case .result = currentState {
+            searchClearButton.backgroundColor = SearchStyle.clearButtonResultBackground
+        } else {
+            searchClearButton.backgroundColor = SearchStyle.clearButtonEditingBackground
+        }
+    }
+
+    func installSearchBarAccessoryButtonsIfNeeded() {
+        guard searchSubmitButton.superview == nil else { return }
+
+        // 돋보기 버튼: Figma icon/search 24×24, pill 오른쪽 끝에서 16pt 안쪽
+        searchBar.searchTextField.addSubview(searchSubmitButton)
+        searchSubmitButton.snp.makeConstraints {
+            $0.trailing.equalToSuperview().offset(-16)
+            $0.centerY.equalToSuperview()
+            $0.width.height.equalTo(24)
+        }
+
+        // X 버튼: 20×20 pill, pill 오른쪽 끝에서 16pt 안쪽
+        searchBar.searchTextField.addSubview(searchClearButton)
+        searchClearButton.snp.makeConstraints {
+            $0.trailing.equalToSuperview().offset(-16)
+            $0.centerY.equalToSuperview()
+            $0.width.height.equalTo(20)
+        }
     }
 
     func setupRecentHeader() {
         recentHeaderView.addSubview(recentTitleLabel)
-        recentTitleLabel.frame = CGRect(x: 20, y: 6, width: 200, height: 32)
+        recentTitleLabel.frame = CGRect(x: 16, y: 14, width: 220, height: 24)
         recentTitleLabel.autoresizingMask = [.flexibleRightMargin, .flexibleBottomMargin]
-        recentHeaderView.frame = CGRect(x: 0, y: 0, width: view.bounds.width, height: 44)
+        recentHeaderView.frame = CGRect(x: 0, y: 0, width: view.bounds.width, height: 56)
 
-        recentFooterView.addSubview(footerClearAllButton)
-        footerClearAllButton.frame = CGRect(x: 20, y: 0, width: 120, height: 44)
-        footerClearAllButton.autoresizingMask = [.flexibleRightMargin, .flexibleBottomMargin]
-        recentFooterView.frame = CGRect(x: 0, y: 0, width: view.bounds.width, height: 44)
+        recentFooterView.addSubview(clearAllButton)
+        clearAllButton.frame = CGRect(x: 16, y: 10, width: 140, height: 32)
+        clearAllButton.autoresizingMask = [.flexibleRightMargin, .flexibleBottomMargin]
+        recentFooterView.frame = CGRect(x: 0, y: 0, width: view.bounds.width, height: 52)
+    }
+
+    /// 연관 검색어 헤더뷰 초기 설정
+    func setupSuggestionHeader() {
+        suggestionHeaderView.addSubview(suggestionTitleLabel)
+        // 검색바 하단 ~ 텍스트 상단 전체 간격 14pt (tableView offset 8pt + header top 6pt)
+        suggestionTitleLabel.frame = CGRect(x: 16, y: 9.5, width: 220, height: 28)
+        suggestionTitleLabel.autoresizingMask = [.flexibleRightMargin, .flexibleBottomMargin]
+        suggestionHeaderView.frame = CGRect(x: 0, y: 0, width: view.bounds.width, height: 43.5)
     }
 
     func addSubviews() {
         [backButton, modeTitleLabel, searchBar, resultHeaderView,
          landingGuideLabel,
          brandSectionLabel, brandEmptyLabel, brandTableView,
-         tableView, perfumeCollectionView, emptyView].forEach {
+         tableView, perfumeCollectionView, emptyView,
+         autoSaveAlertOverlayView].forEach {
             view.addSubview($0)
         }
 
         [resultCountLabel, countSeparatorView, filterButton, sortButton].forEach {
             resultHeaderView.addSubview($0)
+        }
+
+        // 자동저장 바 서브뷰
+        [autoSaveBarTopLine, autoSaveToggleButton, autoSaveClearAllButton, autoSaveCloseButton].forEach {
+            autoSaveBarView.addSubview($0)
+        }
+
+        autoSaveAlertOverlayView.addSubview(autoSaveAlertCardView)
+        [autoSaveAlertMessageLabel, autoSaveAlertCancelButton, autoSaveAlertConfirmButton].forEach {
+            autoSaveAlertCardView.addSubview($0)
         }
     }
 
@@ -324,7 +580,9 @@ private extension SearchViewController {
         backButton.snp.makeConstraints {
             $0.centerY.equalTo(searchBar.snp.centerY)
             $0.leading.equalToSuperview().offset(16)
-            $0.size.equalTo(28)
+            // 와이어프레임: 뒤로가기 버튼 폭 약 20pt (검색바 41pt 기준 상하 10.5pt 여백)
+            $0.width.equalTo(20)
+            $0.height.equalTo(24)
         }
 
         modeTitleLabel.snp.makeConstraints {
@@ -336,11 +594,12 @@ private extension SearchViewController {
             if mode == .register {
                 $0.top.equalTo(modeTitleLabel.snp.bottom).offset(8)
             } else {
-                $0.top.equalTo(view.safeAreaLayoutGuide).offset(10)
+                $0.top.equalTo(view.safeAreaLayoutGuide).offset(14)
             }
-            searchBarLeadingToBackConstraint = $0.leading.equalTo(backButton.snp.trailing).offset(4).constraint
-            searchBarLeadingToSuperviewConstraint = $0.leading.equalToSuperview().offset(20).constraint
-            $0.trailing.equalToSuperview().offset(-8)
+            searchBarLeadingToBackConstraint = $0.leading.equalTo(backButton.snp.trailing).offset(20).constraint
+            searchBarLeadingToSuperviewConstraint = $0.leading.equalToSuperview().offset(16).constraint
+            $0.trailing.equalToSuperview().offset(-16)
+            $0.height.equalTo(40)
         }
 
         landingGuideLabel.snp.makeConstraints {
@@ -413,6 +672,55 @@ sortButton.snp.makeConstraints {
         searchBarLeadingToBackConstraint?.deactivate()
         resultHeaderTopToBrandConstraint?.deactivate()
         resultHeaderTopToBrandEmptyConstraint?.deactivate()
+
+        // MARK: 자동저장 바 레이아웃
+        autoSaveBarTopLine.snp.makeConstraints {
+            $0.top.leading.trailing.equalToSuperview()
+            $0.height.equalTo(0.5)
+        }
+
+        autoSaveToggleButton.snp.makeConstraints {
+            $0.leading.equalToSuperview().offset(16)
+            $0.centerY.equalToSuperview()
+        }
+
+        autoSaveClearAllButton.snp.makeConstraints {
+            $0.leading.equalTo(autoSaveToggleButton.snp.trailing).offset(18)
+            $0.centerY.equalToSuperview()
+        }
+
+        autoSaveCloseButton.snp.makeConstraints {
+            $0.trailing.equalToSuperview().offset(-16)
+            $0.centerY.equalToSuperview()
+        }
+
+        autoSaveAlertOverlayView.snp.makeConstraints {
+            $0.edges.equalToSuperview()
+        }
+
+        autoSaveAlertCardView.snp.makeConstraints {
+            $0.centerX.equalToSuperview()
+            $0.centerY.equalToSuperview().offset(18)
+            $0.leading.trailing.equalToSuperview().inset(44)
+        }
+
+        autoSaveAlertMessageLabel.snp.makeConstraints {
+            $0.top.equalToSuperview().offset(26)
+            $0.leading.trailing.equalToSuperview().inset(28)
+        }
+
+        autoSaveAlertCancelButton.snp.makeConstraints {
+            $0.top.equalTo(autoSaveAlertMessageLabel.snp.bottom).offset(24)
+            $0.leading.equalToSuperview().offset(18)
+            $0.bottom.equalToSuperview().offset(-18)
+            $0.height.equalTo(52)
+        }
+
+        autoSaveAlertConfirmButton.snp.makeConstraints {
+            $0.top.bottom.width.equalTo(autoSaveAlertCancelButton)
+            $0.leading.equalTo(autoSaveAlertCancelButton.snp.trailing).offset(12)
+            $0.trailing.equalToSuperview().offset(-18)
+        }
     }
 }
 
@@ -427,8 +735,9 @@ private extension SearchViewController {
         brandTableView.dataSource = self
 
         tableView.tableHeaderView = recentHeaderView
-        recentHeaderView.frame = CGRect(x: 0, y: 0, width: view.bounds.width, height: 44)
-        recentFooterView.frame = CGRect(x: 0, y: 0, width: view.bounds.width, height: 44)
+        recentHeaderView.frame = CGRect(x: 0, y: 0, width: view.bounds.width, height: 56)
+        recentFooterView.frame = CGRect(x: 0, y: 0, width: view.bounds.width, height: 52)
+        autoSaveBarView.frame = CGRect(x: 0, y: 0, width: view.bounds.width, height: 44)
     }
 
     func setupCollectionView() {
@@ -468,6 +777,7 @@ private extension SearchViewController {
         bindCurrentSort(output.currentSort)
         bindSearchBar()
         bindActions()
+        bindAutoSave()
     }
 
     func bindState(_ state: Observable<SearchState>) {
@@ -486,6 +796,7 @@ private extension SearchViewController {
             .subscribe(onNext: { [weak self] searches in
                 guard let self else { return }
                 self.recentSearches = searches
+                self.updateAutoSaveBarItems()
                 if case .initial = self.currentState {
                     self.updateRecentTableChrome()
                     self.reloadTableView()
@@ -559,7 +870,6 @@ private extension SearchViewController {
             .subscribe(onNext: { [weak self] filter in
                 guard let self else { return }
                 self.currentFilter = filter
-                // 필터 활성화 여부에 따라 아이콘 색상만 변경 (필 스타일 없음)
                 let symbolConfig = UIImage.SymbolConfiguration(pointSize: 18, weight: .medium)
                 let image = UIImage(systemName: "slider.horizontal.3", withConfiguration: symbolConfig)
                 self.filterButton.setTitle(nil, for: .normal)
@@ -583,12 +893,38 @@ private extension SearchViewController {
 
     func bindSearchBar() {
         searchBar.rx.text.orEmpty
+            .do(onNext: { [weak self] text in
+                self?.updateSearchBarAccessory(for: text)
+            })
             .bind(to: searchTextRelay)
             .disposed(by: disposeBag)
 
         searchBar.rx.searchButtonClicked
             .withLatestFrom(searchTextRelay)
             .bind(to: searchTriggerRelay)
+            .disposed(by: disposeBag)
+
+        searchSubmitButton.rx.tap
+            .withLatestFrom(searchTextRelay)
+            .subscribe(onNext: { [weak self] text in
+                let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                if trimmedText.isEmpty {
+                    self?.searchBar.becomeFirstResponder()
+                } else {
+                    self?.searchTriggerRelay.accept(trimmedText)
+                }
+            })
+            .disposed(by: disposeBag)
+
+        searchClearButton.rx.tap
+            .subscribe(onNext: { [weak self] in
+                guard let self else { return }
+                self.searchBar.text = nil
+                self.searchTextRelay.accept("")
+                self.updateSearchBarAccessory(for: "")
+                self.clearTriggerRelay.accept(())
+                self.searchBar.becomeFirstResponder()
+            })
             .disposed(by: disposeBag)
 
         searchBar.rx.textDidBeginEditing
@@ -623,10 +959,6 @@ private extension SearchViewController {
             .bind(to: clearAllRecentSearchesRelay)
             .disposed(by: disposeBag)
 
-        footerClearAllButton.rx.tap
-            .bind(to: clearAllRecentSearchesRelay)
-            .disposed(by: disposeBag)
-
         backButton.rx.tap
             .subscribe(onNext: { [weak self] in
                 guard let self else { return }
@@ -639,12 +971,14 @@ private extension SearchViewController {
                 } else {
                     self.searchBar.text = nil
                     self.searchTextRelay.accept("")
+                    self.updateSearchBarAccessory(for: "")
                     self.clearTriggerRelay.accept(())
                 }
             })
             .disposed(by: disposeBag)
     }
 
+    // MARK: - register mode 설정 (refactor branch)
     func configureMode() {
         guard mode == .register else { return }
         modeTitleLabel.isHidden = false
@@ -656,6 +990,103 @@ private extension SearchViewController {
                 .foregroundColor: UIColor.secondaryLabel
             ]
         )
+    }
+
+    // MARK: - 자동저장 바인딩 (main branch)
+
+    func bindAutoSave() {
+        // ViewModel의 autoSaveEnabled 구독 → 로컬 상태 + UI 업데이트
+        viewModel.autoSaveEnabled
+            .observe(on: MainScheduler.instance)
+            .subscribe(onNext: { [weak self] enabled in
+                guard let self else { return }
+                self.isAutoSaveEnabled = enabled
+                self.updateAutoSaveToggleTitle()
+                self.updateAutoSaveBarItems()
+                // initial 상태일 때 테이블 즉시 갱신
+                if case .initial = self.currentState {
+                    self.updateRecentTableChrome()
+                    self.reloadTableView()
+                }
+            })
+            .disposed(by: disposeBag)
+
+        // "자동저장 켜기/끄기" 버튼
+        autoSaveToggleButton.rx.tap
+            .subscribe(onNext: { [weak self] in
+                guard let self else { return }
+                self.showAutoSaveConfirmAlert(enabling: !self.isAutoSaveEnabled)
+            })
+            .disposed(by: disposeBag)
+
+        autoSaveClearAllButton.rx.tap
+            .bind(to: clearAllRecentSearchesRelay)
+            .disposed(by: disposeBag)
+
+        // "닫기" 버튼 — 키보드 내리기
+        autoSaveCloseButton.rx.tap
+            .subscribe(onNext: { [weak self] in
+                self?.closeSearchOverlay()
+            })
+            .disposed(by: disposeBag)
+
+        autoSaveAlertCancelButton.rx.tap
+            .subscribe(onNext: { [weak self] in
+                self?.hideAutoSaveConfirmAlert()
+            })
+            .disposed(by: disposeBag)
+
+        autoSaveAlertConfirmButton.rx.tap
+            .subscribe(onNext: { [weak self] in
+                guard let self else { return }
+                self.hideAutoSaveConfirmAlert()
+                self.viewModel.setAutoSaveEnabled(self.pendingAutoSaveEnabled)
+            })
+            .disposed(by: disposeBag)
+    }
+
+    /// 자동저장 활성화 여부에 따라 토글 버튼 타이틀 변경
+    func updateAutoSaveToggleTitle() {
+        let title = isAutoSaveEnabled ? "자동저장 끄기" : "자동저장 켜기"
+        autoSaveToggleButton.setTitle(title, for: .normal)
+    }
+
+    func updateAutoSaveBarItems() {
+        autoSaveClearAllButton.isHidden = !isAutoSaveEnabled || recentSearches.isEmpty
+    }
+
+    func showAutoSaveConfirmAlert(enabling: Bool) {
+        pendingAutoSaveEnabled = enabling
+        autoSaveAlertMessageLabel.text = enabling
+            ? "최근검색어 저장 기능을\n사용하시겠습니까?"
+            : "최근검색어 저장 기능을\n사용 중지하시겠습니까?"
+        autoSaveAlertOverlayView.isHidden = false
+        autoSaveAlertOverlayView.alpha = 0
+        autoSaveAlertCardView.transform = CGAffineTransform(scaleX: 0.96, y: 0.96)
+        UIView.animate(withDuration: 0.2, delay: 0, options: .curveEaseOut) {
+            self.autoSaveAlertOverlayView.alpha = 1
+            self.autoSaveAlertCardView.transform = .identity
+        }
+    }
+
+    func hideAutoSaveConfirmAlert() {
+        UIView.animate(withDuration: 0.16, delay: 0, options: .curveEaseIn, animations: {
+            self.autoSaveAlertOverlayView.alpha = 0
+        }, completion: { _ in
+            self.autoSaveAlertOverlayView.isHidden = true
+        })
+    }
+
+    func closeSearchOverlay() {
+        searchBar.resignFirstResponder()
+        if (navigationController?.viewControllers.count ?? 0) > 1 {
+            navigationController?.popViewController(animated: true)
+        } else {
+            searchBar.text = nil
+            searchTextRelay.accept("")
+            updateSearchBarAccessory(for: "")
+            clearTriggerRelay.accept(())
+        }
     }
 }
 
@@ -674,6 +1105,7 @@ private extension SearchViewController {
         case .result:
             showResultLayout()
         }
+        updateSearchBarAccessory(for: searchBar.text ?? "")
     }
 
     func showInitialLayout() {
@@ -690,6 +1122,7 @@ private extension SearchViewController {
         searchBar.showsCancelButton = false
         updateRecentTableChrome()
         reloadTableView()
+        applyKeyboardInset()
     }
 
     func showSuggestingLayout() {
@@ -704,8 +1137,15 @@ private extension SearchViewController {
         backButton.isHidden = mode == .register ? false : (navigationController?.viewControllers.count ?? 0) <= 1
         updateSearchBarLeadingConstraint()
         searchBar.showsCancelButton = false
-        tableView.tableHeaderView = nil
+        // "연관 검색어" 헤더 표시 — 너비를 현재 tableView 폭에 맞춰 갱신
+        suggestionHeaderView.frame = CGRect(
+            x: 0, y: 0,
+            width: tableView.bounds.width,
+            height: 43.5
+        )
+        tableView.tableHeaderView = suggestionHeaderView
         tableView.tableFooterView = nil
+        applyKeyboardInset()
         reloadTableView()
     }
 
@@ -718,6 +1158,7 @@ private extension SearchViewController {
         searchBar.showsCancelButton = false
         searchBar.endEditing(true)
         tableView.tableFooterView = nil
+        applyKeyboardInset()
         updateResultVisibility()
     }
 
@@ -742,6 +1183,7 @@ private extension SearchViewController {
         resultHeaderTopToGuideConstraint?.deactivate()
         resultHeaderTopToBrandEmptyConstraint?.activate()
         tableView.tableFooterView = nil
+        applyKeyboardInset()
     }
 
     func reloadTableView() {
@@ -749,12 +1191,25 @@ private extension SearchViewController {
     }
 
     func updateRecentTableChrome() {
-        recentTitleLabel.isHidden = recentSearches.isEmpty
+        recentTitleLabel.isHidden = false
+        recentHeaderView.frame = CGRect(x: 0, y: 0, width: tableView.bounds.width, height: 56)
+        tableView.tableHeaderView = recentHeaderView
         clearAllButton.isHidden = true
-        recentHeaderView.frame = CGRect(x: 0, y: 0, width: tableView.bounds.width, height: 44)
-        recentFooterView.frame = CGRect(x: 0, y: 0, width: tableView.bounds.width, height: 44)
-        tableView.tableHeaderView = recentSearches.isEmpty ? nil : recentHeaderView
-        tableView.tableFooterView = recentSearches.count > 1 ? recentFooterView : nil
+        configureAutoSaveFooter()
+    }
+
+    func configureRecentFooter() {
+        recentFooterView.frame = CGRect(x: 0, y: 0, width: tableView.bounds.width, height: 52)
+        clearAllButton.frame = CGRect(x: 16, y: 10, width: 140, height: 32)
+        if !recentSearches.isEmpty {
+            tableView.tableFooterView = recentFooterView
+        }
+    }
+
+    func configureAutoSaveFooter() {
+        autoSaveBarView.frame = CGRect(x: 0, y: 0, width: tableView.bounds.width, height: 44)
+        updateAutoSaveBarItems()
+        tableView.tableFooterView = autoSaveBarView
     }
 
     func reloadPerfumeResults() {
@@ -808,7 +1263,7 @@ private extension SearchViewController {
         sortSheet.modalPresentationStyle = .pageSheet
         if let sheet = sortSheet.sheetPresentationController {
             sheet.detents = [
-                .custom(identifier: .init("sortOptions")) { _ in 250 }
+                .custom(identifier: .init("sortOptions")) { _ in 334 }
             ]
             sheet.prefersGrabberVisible = true
             sheet.prefersScrollingExpandsWhenScrolledToEdge = false
@@ -884,11 +1339,14 @@ private extension SearchViewController {
         let keyboardFrame = view.convert(keyboardFrameValue.cgRectValue, from: nil)
         let overlap = max(0, view.bounds.maxY - keyboardFrame.minY - view.safeAreaInsets.bottom)
         keyboardInset = overlap
+        isKeyboardVisible = overlap > 0
+
         animateKeyboardInset(with: userInfo)
     }
 
     @objc private func handleKeyboardWillHide(_ notification: Notification) {
         keyboardInset = 0
+        isKeyboardVisible = false
         animateKeyboardInset(with: notification.userInfo)
     }
 
@@ -906,6 +1364,7 @@ private extension SearchViewController {
 
     private func applyKeyboardInset() {
         let bottomInset = keyboardInset + 16
+
         [tableView, brandTableView].forEach {
             $0.contentInset.bottom = bottomInset
             $0.verticalScrollIndicatorInsets.bottom = bottomInset
@@ -967,7 +1426,7 @@ private extension SearchViewController {
     }
 
     // MARK: - 결과 카운트 AttributedString 생성
-    // "향수 N개" → 향수(18SB) + N개(16M)
+    // "향수N개" → 향수(18SB) + N개(16M)
     private func makeCountAttributed(_ text: String) -> NSAttributedString {
         let attributed = NSMutableAttributedString()
         let parts = text.components(separatedBy: " ")
@@ -982,12 +1441,12 @@ private extension SearchViewController {
             .font: UIFont.systemFont(ofSize: 18, weight: .semibold),
             .foregroundColor: UIColor.black
         ]))
-        // 공백: kern으로 8pt 간격 (space advance ~4.5pt + kern 3.5 ≈ 8pt)
+        // 공백: kern으로 8pt 간격
         attributed.append(NSAttributedString(string: " ", attributes: [
             .font: UIFont.systemFont(ofSize: 18, weight: .semibold),
             .kern: 3.5
         ]))
-        // "N개" (16M, Atomic/Neutral/700)
+        // "N개" (16M, 중간 회색)
         attributed.append(NSAttributedString(string: parts[1...].joined(separator: " "), attributes: [
             .font: UIFont.systemFont(ofSize: 16, weight: .medium),
             .foregroundColor: UIColor(red: 0.52, green: 0.52, blue: 0.52, alpha: 1)
@@ -996,7 +1455,7 @@ private extension SearchViewController {
     }
 
     private func loadTastingNoteKeys() {
-        // 1단계: CoreData 로컬에서 즉시 반영 (동기) — Firestore 동기화 전에도 배지 표시
+        // 1단계: CoreData 로컬에서 즉시 반영 (동기)
         if let localNotes = try? localTastingNoteRepository.loadNotes() {
             tastingNoteKeys = Set(localNotes.flatMap {
                 PerfumePresentationSupport.recordMatchingKeys(
@@ -1007,7 +1466,7 @@ private extension SearchViewController {
             reloadPerfumeResults()
         }
 
-        // 2단계: Firestore에서 추가 병합 (비동기) — 다른 기기 기록까지 포함
+        // 2단계: Firestore에서 추가 병합 (비동기)
         tastingRecordRepository.fetchTastingRecords()
             .observe(on: MainScheduler.instance)
             .subscribe(onSuccess: { [weak self] records in
@@ -1091,7 +1550,9 @@ extension SearchViewController: UITableViewDataSource, UITableViewDelegate {
             case .landing:
                 return 0
             case .initial:
-                return recentSearches.isEmpty ? 1 : recentSearches.count // 1 = 빈 상태 안내 셀
+                // 자동저장 꺼짐 → 안내 셀 1개만 표시
+                if !isAutoSaveEnabled { return 1 }
+                return recentSearches.isEmpty ? 1 : recentSearches.count
             case .suggesting:
                 return suggestions.count
             case .result:
@@ -1113,14 +1574,16 @@ extension SearchViewController: UITableViewDataSource, UITableViewDelegate {
 
             // 초기 상태 — 최근 검색어
         if case .initial = currentState {
-            if recentSearches.isEmpty {
-                    // 빈 상태 안내
-                let cell = UITableViewCell()
-                cell.selectionStyle = .none
-                cell.textLabel?.text = AppStrings.UIKitScreens.Search.noRecent
-                cell.textLabel?.textColor = .secondaryLabel
-                cell.textLabel?.font = .systemFont(ofSize: 14)
-                cell.textLabel?.textAlignment = .center
+            if !isAutoSaveEnabled || recentSearches.isEmpty {
+                    // 자동저장 꺼짐 안내 or 빈 상태 안내
+                let cell = tableView.dequeueReusableCell(
+                    withIdentifier: SearchMessageCell.identifier,
+                    for: indexPath
+                ) as! SearchMessageCell
+                let message = !isAutoSaveEnabled
+                    ? "검색어 저장 기능이 꺼져 있습니다."
+                    : AppStrings.UIKitScreens.Search.noRecent
+                cell.configure(message: message, topInset: 40)
                 return cell
             }
             let cell = tableView.dequeueReusableCell(
@@ -1141,14 +1604,14 @@ extension SearchViewController: UITableViewDataSource, UITableViewDelegate {
             return cell
         }
 
-            // 타이핑 중 — 연관 검색어
+            // 타이핑 중 — 연관 검색어 (썸네일 이미지 URL 포함)
         if case .suggesting = currentState {
             let cell = tableView.dequeueReusableCell(
                 withIdentifier: SuggestionCell.identifier,
                 for: indexPath
             ) as! SuggestionCell
             let item = suggestions[indexPath.row]
-            cell.configure(with: item, query: searchTextRelay.value)
+            cell.configure(with: item, query: searchTextRelay.value, imageUrl: item.imageUrl)
             return cell
         }
 
@@ -1161,30 +1624,53 @@ extension SearchViewController: UITableViewDataSource, UITableViewDelegate {
             // 브랜드 테이블뷰
         if tableView == brandTableView {
             let brand = brandResults[indexPath.row]
-            searchTriggerRelay.accept(brand.brand)
+            let query = PerfumePresentationSupport.displayBrand(brand.brand)
+            searchBar.text = query
+            searchTextRelay.accept(query)
+            updateSearchBarAccessory(for: query)
+            searchTriggerRelay.accept(query)
             return
         }
 
-            // 초기 상태 — 최근 검색어 탭
-        if case .initial = currentState, !recentSearches.isEmpty {
-            recentSearchTapRelay.accept(recentSearches[indexPath.row].query)
+            // 초기 상태 — 최근 검색어 탭 (자동저장 켜짐이고 검색어 있을 때만)
+        if case .initial = currentState, isAutoSaveEnabled, !recentSearches.isEmpty {
+            let query = recentSearches[indexPath.row].query
+            searchBar.text = query
+            searchTextRelay.accept(query)
+            updateSearchBarAccessory(for: query)
+            recentSearchTapRelay.accept(query)
             return
         }
 
             // 타이핑 중 — 연관 검색어 탭
         if case .suggesting = currentState {
             let item = suggestions[indexPath.row]
-            suggestionTapRelay.accept(item)
-            searchBar.text = item.displayName
+            let query = item.displayName
+            searchBar.text = query
+            searchTextRelay.accept(query)
+            updateSearchBarAccessory(for: query)
+            searchTriggerRelay.accept(query)
             searchBar.resignFirstResponder()
             return
         }
     }
 
-        // 빈 상태일 때 셀 선택 비활성화
+    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        guard tableView != brandTableView else { return 84 }
+
+        if case .initial = currentState, !isAutoSaveEnabled || recentSearches.isEmpty {
+            return 180
+        }
+
+        return UITableView.automaticDimension
+    }
+
+        // 빈 상태 또는 자동저장 꺼짐 안내 셀은 선택 비활성화
     func tableView(_ tableView: UITableView, shouldHighlightRowAt indexPath: IndexPath) -> Bool {
-        if case .initial = currentState, recentSearches.isEmpty {
-            return false
+        if case .initial = currentState {
+            if !isAutoSaveEnabled || recentSearches.isEmpty {
+                return false
+            }
         }
         return true
     }
@@ -1365,6 +1851,45 @@ private final class BrandResultCell: UITableViewCell {
     }
 }
 
+private final class SearchMessageCell: UITableViewCell {
+    static let identifier = "SearchMessageCell"
+
+    private let messageLabel = UILabel().then {
+        $0.font = UIFont(name: "Pretendard-Medium", size: 16)
+            ?? UIFont(name: "Pretendard", size: 16)
+            ?? .systemFont(ofSize: 16, weight: .medium)
+        $0.textColor = UIColor(red: 0.69, green: 0.69, blue: 0.69, alpha: 1)
+        $0.textAlignment = .center
+        $0.numberOfLines = 1
+    }
+
+    private var topConstraint: Constraint?
+
+    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
+        super.init(style: style, reuseIdentifier: reuseIdentifier)
+        setup()
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    func configure(message: String, topInset: CGFloat) {
+        messageLabel.text = message
+        topConstraint?.update(offset: topInset)
+    }
+
+    private func setup() {
+        selectionStyle = .none
+        backgroundColor = .systemBackground
+        contentView.backgroundColor = .systemBackground
+        contentView.addSubview(messageLabel)
+
+        messageLabel.snp.makeConstraints {
+            topConstraint = $0.top.equalToSuperview().offset(40).constraint
+            $0.leading.trailing.equalToSuperview().inset(16)
+        }
+    }
+}
+
     // MARK: - SearchEmptyView
 
 final class SearchEmptyView: UIView {
@@ -1394,15 +1919,28 @@ final class SearchEmptyView: UIView {
 }
 
 final class SortBottomSheetViewController: UIViewController {
+    // MARK: - Layout 상수 (Figma Dev Mode 역산값)
+    // 시트 전체: 390×334pt / 텍스트 간격: 36pt / 좌우하단여백: 16pt / 텍스트leading: 26pt
     private enum Layout {
-        static let topInset: CGFloat = 34
-        static let horizontalInset: CGFloat = 24
-        static let bottomInset: CGFloat = 18
-        static let rowVerticalInset: CGFloat = 16
+        /// 시트 view 상단 ~ 첫 번째 행 상단 (= 334 - 4×63 - 16 - 34safeArea = 32pt)
+        static let topInset: CGFloat = 32
+        /// 텍스트 leading 여백 (Figma photo3: 26pt)
+        static let leadingInset: CGFloat = 26
+        /// trailing 여백
+        static let trailingInset: CGFloat = 24
+        /// 행 높이: 텍스트 27pt + 상하 패딩 18×2 = 63pt → 텍스트 간 간격 36pt = 18+18
+        static let rowHeight: CGFloat = 63
+        /// 행 사이 여백: 행 높이로 간격을 만들어 0으로 설정
+        static let rowSpacing: CGFloat = 0
+        /// 스택 하단 ~ safe area 간격 (Figma photo7: 16pt)
+        static let bottomInset: CGFloat = 16
     }
 
     private let currentSort: SortOption
     private let onSelect: (SortOption) -> Void
+
+    // 텍스트 색상: Atomic/Neutral/950
+    private let textColor = UIColor(red: 0.13, green: 0.13, blue: 0.13, alpha: 1)
 
     init(currentSort: SortOption, onSelect: @escaping (SortOption) -> Void) {
         self.currentSort = currentSort
@@ -1418,43 +1956,61 @@ final class SortBottomSheetViewController: UIViewController {
 
         let stack = UIStackView()
         stack.axis = .vertical
-        stack.spacing = 0
+        stack.spacing = Layout.rowSpacing
         view.addSubview(stack)
         stack.snp.makeConstraints {
             $0.top.equalToSuperview().offset(Layout.topInset)
-            $0.leading.trailing.equalToSuperview().inset(Layout.horizontalInset)
+            $0.leading.equalToSuperview().offset(Layout.leadingInset)
+            $0.trailing.equalToSuperview().inset(Layout.trailingInset)
             $0.bottom.lessThanOrEqualTo(view.safeAreaLayoutGuide).inset(Layout.bottomInset)
         }
 
-        [SortOption.recommended, .nameAsc, .nameDesc].forEach { option in
-            let button = UIButton(type: .system)
-            var configuration = UIButton.Configuration.plain()
-            configuration.title = option.displayName
-            configuration.baseForegroundColor = .label
-            configuration.contentInsets = NSDirectionalEdgeInsets(
-                top: Layout.rowVerticalInset,
-                leading: 0,
-                bottom: Layout.rowVerticalInset,
-                trailing: 0
+        // Figma 와이어프레임 순서: 추천순 → 최신순 → 이름 순 → 이름 역순
+        [SortOption.recommended, .latest, .nameAsc, .nameDesc].forEach { option in
+            let row = UIControl()
+            row.backgroundColor = .clear
+
+            let titleLabel = UILabel()
+            titleLabel.text = option.displayName
+            titleLabel.textColor = textColor
+            titleLabel.font = .systemFont(ofSize: 18, weight: .medium)
+            titleLabel.numberOfLines = 1
+            titleLabel.adjustsFontSizeToFitWidth = true
+            titleLabel.minimumScaleFactor = 0.9
+            titleLabel.lineBreakMode = .byClipping
+
+            let checkImageView = UIImageView()
+            checkImageView.tintColor = textColor
+            checkImageView.contentMode = .scaleAspectFit
+            checkImageView.image = UIImage(
+                systemName: "checkmark",
+                withConfiguration: UIImage.SymbolConfiguration(pointSize: 18, weight: .regular)
             )
-            configuration.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
-                var outgoing = incoming
-                outgoing.font = .systemFont(ofSize: 16, weight: .medium)
-                return outgoing
+            checkImageView.isHidden = option != currentSort
+
+            row.addSubview(titleLabel)
+            row.addSubview(checkImageView)
+            row.snp.makeConstraints {
+                $0.height.equalTo(Layout.rowHeight)
             }
-            if option == currentSort {
-                configuration.image = UIImage(systemName: "checkmark")
-                configuration.imagePlacement = .trailing
-                configuration.imagePadding = 12
+            titleLabel.snp.makeConstraints {
+                $0.leading.equalToSuperview()
+                $0.centerY.equalToSuperview()
+                $0.trailing.lessThanOrEqualTo(checkImageView.snp.leading).offset(-12)
             }
-            button.configuration = configuration
-            button.contentHorizontalAlignment = .leading
-            button.addAction(UIAction { [weak self] _ in
+            checkImageView.snp.makeConstraints {
+                $0.leading.equalTo(titleLabel.snp.trailing).offset(12)
+                $0.centerY.equalTo(titleLabel)
+                $0.width.height.equalTo(22)
+                $0.trailing.lessThanOrEqualToSuperview()
+            }
+
+            row.addAction(UIAction { [weak self] _ in
                 self?.dismiss(animated: true) {
                     self?.onSelect(option)
                 }
             }, for: .touchUpInside)
-            stack.addArrangedSubview(button)
+            stack.addArrangedSubview(row)
         }
     }
 }

@@ -61,7 +61,7 @@ final class MyPageViewModel: ObservableObject {
     private let collectionRepository: CollectionRepositoryType
     private let tastingRepository: TastingRecordRepositoryType
     private let localTastingNoteRepository: LocalTastingNoteRepository
-    private let userTasteRepository: UserTasteRepositoryType
+    let userTasteRepository: UserTasteRepositoryType
     private let preferenceAggregator = PreferenceAggregator()
     private var allOwnedPerfumes: [OwnedPreviewItem] = []
     private var allLikedPerfumes: [LikedPreviewItem] = []

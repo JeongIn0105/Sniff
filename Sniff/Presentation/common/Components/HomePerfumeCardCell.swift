@@ -102,16 +102,20 @@ final class HomePerfumeCardCell: UICollectionViewCell {
 
     private let brandLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 14, weight: .medium)
-        label.textColor = .secondaryLabel
+        // Figma: Pretendard-Medium, 14pt, (0.52, 0.52, 0.52)
+        label.font = UIFont(name: "Pretendard-Medium", size: 14)
+            ?? .systemFont(ofSize: 14, weight: .medium)
+        label.textColor = UIColor(red: 0.52, green: 0.52, blue: 0.52, alpha: 1)
         label.numberOfLines = 1
         return label
     }()
 
     private let perfumeNameLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 15, weight: .medium)
-        label.textColor = .label
+        // Figma: Pretendard-Medium, 15pt, (0.13, 0.13, 0.13)
+        label.font = UIFont(name: "Pretendard-Medium", size: 15)
+            ?? .systemFont(ofSize: 15, weight: .medium)
+        label.textColor = UIColor(red: 0.13, green: 0.13, blue: 0.13, alpha: 1)
         label.numberOfLines = 2
         label.lineBreakMode = .byTruncatingTail
         return label
@@ -220,11 +224,11 @@ final class HomePerfumeCardCell: UICollectionViewCell {
 
        accordsWrapView.snp.makeConstraints {
    
-         $0.top.equalTo(perfumeNameLabel.snp.bottom).offset(8)
+         $0.top.equalTo(perfumeNameLabel.snp.bottom).offset(4)
          $0.leading.trailing.equalToSuperview()
          $0.bottom.lessThanOrEqualToSuperview()
        }
-    }
+    } // setup() 종료
 
     func configure(with item: HomePerfumeItem, isLiked: Bool = false, hasTastingRecord: Bool? = nil) {
         brandLabel.text = PerfumePresentationSupport.displayBrand(item.brandName)
@@ -274,8 +278,11 @@ final class HomePerfumeCardCell: UICollectionViewCell {
 
         let label = UILabel()
         label.text = displayText
-        label.font = .systemFont(ofSize: 13, weight: .medium)
-        label.textColor = .secondaryLabel
+        // Figma: Pretendard, 12, medium, Color(0.52, 0.52, 0.52)
+        // Figma: Pretendard, 13pt, (0.52, 0.52, 0.52)
+        label.font = UIFont(name: "Pretendard-Medium", size: 13)
+            ?? .systemFont(ofSize: 13, weight: .medium)
+        label.textColor = UIColor(red: 0.52, green: 0.52, blue: 0.52, alpha: 1)
 
         let stack = UIStackView(arrangedSubviews: [dotView, label])
         stack.axis = .horizontal

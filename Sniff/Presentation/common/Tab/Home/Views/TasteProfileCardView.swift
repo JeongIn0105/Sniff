@@ -8,20 +8,28 @@ import SnapKit
 
 final class TasteProfileCardView: UIView {
 
+    private enum Color {
+        static let textPrimary = UIColor(red: 0.0, green: 0.0, blue: 0.0, alpha: 1)
+        static let textLabel = UIColor(red: 0.30, green: 0.30, blue: 0.30, alpha: 1)
+        static let textPercent = UIColor(red: 0.13, green: 0.13, blue: 0.13, alpha: 1)
+        static let textDescription = UIColor(red: 0.39, green: 0.39, blue: 0.39, alpha: 1)
+        static let textMuted = UIColor(red: 0.60, green: 0.60, blue: 0.60, alpha: 1)
+    }
+
     private let iconView = TasteProfileGradientIconView()
 
     private let profileNameLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 20, weight: .bold)
-        label.textColor = .label
+        label.font = .systemFont(ofSize: 20, weight: .semibold)
+        label.textColor = Color.textPrimary
         label.numberOfLines = 1
         return label
     }()
 
     private let profileSubtitleLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 13, weight: .regular)
-        label.textColor = .secondaryLabel
+        label.font = .systemFont(ofSize: 13, weight: .medium)
+        label.textColor = Color.textLabel
         label.numberOfLines = 1
         return label
     }()
@@ -35,8 +43,8 @@ final class TasteProfileCardView: UIView {
 
     private let analysisLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 14, weight: .regular)
-        label.textColor = UIColor.label.withAlphaComponent(0.74)
+        label.font = .systemFont(ofSize: 14, weight: .medium)
+        label.textColor = Color.textDescription
         label.numberOfLines = 0
         return label
     }()
@@ -59,39 +67,40 @@ final class TasteProfileCardView: UIView {
         layer.borderColor = UIColor.separator.withAlphaComponent(0.2).cgColor
 
         [iconView, profileNameLabel, profileSubtitleLabel, chipStackView, analysisLabel].forEach { addSubview($0) }
+        iconView.setCornerRadius(8)
 
         iconView.snp.makeConstraints {
             $0.top.leading.equalToSuperview().inset(20)
-            $0.size.equalTo(CGSize(width: 44, height: 44))
+            $0.size.equalTo(CGSize(width: 36, height: 36))
         }
 
         profileNameLabel.snp.makeConstraints {
-            $0.top.equalTo(iconView).offset(2)
-            $0.leading.equalTo(iconView.snp.trailing).offset(14)
+            $0.centerY.equalTo(iconView)
+            $0.leading.equalTo(iconView.snp.trailing).offset(16)
             $0.trailing.equalToSuperview().inset(20)
         }
 
         profileSubtitleLabel.snp.makeConstraints {
-            $0.top.equalTo(profileNameLabel.snp.bottom).offset(4)
+            $0.top.equalTo(profileNameLabel.snp.bottom).offset(6)
             $0.leading.equalTo(profileNameLabel)
             $0.trailing.equalToSuperview().inset(20)
         }
 
         chipStackView.snp.makeConstraints {
-            $0.top.equalTo(iconView.snp.bottom).offset(24)
+            $0.top.equalTo(iconView.snp.bottom).offset(28)
             $0.leading.trailing.equalToSuperview().inset(20)
         }
 
         analysisLabel.snp.makeConstraints {
-            $0.top.equalTo(chipStackView.snp.bottom).offset(26)
+            $0.top.equalTo(chipStackView.snp.bottom).offset(28)
             $0.leading.trailing.equalToSuperview().inset(20)
-            $0.bottom.equalToSuperview().inset(20)
+            $0.bottom.equalToSuperview().inset(24)
         }
     }
 
     func configure(with profile: UserTasteProfile, collectionCount: Int, tastingCount: Int) {
         let topFamilies = Array(profile.displayFamilies.prefix(3))
-        iconView.configure(families: topFamilies)
+        iconView.configure(title: profile.displayTitle, fallbackFamilies: topFamilies)
         profileNameLabel.text = profile.displayTitle
         profileSubtitleLabel.text = profile.displayMajorSummary
 
@@ -160,13 +169,13 @@ final class TasteProfileCardView: UIView {
 
     private func makeBarRow(family: String, ratio: Double, color: UIColor, isHighlighted: Bool) -> UIView {
         let nameLabel = UILabel()
-        nameLabel.font = .systemFont(ofSize: 15, weight: .semibold)
-        nameLabel.textColor = .secondaryLabel
+        nameLabel.font = .systemFont(ofSize: 14, weight: .semibold)
+        nameLabel.textColor = Color.textLabel
         nameLabel.text = family
 
         let dotView = UIView()
         dotView.backgroundColor = color
-        dotView.layer.cornerRadius = 4
+        dotView.layer.cornerRadius = 4.5
 
         let trackView = UIView()
         trackView.backgroundColor = UIColor(red: 0.93, green: 0.93, blue: 0.95, alpha: 1)
@@ -179,9 +188,11 @@ final class TasteProfileCardView: UIView {
         trackView.addSubview(fillView)
 
         let valueLabel = UILabel()
-        valueLabel.font = .monospacedDigitSystemFont(ofSize: 15, weight: .semibold)
-        valueLabel.textColor = isHighlighted ? .label : .tertiaryLabel
+        valueLabel.font = .monospacedDigitSystemFont(ofSize: 14, weight: .semibold)
+        valueLabel.textColor = isHighlighted ? Color.textPercent : Color.textMuted
         valueLabel.textAlignment = .right
+        valueLabel.adjustsFontSizeToFitWidth = false
+        valueLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
         valueLabel.text = "\(Int((ratio * 100).rounded()))%"
 
         let row = UIView()
@@ -189,26 +200,26 @@ final class TasteProfileCardView: UIView {
 
         dotView.snp.makeConstraints {
             $0.leading.equalToSuperview()
-            $0.top.equalToSuperview().offset(4)
-            $0.size.equalTo(CGSize(width: 8, height: 8))
+            $0.top.equalToSuperview().offset(5)
+            $0.size.equalTo(CGSize(width: 9, height: 9))
         }
 
         nameLabel.snp.makeConstraints {
             $0.leading.equalTo(dotView.snp.trailing).offset(8)
             $0.top.equalToSuperview()
-            $0.trailing.lessThanOrEqualTo(valueLabel.snp.leading).offset(-8)
+            $0.trailing.lessThanOrEqualTo(valueLabel.snp.leading).offset(-12)
         }
 
         valueLabel.snp.makeConstraints {
             $0.trailing.equalToSuperview()
-            $0.centerY.equalTo(nameLabel)
-            $0.width.equalTo(40)
+            $0.centerY.equalTo(trackView)
+            $0.width.equalTo(43)
         }
 
         trackView.snp.makeConstraints {
             $0.top.equalTo(nameLabel.snp.bottom).offset(12)
             $0.leading.equalTo(nameLabel)
-            $0.trailing.equalToSuperview()
+            $0.trailing.equalTo(valueLabel.snp.leading).offset(-12)
             $0.height.equalTo(8)
             $0.bottom.equalToSuperview()
         }
@@ -251,7 +262,13 @@ final class TasteProfileCardView: UIView {
 
 final class TasteProfileGradientIconView: UIView {
 
-    private let gradientLayer = CAGradientLayer()
+    private var colors: [UIColor] = [
+        UIColor(red: 1.0, green: 0.67, blue: 0.49, alpha: 1),
+        UIColor(red: 0.95, green: 0.90, blue: 0.68, alpha: 1),
+        UIColor(red: 0.95, green: 0.91, blue: 0.87, alpha: 1)
+    ]
+    private var locations: [CGFloat] = [0.20, 0.45, 1.00]
+    private var centerPoint = CGPoint(x: 0.5, y: 0.04)
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -267,15 +284,51 @@ final class TasteProfileGradientIconView: UIView {
         layer.cornerRadius = 12
         layer.cornerCurve = .continuous
         layer.masksToBounds = true
-        gradientLayer.type = .radial
-        gradientLayer.startPoint = CGPoint(x: 0.5, y: 0.5)
-        gradientLayer.endPoint = CGPoint(x: 1.2, y: 1.2)
-        layer.addSublayer(gradientLayer)
+        contentMode = .redraw
+        backgroundColor = .clear
     }
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        gradientLayer.frame = bounds
+        setNeedsDisplay()
+    }
+
+    override func draw(_ rect: CGRect) {
+        guard let context = UIGraphicsGetCurrentContext(),
+              !rect.isEmpty,
+              let gradient = CGGradient(
+                colorsSpace: CGColorSpaceCreateDeviceRGB(),
+                colors: colors.map(\.cgColor) as CFArray,
+                locations: locations
+              ) else {
+            return
+        }
+
+        let path = UIBezierPath(
+            roundedRect: bounds,
+            cornerRadius: layer.cornerRadius
+        )
+        context.saveGState()
+        path.addClip()
+
+        let center = CGPoint(
+            x: bounds.minX + bounds.width * centerPoint.x,
+            y: bounds.minY + bounds.height * centerPoint.y
+        )
+        let farthestX = max(center.x - bounds.minX, bounds.maxX - center.x)
+        let farthestY = max(center.y - bounds.minY, bounds.maxY - center.y)
+        let radius = sqrt(farthestX * farthestX + farthestY * farthestY)
+
+        context.drawRadialGradient(
+            gradient,
+            startCenter: center,
+            startRadius: 0,
+            endCenter: center,
+            endRadius: radius,
+            options: [.drawsBeforeStartLocation, .drawsAfterEndLocation]
+        )
+
+        context.restoreGState()
     }
 
     func configure(families: [String]) {
@@ -296,8 +349,132 @@ final class TasteProfileGradientIconView: UIView {
             colors = [top2, top1, baseBeige]
         }
 
-        gradientLayer.colors = colors.map { $0.cgColor }
-        gradientLayer.locations = [0.20, 0.45, 1.00]
+        configure(exactColors: colors, locations: [0.20, 0.45, 1.00])
+    }
+
+    func configure(title: String, fallbackFamilies: [String]) {
+        if let exactPreset = exactProfilePreset(forTitle: title) {
+            configure(exactColors: exactPreset.colors, locations: exactPreset.locations)
+            return
+        }
+
+        guard let palette = FragranceProfileText.profileColorPalette(forTitle: title) else {
+            configure(families: fallbackFamilies)
+            return
+        }
+
+        configure(
+            exactColors: [
+                UIColor(hex: palette.accentHex),
+                UIColor(hex: palette.primaryHex),
+                UIColor(hex: palette.baseHex)
+            ],
+            locations: [0.20, NSNumber(value: palette.primaryLocation), 1.00]
+        )
+    }
+
+    private func exactProfilePreset(forTitle title: String) -> (colors: [UIColor], locations: [NSNumber])? {
+        switch title {
+        case "상큼하고 활기찬 취향":
+            return (
+                colors: [
+                    UIColor(red: 1.00, green: 0.67, blue: 0.49, alpha: 1),
+                    UIColor(red: 0.95, green: 0.90, blue: 0.68, alpha: 1),
+                    UIColor(red: 0.95, green: 0.91, blue: 0.87, alpha: 1)
+                ],
+                locations: [0.20, 0.45, 1.00]
+            )
+        case "맑고 세련된 취향":
+            return (
+                colors: [
+                    UIColor(red: 0.95, green: 0.90, blue: 0.68, alpha: 1),
+                    UIColor(red: 0.60, green: 0.81, blue: 0.89, alpha: 1),
+                    UIColor(red: 0.95, green: 0.91, blue: 0.87, alpha: 1)
+                ],
+                locations: [0.20, 0.47, 1.00]
+            )
+        case "시원하고 신비로운 취향":
+            return (
+                colors: [
+                    UIColor(red: 0.80, green: 0.75, blue: 0.83, alpha: 1),
+                    UIColor(red: 0.60, green: 0.81, blue: 0.89, alpha: 1),
+                    UIColor(red: 0.95, green: 0.91, blue: 0.87, alpha: 1)
+                ],
+                locations: [0.20, 0.45, 1.00]
+            )
+        case "부드럽고 청순한 취향":
+            return (
+                colors: [
+                    UIColor(red: 1.00, green: 0.56, blue: 0.53, alpha: 1),
+                    UIColor(red: 0.94, green: 0.66, blue: 0.72, alpha: 1),
+                    UIColor(red: 0.95, green: 0.91, blue: 0.87, alpha: 1)
+                ],
+                locations: [0.20, 0.45, 1.00]
+            )
+        case "포근하고 여유로운 취향":
+            return (
+                colors: [
+                    UIColor(red: 0.94, green: 0.66, blue: 0.72, alpha: 1),
+                    UIColor(red: 0.82, green: 0.45, blue: 0.67, alpha: 1),
+                    UIColor(red: 0.95, green: 0.91, blue: 0.87, alpha: 1)
+                ],
+                locations: [0.20, 0.45, 1.00]
+            )
+        case "달콤하고 화사한 취향":
+            return (
+                colors: [
+                    UIColor(red: 0.94, green: 0.48, blue: 0.75, alpha: 1),
+                    UIColor(red: 1.00, green: 0.67, blue: 0.49, alpha: 1),
+                    UIColor(red: 0.95, green: 0.91, blue: 0.87, alpha: 1)
+                ],
+                locations: [0.20, 0.45, 1.00]
+            )
+        case "싱그럽고 자연스러운 취향":
+            return (
+                colors: [
+                    UIColor(red: 0.60, green: 0.81, blue: 0.89, alpha: 1),
+                    UIColor(red: 0.74, green: 0.87, blue: 0.66, alpha: 1),
+                    UIColor(red: 0.95, green: 0.91, blue: 0.87, alpha: 1)
+                ],
+                locations: [0.20, 0.45, 1.00]
+            )
+        case "짙고 시크한 취향":
+            return (
+                colors: [
+                    UIColor(red: 0.75, green: 0.74, blue: 0.65, alpha: 1),
+                    UIColor(red: 0.84, green: 0.73, blue: 0.59, alpha: 1),
+                    UIColor(red: 0.95, green: 0.91, blue: 0.87, alpha: 1)
+                ],
+                locations: [0.20, 0.45, 1.00]
+            )
+        case "짙고 강렬한 취향":
+            return (
+                colors: [
+                    UIColor(red: 0.84, green: 0.65, blue: 0.52, alpha: 1),
+                    UIColor(red: 0.75, green: 0.36, blue: 0.47, alpha: 1),
+                    UIColor(red: 0.95, green: 0.91, blue: 0.87, alpha: 1)
+                ],
+                locations: [0.20, 0.45, 1.00]
+            )
+        default:
+            return nil
+        }
+    }
+
+    /// Figma Dev Mode 정확한 색상 배열과 locations로 그라디언트를 설정합니다.
+    /// - Parameters:
+    ///   - colors: [center, mid, edge] 순서의 UIColor 배열
+    ///   - locations: CAGradientLayer.locations 값 (기본값: [0.20, 0.45, 1.00])
+    func configure(exactColors colors: [UIColor], locations: [NSNumber] = [0.20, 0.45, 1.00]) {
+        self.colors = colors
+        self.locations = locations.map { CGFloat(truncating: $0) }
+        centerPoint = CGPoint(x: 0.5, y: 0.04)
+        setNeedsDisplay()
+    }
+
+    func setCornerRadius(_ radius: CGFloat) {
+        layer.cornerRadius = radius
+        setNeedsDisplay()
     }
 }
 

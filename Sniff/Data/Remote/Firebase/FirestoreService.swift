@@ -146,6 +146,12 @@ final class FirestoreService {
         throw FirestoreServiceError.invalidTasteAnalysisData
     }
 
+    // 히스토리 항목을 현재 프로필로 적용 - taste_title만 업데이트
+    func applyHistoricalProfile(title: String) async throws {
+        let ref = try userDocumentRef()
+        try await ref.updateData(["tasteAnalysis.taste_title": title])
+    }
+
     func fetchTasteProfileHistory(limit: Int = 10) async throws -> [TasteProfileHistoryEntry] {
         let snapshot = try await userDocumentRef()
             .collection("profileHistory")
