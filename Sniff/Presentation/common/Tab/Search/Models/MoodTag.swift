@@ -275,6 +275,7 @@ struct SearchFilter: Equatable {
 
 enum SortOption: String, CaseIterable {
     case recommended = "추천순"
+    case latest      = "최신순"
     case nameAsc     = "이름 순 (ㄱ~ㅎ)"
     case nameDesc    = "이름 역순 (ㅎ~ㄱ)"
 
@@ -282,6 +283,8 @@ enum SortOption: String, CaseIterable {
         switch self {
         case .recommended:
             return AppStrings.DomainDisplay.SearchFilters.sortRecommended
+        case .latest:
+            return AppStrings.DomainDisplay.SearchFilters.sortLatest
         case .nameAsc:
             return AppStrings.DomainDisplay.SearchFilters.sortNameAsc
         case .nameDesc:

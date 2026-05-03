@@ -69,20 +69,29 @@ enum SearchSection: Int, CaseIterable {
     // 연관 검색어 아이템 타입
 
 enum SuggestionItem: Equatable {
-    case brand(name: String)                    // 브랜드
-    case perfume(name: String, brand: String)   // 향수명 + 브랜드
+    case brand(name: String, imageUrl: String?)                    // 브랜드
+    case perfume(name: String, brand: String, imageUrl: String?)   // 향수명 + 브랜드
 
+    /// 셀 표시 및 탭 후 검색창·최근 검색어에 사용되는 한글화된 이름
     var displayName: String {
         switch self {
-            case .brand(let name):          return name
-            case .perfume(let name, _):     return name
+            case .brand(let name, _):           return PerfumePresentationSupport.displayBrand(name)
+            case .perfume(let name, _, _):      return PerfumePresentationSupport.displayPerfumeName(name)
         }
     }
 
     var subTitle: String? {
         switch self {
-            case .brand:                    return AppStrings.DomainDisplay.Search.brandSubtitle
-            case .perfume(_, let brand):    return brand
+            case .brand:                        return AppStrings.DomainDisplay.Search.brandSubtitle
+            case .perfume(_, let brand, _):     return brand
+        }
+    }
+
+    /// 썸네일 이미지 URL
+    var imageUrl: String? {
+        switch self {
+            case .brand(_, let url):            return url
+            case .perfume(_, _, let url):       return url
         }
     }
 }

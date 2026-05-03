@@ -67,15 +67,18 @@ final class LocalPerfumeSearchService {
             return lhs.entry.brand.localizedCaseInsensitiveCompare(rhs.entry.brand) == .orderedAscending
         }
 
-        // 브랜드 제안 (상위 2개)
+        // 브랜드 제안 (상위 2개) — 브랜드의 대표 이미지는 해당 브랜드 첫 번째 향수 이미지 사용
         var seenBrands = Set<String>()
         var brandItems: [SuggestionItem] = []
         for item in scored {
             let brandTokens = item.entry.searchableBrands.map(normalizeForSearch(_:))
-            if brandTokens.contains(where: { token in normalizedQueries.contains(where: token.contains) }),
+            if brandTokens.contains(where: { token in
+                    // 쿼리가 브랜드명을 포함하거나(token ⊇ query), 쿼리가 브랜드명으로 시작(query.hasPrefix(token))
+                    normalizedQueries.contains(where: { q in token.contains(q) || (q.hasPrefix(token) && token.count >= 2) })
+                }),
                !seenBrands.contains(item.entry.dedupeBrandKey) {
                 seenBrands.insert(item.entry.dedupeBrandKey)
-                brandItems.append(.brand(name: item.entry.brand))
+                brandItems.append(.brand(name: item.entry.brand, imageUrl: item.entry.imageUrl))
                 if brandItems.count >= 2 { break }
             }
         }
@@ -83,7 +86,7 @@ final class LocalPerfumeSearchService {
         // 향수 제안 (상위 6개)
         let perfumeItems: [SuggestionItem] = scored
             .prefix(6)
-            .map { .perfume(name: $0.entry.name, brand: $0.entry.brand) }
+            .map { .perfume(name: $0.entry.name, brand: $0.entry.brand, imageUrl: $0.entry.imageUrl) }
 
         // 브랜드 먼저, 향수 뒤 (전체 최대 8개)
         return Array((brandItems + perfumeItems).prefix(8))
@@ -100,7 +103,7 @@ final class LocalPerfumeSearchService {
         for p in fragellaPerfumes {
             let key = dedupeKey(name: p.name, brand: p.brand)
             guard seenKeys.insert(key).inserted else { continue }
-            entries.append(makeIndexedEntry(name: p.name, brand: p.brand))
+            entries.append(makeIndexedEntry(name: p.name, brand: p.brand, imageUrl: p.imageUrl))
         }
 
         // 2. Firestore 보유 향수
@@ -108,18 +111,18 @@ final class LocalPerfumeSearchService {
             for item in collection {
                 let key = dedupeKey(name: item.name, brand: item.brand)
                 guard seenKeys.insert(key).inserted else { continue }
-                entries.append(makeIndexedEntry(name: item.name, brand: item.brand))
+                entries.append(makeIndexedEntry(name: item.name, brand: item.brand, imageUrl: item.imageUrl))
             }
         }
 
-        // 3. Firestore LIKE 향수
+        // 3. Firestore LIKE 향수 (LikedPerfume 모델은 imageURL — 대문자)
         if let liked = try? await firestoreService.fetchLikedPerfumes() {
             for item in liked {
                 let key = dedupeKey(name: item.name, brand: item.brand)
                 guard seenKeys.insert(key).inserted else { continue }
-                entries.append(makeIndexedEntry(name: item.name, brand: item.brand))
+                entries.append(makeIndexedEntry(name: item.name, brand: item.brand, imageUrl: item.imageURL))
             }
-        } 
+        }
 
         await MainActor.run {
             self.index = entries
@@ -182,7 +185,7 @@ final class LocalPerfumeSearchService {
         "\(normalizeForSearch(brand))__\(normalizeForSearch(name))"
     }
 
-    private func makeIndexedEntry(name: String, brand: String) -> IndexedEntry {
+    private func makeIndexedEntry(name: String, brand: String, imageUrl: String? = nil) -> IndexedEntry {
         IndexedEntry(
             name: name,
             brand: brand,
@@ -193,7 +196,8 @@ final class LocalPerfumeSearchService {
             searchableBrands: uniqueSearchValues([
                 brand,
                 PerfumePresentationSupport.displayBrand(brand)
-            ])
+            ]),
+            imageUrl: imageUrl
         )
     }
 
@@ -213,6 +217,8 @@ private struct IndexedEntry {
     let brand: String
     let searchableNames: [String]
     let searchableBrands: [String]
+    /// 썸네일 이미지 URL (연관 검색어 셀 표시용)
+    let imageUrl: String?
 
     var dedupeBrandKey: String {
         brand.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
