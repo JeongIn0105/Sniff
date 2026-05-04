@@ -52,8 +52,8 @@ extension RecommendationEngine {
             return "노트 구성에서 \(family) 무드가 보여 취향과 잘 맞아요"
         }
 
-        if domesticRetailPriority(for: perfume) > 0 {
-            return "국내에서 접하기 쉬운 브랜드라 취향에 맞는 향을 바로 시도해보기 좋아요"
+        if koreaBrandAvailabilityScore(for: perfume) > 0 {
+            return "국내에서 찾기 쉬운 브랜드라 취향에 맞는 향을 시도해보기 좋아요"
         }
 
         if let impression = profile.preferredImpressions.first {
@@ -76,7 +76,7 @@ extension RecommendationEngine {
         return AppStrings.Recommendation.profileFlow(profile.displayTitle)
     }
 
-    private func domesticRetailPriority(for perfume: Perfume) -> Int {
-        PerfumeKoreanTranslator.domesticRetailPriority(for: perfume)
+    private func koreaBrandAvailabilityScore(for perfume: Perfume) -> Int {
+        PerfumeKoreanTranslator.koreaBrandAvailabilityScore(for: perfume)
     }
 }

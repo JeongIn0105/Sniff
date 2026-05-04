@@ -10,6 +10,7 @@ import Foundation
 struct RecommendationResult {
     let profile: UserTasteProfile
     let perfumes: [RecommendedPerfume]
+    let popularPerfumes: [RecommendedPerfume]
 }
 
 struct RecommendedPerfume {

@@ -7,6 +7,7 @@
 
 // MARK: - 등록 / 수정 화면
 import SwiftUI
+import Kingfisher
 
 struct TastingNoteFormView: View {
 
@@ -45,6 +46,13 @@ struct TastingNoteFormView: View {
                         .padding(.top, 24)
                         .padding(.bottom, 0)
 
+                    if vm.shouldShowUsageContext {
+                        usageContextSection
+                            .padding(.horizontal, 20)
+                            .padding(.top, 36)
+                            .padding(.bottom, 0)
+                    }
+
                     memoSection
                         .padding(.horizontal, 20)
                         .padding(.top, 42)
@@ -61,6 +69,12 @@ struct TastingNoteFormView: View {
         .toolbar(.hidden, for: .navigationBar)
         .onChange(of: vm.saveSuccess) { success in
             if success { onSaveSuccess(vm.savedPerfumeName); dismiss() }
+        }
+        .onChange(of: vm.perfumeName) { _ in
+            vm.refreshPerfumeMatchCandidates()
+        }
+        .onChange(of: vm.brandName) { _ in
+            vm.refreshPerfumeMatchCandidates()
         }
         .alert(AppStrings.TastingNoteFormUI.errorTitle, isPresented: Binding(
             get: { vm.errorMessage != nil },
@@ -117,6 +131,54 @@ struct TastingNoteFormView: View {
                 text: $vm.brandName
             )
             .padding(.top, 24)
+
+            if !vm.perfumeMatchCandidates.isEmpty {
+                perfumeMatchCandidateSection
+                    .padding(.top, 14)
+            }
+        }
+    }
+
+    private var perfumeMatchCandidateSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("혹시 이 향수인가요?")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(.secondary)
+
+            VStack(spacing: 8) {
+                ForEach(vm.perfumeMatchCandidates) { candidate in
+                    Button {
+                        vm.applyMatchCandidate(candidate)
+                    } label: {
+                        HStack(spacing: 12) {
+                            PerfumeMatchCandidateThumbnail(imageURL: candidate.imageURL)
+
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(candidate.title)
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundColor(.primary)
+                                    .lineLimit(1)
+
+                                Text(candidate.subtitle)
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(1)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(Color(.systemGray3))
+                        }
+                        .padding(.horizontal, 12)
+                        .frame(height: 58)
+                        .background(Color(.systemGray6))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
         }
     }
 
@@ -269,6 +331,26 @@ struct TastingNoteFormView: View {
         }
     }
 
+    private var usageContextSection: some View {
+        VStack(alignment: .leading, spacing: 11) {
+            Text("사용 맥락")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundColor(.primary)
+
+            HStack(spacing: 7) {
+                ForEach(vm.allUsageContexts, id: \.self) { context in
+                    MoodChip(
+                        title: context,
+                        isSelected: vm.usageContext == context
+                    ) {
+                        vm.toggleUsageContext(context)
+                    }
+                }
+                Spacer()
+            }
+        }
+    }
+
     // MARK: - 시향 메모 섹션
 
     private var memoSection: some View {
@@ -366,6 +448,33 @@ struct TastingNoteFormView: View {
                         .frame(height: 0.5)
                 }
                 .ignoresSafeArea(edges: .bottom)
+        )
+    }
+}
+
+private struct PerfumeMatchCandidateThumbnail: View {
+    let imageURL: String?
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(.systemBackground))
+
+            if let imageURL, let url = URL(string: imageURL) {
+                KFImage(url)
+                    .resizable()
+                    .scaledToFit()
+                    .padding(5)
+            } else {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(Color(.systemGray3))
+            }
+        }
+        .frame(width: 42, height: 42)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color(.systemGray5), lineWidth: 1)
         )
     }
 }

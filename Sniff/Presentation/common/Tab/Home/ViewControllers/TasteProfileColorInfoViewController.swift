@@ -32,7 +32,7 @@ final class TasteProfileColorInfoViewController: UIViewController {
         // 2. 맑고 세련된 취향
         .init(
             title: "맑고 세련된 취향",
-            subtitle: "워터 · 아로마틱 중심",
+            subtitle: "워터 · 아로마틱 · 시트러스 중심",
             gradientColors: [
                 UIColor(red: 0.97, green: 0.94, blue: 0.80, alpha: 1),
                 UIColor(red: 0.73, green: 0.87, blue: 0.92, alpha: 1),
@@ -54,7 +54,7 @@ final class TasteProfileColorInfoViewController: UIViewController {
         // 4. 부드럽고 청순한 취향
         .init(
             title: "부드럽고 청순한 취향",
-            subtitle: "소프트 플로럴 · 플로럴 중심",
+            subtitle: "소프트 플로럴 · 플로럴 · 워터 중심",
             gradientColors: [
                 UIColor(red: 1.00, green: 0.56, blue: 0.53, alpha: 1),
                 UIColor(red: 0.94, green: 0.66, blue: 0.72, alpha: 1),
@@ -65,7 +65,7 @@ final class TasteProfileColorInfoViewController: UIViewController {
         // 5. 포근하고 여유로운 취향
         .init(
             title: "포근하고 여유로운 취향",
-            subtitle: "소프트 앰버 · 소프트 플로럴 중심",
+            subtitle: "소프트 앰버 · 소프트 플로럴 · 우디 중심",
             gradientColors: [
                 UIColor(red: 0.94, green: 0.66, blue: 0.72, alpha: 1),
                 UIColor(red: 0.82, green: 0.45, blue: 0.67, alpha: 1),
@@ -76,7 +76,7 @@ final class TasteProfileColorInfoViewController: UIViewController {
         // 6. 달콤하고 화사한 취향
         .init(
             title: "달콤하고 화사한 취향",
-            subtitle: "프루티 · 플로럴 앰버 중심",
+            subtitle: "프루티 · 플로럴 앰버 · 앰버 중심",
             gradientColors: [
                 UIColor(red: 0.94, green: 0.48, blue: 0.75, alpha: 1),
                 UIColor(red: 1.00, green: 0.67, blue: 0.49, alpha: 1),
@@ -87,7 +87,7 @@ final class TasteProfileColorInfoViewController: UIViewController {
         // 7. 싱그럽고 자연스러운 취향
         .init(
             title: "싱그럽고 자연스러운 취향",
-            subtitle: "그린 · 워터 중심",
+            subtitle: "그린 · 모시 우즈 · 워터 중심",
             gradientColors: [
                 UIColor(red: 0.60, green: 0.81, blue: 0.89, alpha: 1),
                 UIColor(red: 0.74, green: 0.87, blue: 0.66, alpha: 1),
@@ -98,7 +98,7 @@ final class TasteProfileColorInfoViewController: UIViewController {
         // 8. 짙고 시크한 취향
         .init(
             title: "짙고 시크한 취향",
-            subtitle: "우디 · 드라이 우즈 중심",
+            subtitle: "우디 · 드라이 우즈 · 우디 앰버 중심",
             gradientColors: [
                 UIColor(red: 0.75, green: 0.74, blue: 0.65, alpha: 1),
                 UIColor(red: 0.84, green: 0.73, blue: 0.59, alpha: 1),
@@ -156,7 +156,7 @@ final class TasteProfileColorInfoViewController: UIViewController {
 
     // 두 번째 설명 레이블 (첫 번째와 8pt 간격)
     private let desc2Label = UILabel().then {
-        $0.text = "*취향 프로필은 보유 향수와 시향기록이 쌓여지는 것에 따라 취향 프로필이 변경될 수 있습니다."
+        $0.text = "*취향 프로필은 보유 향수와 시향기록이 쌓여지는 것에 따라 변경될 수 있습니다. 같은 취향 프로필 안에서도 중심 향 계열은 달라질 수 있으며, 색상은 취향 프로필 기준으로 유지될 수 있습니다."
         $0.font = .systemFont(ofSize: 15, weight: .medium)
         $0.textColor = TasteProfileColorInfoViewController.neutral700
         $0.numberOfLines = 0

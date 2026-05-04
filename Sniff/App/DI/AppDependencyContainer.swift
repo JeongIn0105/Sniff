@@ -24,6 +24,9 @@ final class AppDependencyContainer {
         coreDataStack: coreDataStack,
         userTasteRepository: userTasteRepository
     )
+    lazy var localPerfumeSearchService = LocalPerfumeSearchService(
+        firestoreService: firestoreService
+    )
 
     func makePerfumeCatalogRepository() -> PerfumeCatalogRepositoryType {
         PerfumeCatalogRepository()
@@ -101,12 +104,15 @@ final class AppDependencyContainer {
     @MainActor
     func makeTastingNoteFormViewModel(
         editingNote: TastingNote? = nil,
-        initialPerfume: Perfume? = nil
+        initialPerfume: Perfume? = nil,
+        isOwnedPerfumeContext: Bool = false
     ) -> TastingNoteFormViewModel {
         TastingNoteFormViewModel(
             localRepository: localTastingNoteRepository,
+            localPerfumeSearchService: localPerfumeSearchService,
             editingNote: editingNote,
-            initialPerfume: initialPerfume
+            initialPerfume: initialPerfume,
+            isOwnedPerfumeContext: isOwnedPerfumeContext
         )
     }
 

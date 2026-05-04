@@ -31,6 +31,7 @@ final class HomeViewModel {
         let banner: Driver<HomeTasteBannerItem>
         let quickActions: Driver<[HomeQuickAction]>
         let recommendations: Driver<[HomePerfumeItem]>
+        let popularRecommendations: Driver<[HomePerfumeItem]>
         let profile: Driver<HomeProfileItem?>
         let route: Signal<HomeRoute>
     }
@@ -152,6 +153,31 @@ final class HomeViewModel {
             })
             .asDriver(onErrorJustReturn: [])
 
+        let popularRecommendations = recommendationResult
+            .withLatestFrom(sourceData) { ($0, $1) }
+            .map { payload -> [HomePerfumeItem] in
+                let (result, source) = payload
+                guard let result, let source else {
+                    return []
+                }
+                let tastingKeys = Set(
+                    source.tastingRecords.map {
+                        PerfumePresentationSupport.recordKey(
+                            perfumeName: $0.perfumeName,
+                            brandName: $0.brandName
+                        )
+                    }
+                )
+                return result.popularPerfumes.map { recommendation in
+                    mapToHomePerfumeItem(
+                        recommendation,
+                        profile: result.profile,
+                        tastingKeys: tastingKeys
+                    )
+                }
+            }
+            .asDriver(onErrorJustReturn: [])
+
         input.perfumeRegisterTap
             .map { HomeRoute.perfumeRegister }
             .bind(to: routeRelay)
@@ -180,6 +206,7 @@ final class HomeViewModel {
             banner: banner,
             quickActions: quickActions,
             recommendations: recommendations,
+            popularRecommendations: popularRecommendations,
             profile: profile,
             route: routeRelay.asSignal()
         )

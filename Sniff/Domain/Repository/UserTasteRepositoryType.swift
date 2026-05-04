@@ -18,7 +18,6 @@ protocol UserTasteRepositoryType {
     ) -> Single<[TasteProfileHistoryEntry]>
     func analyzeTaste(input: TasteAnalysisInput) async throws -> TasteAnalysisResult
     func reanalyzeTasteFromHistory() async throws -> TasteAnalysisResult
-    func applyHistoricalProfile(_ entry: TasteProfileHistoryEntry) async throws
     func checkNicknameAvailability(_ nickname: String) async throws -> Bool
     func saveUserProfile(
         nickname: String,

@@ -16,18 +16,18 @@ struct MyPageView: View {
     private enum Layout {
         static let horizontalPadding: CGFloat = 16
         static let headerTopPadding: CGFloat = 18
-        static let sectionSpacing: CGFloat = 36
-        static let sectionContentSpacing: CGFloat = 10
-        static let sectionHeaderBottomSpacing: CGFloat = 4
+        static let sectionSpacing: CGFloat = 18
+        static let sectionContentSpacing: CGFloat = 6
+        static let sectionHeaderBottomSpacing: CGFloat = 0
         static let profileTopSpacing: CGFloat = -14.5
-        static let profileBottomSpacing: CGFloat = 8
+        static let profileBottomSpacing: CGFloat = 2
         static let profileImageSize: CGFloat = 60
         static let profileTextSpacing: CGFloat = 6
         static let profileTasteTopSpacing: CGFloat = 8
         static let tasteIconSize: CGFloat = 18
-        static let cardSpacing: CGFloat = 16
+        static let cardSpacing: CGFloat = 6
         static let trailingPeekInset: CGFloat = PerfumeGridCardLayout.previewTrailingPeekInset
-        static let likedSectionTopSpacing: CGFloat = 2
+        static let likedSectionTopSpacing: CGFloat = 0
         static let bottomContentPadding: CGFloat = 68
 
         static var cardWidth: CGFloat {

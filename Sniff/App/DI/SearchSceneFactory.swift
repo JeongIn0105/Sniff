@@ -32,7 +32,7 @@ enum SearchSceneFactory {
         let viewModel = SearchViewModel(
             perfumeCatalogRepository: dependencyContainer.makePerfumeCatalogRepository(),
             recentSearchStore: dependencyContainer.makeRecentSearchStore(),
-            initialState: showsRecentOnAppear ? .initial : .landing
+            initialState: showsRecentOnAppear && mode != .register ? .initial : .landing
         )
         return SearchViewController(
             viewModel: viewModel,

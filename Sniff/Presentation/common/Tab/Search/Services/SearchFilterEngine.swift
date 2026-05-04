@@ -110,7 +110,9 @@ enum SearchFilterEngine {
     }
 
     nonisolated private static func seasonTokens(for perfume: Perfume) -> Set<String> {
-        let explicitSeasons = (perfume.season ?? []) + perfume.seasonRanking.map(\.name)
+        let explicitSeasons = topSeasonRankingNames(for: perfume)
+            ?? perfume.season
+            ?? []
         var tokens = Set(
             explicitSeasons.flatMap { seasonValue in
                 normalizedSeasonTokens(for: seasonValue)
@@ -122,6 +124,18 @@ enum SearchFilterEngine {
         }
 
         return tokens
+    }
+
+    nonisolated private static func topSeasonRankingNames(for perfume: Perfume) -> [String]? {
+        let names = perfume.seasonRanking
+            .sorted { lhs, rhs in
+                if lhs.score != rhs.score { return lhs.score > rhs.score }
+                return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+            }
+            .prefix(2)
+            .map(\.name)
+
+        return names.isEmpty ? nil : Array(names)
     }
 
     nonisolated private static func inferredSeasonTokens(for perfume: Perfume) -> Set<String> {

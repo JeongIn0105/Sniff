@@ -97,6 +97,7 @@ final class SearchViewController: UIViewController {
     private var tastingNoteKeys = Set<String>()
     private var hasHandledRecentOnAppear = false
     private var isRegisteringCollection = false
+    private var pendingRegisterSuggestion: (name: String, brand: String)?
     private weak var presentedTastingFormController: UIViewController?
 
     // MARK: - 자동저장 상태
@@ -223,6 +224,7 @@ private let sortButton = UIButton(type: .system).then {
         $0.register(RecentSearchCell.self, forCellReuseIdentifier: RecentSearchCell.identifier)
         $0.register(SuggestionCell.self, forCellReuseIdentifier: SuggestionCell.identifier)
         $0.register(SearchMessageCell.self, forCellReuseIdentifier: SearchMessageCell.identifier)
+        $0.register(PerfumeSearchResultCell.self, forCellReuseIdentifier: PerfumeSearchResultCell.identifier)
         $0.separatorStyle = .none
         $0.rowHeight = UITableView.automaticDimension
         $0.estimatedRowHeight = 68
@@ -371,7 +373,7 @@ private let sortButton = UIButton(type: .system).then {
         self.localTastingNoteRepository = localTastingNoteRepository
         self.showsRecentOnAppear = showsRecentOnAppear
         self.mode = mode
-        self.currentState = showsRecentOnAppear ? .initial : .landing
+        self.currentState = showsRecentOnAppear && mode != .register ? .initial : .landing
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -795,7 +797,9 @@ private extension SearchViewController {
             .observe(on: MainScheduler.instance)
             .subscribe(onNext: { [weak self] items in
                 guard let self else { return }
-                self.suggestions = items
+                self.suggestions = self.mode == .register
+                    ? self.registrationSuggestionItems(from: items)
+                    : items
                 if case .suggesting = self.currentState {
                     self.reloadTableView()
                 }
@@ -833,9 +837,12 @@ private extension SearchViewController {
             .observe(on: MainScheduler.instance)
             .subscribe(onNext: { [weak self] perfumes in
                 guard let self else { return }
-                self.filteredPerfumeResults = perfumes
+                self.filteredPerfumeResults = self.mode == .register
+                    ? self.registrationPerfumeNameResults(from: perfumes)
+                    : perfumes
                 self.reloadPerfumeResults()
                 self.updateResultVisibility()
+                self.openPendingRegisterSuggestionIfPossible()
             })
             .disposed(by: disposeBag)
     }
@@ -886,18 +893,15 @@ private extension SearchViewController {
 
         searchBar.rx.searchButtonClicked
             .withLatestFrom(searchTextRelay)
-            .bind(to: searchTriggerRelay)
+            .subscribe(onNext: { [weak self] text in
+                self?.submitSearchQuery(text)
+            })
             .disposed(by: disposeBag)
 
         searchSubmitButton.rx.tap
             .withLatestFrom(searchTextRelay)
             .subscribe(onNext: { [weak self] text in
-                let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
-                if trimmedText.isEmpty {
-                    self?.searchBar.becomeFirstResponder()
-                } else {
-                    self?.searchTriggerRelay.accept(trimmedText)
-                }
+                self?.submitSearchQuery(text)
             })
             .disposed(by: disposeBag)
 
@@ -907,6 +911,7 @@ private extension SearchViewController {
                 self.searchBar.text = nil
                 self.searchTextRelay.accept("")
                 self.updateSearchBarAccessory(for: "")
+                self.pendingRegisterSuggestion = nil
                 self.clearTriggerRelay.accept(())
                 self.searchBar.becomeFirstResponder()
             })
@@ -915,13 +920,17 @@ private extension SearchViewController {
         searchBar.rx.textDidBeginEditing
             .subscribe(onNext: { [weak self] in
                 guard let self else { return }
+                self.pendingRegisterSuggestion = nil
                 self.currentState = .initial
                 self.updateLayout(for: .initial)
             })
             .disposed(by: disposeBag)
 
         searchBar.rx.cancelButtonClicked
-            .bind(to: clearTriggerRelay)
+            .subscribe(onNext: { [weak self] in
+                self?.pendingRegisterSuggestion = nil
+                self?.clearTriggerRelay.accept(())
+            })
             .disposed(by: disposeBag)
     }
 
@@ -1077,6 +1086,10 @@ private extension SearchViewController {
     }
 
     func showInitialLayout() {
+        if mode == .register {
+            showLandingLayout()
+            return
+        }
         tableView.isHidden = false
         resultHeaderView.isHidden = true
         landingGuideLabel.isHidden = true
@@ -1131,6 +1144,11 @@ private extension SearchViewController {
     }
 
     func showLandingLayout() {
+        if mode == .register {
+            showRegisterEmptyLayout()
+            return
+        }
+
         tableView.isHidden = true
         resultHeaderView.isHidden = false
         landingGuideLabel.isHidden = true
@@ -1151,6 +1169,24 @@ private extension SearchViewController {
         resultHeaderTopToGuideConstraint?.deactivate()
         resultHeaderTopToBrandEmptyConstraint?.activate()
         tableView.tableFooterView = nil
+        applyKeyboardInset()
+    }
+
+    func showRegisterEmptyLayout() {
+        tableView.isHidden = true
+        resultHeaderView.isHidden = true
+        landingGuideLabel.isHidden = true
+        brandSectionLabel.isHidden = true
+        brandTableView.isHidden = true
+        brandEmptyLabel.isHidden = true
+        perfumeCollectionView.isHidden = true
+        emptyView.isHidden = false
+        backButton.isHidden = (navigationController?.viewControllers.count ?? 0) <= 1
+        updateSearchBarLeadingConstraint()
+        searchBar.showsCancelButton = false
+        tableView.tableHeaderView = nil
+        tableView.tableFooterView = nil
+        emptyView.configureLanding()
         applyKeyboardInset()
     }
 
@@ -1181,7 +1217,170 @@ private extension SearchViewController {
     }
 
     func reloadPerfumeResults() {
-        perfumeCollectionView.reloadData()
+        if mode == .register {
+            tableView.reloadData()
+        } else {
+            perfumeCollectionView.reloadData()
+        }
+    }
+
+    func submitSearchQuery(_ text: String) {
+        let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedText.isEmpty else {
+            searchBar.becomeFirstResponder()
+            return
+        }
+
+        guard mode != .register || hasRegistrationPerfumeNameCandidate(for: trimmedText) else {
+            showAppToast(message: "향수명으로 검색해 주세요")
+            searchBar.becomeFirstResponder()
+            return
+        }
+
+        pendingRegisterSuggestion = nil
+        searchTriggerRelay.accept(trimmedText)
+    }
+
+    func hasRegistrationPerfumeNameCandidate(for query: String) -> Bool {
+        suggestions.contains { item in
+            guard case let .perfume(name, _, _) = item else { return false }
+            return registrationNameScore(name: name, query: query) > 0
+        }
+    }
+
+    func registrationPerfumeNameResults(from perfumes: [Perfume]) -> [Perfume] {
+        guard case let .result(query) = currentState else {
+            return Array(perfumes.prefix(3))
+        }
+
+        return perfumes
+            .map { perfume in (perfume: perfume, score: registrationNameScore(for: perfume, query: query)) }
+            .filter { $0.score > 0 }
+            .sorted { lhs, rhs in
+                if lhs.score != rhs.score { return lhs.score > rhs.score }
+                let lhsPriority = PerfumeKoreanTranslator.koreaBrandAvailabilityScore(for: lhs.perfume)
+                let rhsPriority = PerfumeKoreanTranslator.koreaBrandAvailabilityScore(for: rhs.perfume)
+                if lhsPriority != rhsPriority { return lhsPriority > rhsPriority }
+                return lhs.perfume.name.localizedCaseInsensitiveCompare(rhs.perfume.name) == .orderedAscending
+            }
+            .prefix(3)
+            .map(\.perfume)
+    }
+
+    func registrationSuggestionItems(from items: [SuggestionItem]) -> [SuggestionItem] {
+        let query = searchTextRelay.value
+        return items
+            .filter { item in
+                guard case let .perfume(name, _, _) = item else { return false }
+                return registrationNameScore(name: name, query: query) > 0
+            }
+            .prefix(3)
+            .map { $0 }
+    }
+
+    func registrationNameScore(for perfume: Perfume, query: String) -> Int {
+        let queryCandidates = registrationSearchQueryCandidates(for: query)
+        guard !queryCandidates.isEmpty else { return 0 }
+
+        let nameValues = registrationSearchableNameValues(for: perfume)
+            .map(registrationNormalizeForSearch(_:))
+
+        for query in queryCandidates {
+            if nameValues.contains(query) { return 1_000 }
+            if nameValues.contains(where: { $0.hasPrefix(query) }) { return 900 }
+            if nameValues.contains(where: { $0.contains(query) }) { return 800 }
+            if nameValues.contains(where: { query.contains($0) && $0.count >= 2 }) { return 700 }
+        }
+        return 0
+    }
+
+    func registrationNameScore(name: String, query: String) -> Int {
+        let queryCandidates = registrationSearchQueryCandidates(for: query)
+        guard !queryCandidates.isEmpty else { return 0 }
+
+        let nameValues = [name, PerfumePresentationSupport.displayPerfumeName(name)]
+            .map(registrationNormalizeForSearch(_:))
+            .filter { !$0.isEmpty }
+
+        for query in queryCandidates {
+            if nameValues.contains(query) { return 1_000 }
+            if nameValues.contains(where: { $0.hasPrefix(query) }) { return 900 }
+            if nameValues.contains(where: { $0.contains(query) }) { return 800 }
+            if nameValues.contains(where: { query.contains($0) && $0.count >= 2 }) { return 700 }
+        }
+        return 0
+    }
+
+    func registrationSearchQueryCandidates(for query: String) -> [String] {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        let candidates = [trimmed, PerfumeKoreanTranslator.toEnglishQuery(trimmed)]
+            .compactMap { $0 }
+            .map(registrationNormalizeForSearch(_:))
+            .filter { !$0.isEmpty }
+
+        var seen = Set<String>()
+        return candidates.filter { seen.insert($0).inserted }
+    }
+
+    func registrationSearchableNameValues(for perfume: Perfume) -> [String] {
+        let values = [perfume.name, PerfumePresentationSupport.displayPerfumeName(perfume.name)] + perfume.nameAliases
+        var seen = Set<String>()
+        return values
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .filter { seen.insert(registrationNormalizeForSearch($0)).inserted }
+    }
+
+    func registrationSearchableBrandValues(for perfume: Perfume) -> [String] {
+        let values = [perfume.brand, PerfumePresentationSupport.displayBrand(perfume.brand)] + perfume.brandAliases
+        var seen = Set<String>()
+        return values
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .filter { seen.insert(registrationNormalizeForSearch($0)).inserted }
+    }
+
+    func openPendingRegisterSuggestionIfPossible() {
+        guard mode == .register, let pendingRegisterSuggestion else { return }
+
+        guard let perfume = filteredPerfumeResults.first(where: {
+            registrationMatchesSuggestion($0, suggestion: pendingRegisterSuggestion)
+        }) else {
+            return
+        }
+
+        self.pendingRegisterSuggestion = nil
+        registerCollectedPerfume(perfume)
+    }
+
+    func registrationMatchesSuggestion(
+        _ perfume: Perfume,
+        suggestion: (name: String, brand: String)
+    ) -> Bool {
+        let targetNameValues = [suggestion.name, PerfumePresentationSupport.displayPerfumeName(suggestion.name)]
+            .map(registrationNormalizeForSearch(_:))
+            .filter { !$0.isEmpty }
+        let targetBrandValues = [suggestion.brand, PerfumePresentationSupport.displayBrand(suggestion.brand)]
+            .map(registrationNormalizeForSearch(_:))
+            .filter { !$0.isEmpty }
+
+        let perfumeNameValues = registrationSearchableNameValues(for: perfume)
+            .map(registrationNormalizeForSearch(_:))
+        let perfumeBrandValues = registrationSearchableBrandValues(for: perfume)
+            .map(registrationNormalizeForSearch(_:))
+
+        let hasMatchingName = targetNameValues.contains { perfumeNameValues.contains($0) }
+        let hasMatchingBrand = targetBrandValues.isEmpty
+            || targetBrandValues.contains { perfumeBrandValues.contains($0) }
+        return hasMatchingName && hasMatchingBrand
+    }
+
+    func registrationNormalizeForSearch(_ value: String) -> String {
+        value
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+            .lowercased()
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .joined()
     }
 
     func sectionCountText(title: String, count: Int) -> NSAttributedString {
@@ -1244,6 +1443,28 @@ private extension SearchViewController {
 
         let hasBrands = !brandResults.isEmpty
         let hasPerfumes = !filteredPerfumeResults.isEmpty
+
+        if mode == .register {
+            resultHeaderView.isHidden = true
+            brandSectionLabel.isHidden = true
+            brandTableView.isHidden = true
+            brandEmptyLabel.isHidden = true
+            perfumeCollectionView.isHidden = true
+            tableView.isHidden = !hasPerfumes
+            tableView.tableHeaderView = nil
+            tableView.tableFooterView = nil
+            tableView.reloadData()
+
+            if !hasPerfumes {
+                emptyView.configure(query: query)
+                emptyView.isHidden = false
+            } else {
+                emptyView.isHidden = true
+            }
+
+            applyKeyboardInset()
+            return
+        }
 
         resultHeaderView.isHidden = false
         brandSectionLabel.isHidden = false
@@ -1450,6 +1671,7 @@ private extension SearchViewController {
     }
 
     private func registerCollectedPerfume(_ perfume: Perfume) {
+        guard mode == .register else { return }
         guard !isRegisteringCollection else { return }
         let collectionID = perfume.collectionDocumentID
         if ownedPerfumeIDs.contains(collectionID) {
@@ -1457,23 +1679,57 @@ private extension SearchViewController {
             return
         }
 
+        presentCollectedPerfumeRegistration(for: perfume)
+    }
+
+    private func presentCollectedPerfumeRegistration(for perfume: Perfume) {
+        let registrationViewController = CollectedPerfumeRegistrationViewController(perfume: perfume)
+        registrationViewController.onRegister = { [weak self] info in
+            self?.saveCollectedPerfume(perfume, registrationInfo: info, sourceViewController: registrationViewController)
+        }
+        registrationViewController.onRetrySearch = { [weak self] in
+            self?.searchBar.becomeFirstResponder()
+        }
+        navigationController?.pushViewController(registrationViewController, animated: true)
+    }
+
+    private func saveCollectedPerfume(
+        _ perfume: Perfume,
+        registrationInfo: CollectedPerfumeRegistrationInfo,
+        sourceViewController: UIViewController
+    ) {
+        let collectionID = perfume.collectionDocumentID
         isRegisteringCollection = true
         view.isUserInteractionEnabled = false
+        sourceViewController.view.isUserInteractionEnabled = false
 
-        collectionRepository.saveCollectedPerfume(perfume, memo: nil)
+        collectionRepository.saveCollectedPerfume(perfume, registrationInfo: registrationInfo)
             .observe(on: MainScheduler.instance)
             .subscribe(onCompleted: { [weak self] in
                 guard let self else { return }
                 self.isRegisteringCollection = false
                 self.view.isUserInteractionEnabled = true
+                sourceViewController.view.isUserInteractionEnabled = true
                 self.ownedPerfumeIDs.insert(collectionID)
                 NotificationCenter.default.post(name: .perfumeCollectionDidChange, object: nil)
+                self.navigationController?.popToViewController(self, animated: false)
                 self.presentCollectionRegisteredAlert(for: perfume)
             }, onError: { [weak self] error in
                 guard let self else { return }
                 self.isRegisteringCollection = false
                 self.view.isUserInteractionEnabled = true
-                self.presentSaveFailure(error)
+                sourceViewController.view.isUserInteractionEnabled = true
+                if let limitError = error as? CollectionUsageLimitError {
+                    sourceViewController.showAppToast(message: limitError.localizedDescription)
+                } else {
+                    let alert = UIAlertController(
+                        title: nil,
+                        message: AppStrings.UIKitScreens.Search.registerFailed,
+                        preferredStyle: .alert
+                    )
+                    alert.addAction(UIAlertAction(title: AppStrings.UIKitScreens.confirm, style: .default))
+                    sourceViewController.present(alert, animated: true)
+                }
             })
             .disposed(by: disposeBag)
     }
@@ -1501,7 +1757,10 @@ private extension SearchViewController {
     }
 
     private func presentTastingForm(for perfume: Perfume) {
-        let formView = TastingNoteSceneFactory.makeFormView(initialPerfume: perfume) { [weak self] perfumeName in
+        let formView = TastingNoteSceneFactory.makeFormView(
+            initialPerfume: perfume,
+            isOwnedPerfumeContext: ownedPerfumeIDs.contains(perfume.collectionDocumentID)
+        ) { [weak self] perfumeName in
             guard let self else { return }
             self.presentedTastingFormController?.dismiss(animated: true) {
                 self.presentedTastingFormController = nil
@@ -1574,7 +1833,7 @@ extension SearchViewController: UITableViewDataSource, UITableViewDelegate {
             case .suggesting:
                 return suggestions.count
             case .result:
-                return 0
+                return mode == .register ? filteredPerfumeResults.count : 0
         }
     }
 
@@ -1633,6 +1892,15 @@ extension SearchViewController: UITableViewDataSource, UITableViewDelegate {
             return cell
         }
 
+        if case .result = currentState, mode == .register {
+            let cell = tableView.dequeueReusableCell(
+                withIdentifier: PerfumeSearchResultCell.identifier,
+                for: indexPath
+            ) as! PerfumeSearchResultCell
+            cell.configure(with: filteredPerfumeResults[indexPath.row])
+            return cell
+        }
+
         return UITableViewCell()
     }
 
@@ -1652,6 +1920,7 @@ extension SearchViewController: UITableViewDataSource, UITableViewDelegate {
 
             // 초기 상태 — 최근 검색어 탭 (자동저장 켜짐이고 검색어 있을 때만)
         if case .initial = currentState, isAutoSaveEnabled, !recentSearches.isEmpty {
+            guard mode != .register else { return }
             let query = recentSearches[indexPath.row].query
             searchBar.text = query
             searchTextRelay.accept(query)
@@ -1664,6 +1933,9 @@ extension SearchViewController: UITableViewDataSource, UITableViewDelegate {
         if case .suggesting = currentState {
             let item = suggestions[indexPath.row]
             let query = item.displayName
+            if mode == .register, case let .perfume(name, brand, _) = item {
+                pendingRegisterSuggestion = (name: name, brand: brand)
+            }
             searchBar.text = query
             searchTextRelay.accept(query)
             updateSearchBarAccessory(for: query)
@@ -1671,10 +1943,19 @@ extension SearchViewController: UITableViewDataSource, UITableViewDelegate {
             searchBar.resignFirstResponder()
             return
         }
+
+        if case .result = currentState, mode == .register {
+            registerCollectedPerfume(filteredPerfumeResults[indexPath.row])
+            return
+        }
     }
 
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
         guard tableView != brandTableView else { return 84 }
+
+        if case .result = currentState, mode == .register {
+            return 74
+        }
 
         if case .initial = currentState, !isAutoSaveEnabled || recentSearches.isEmpty {
             return 180
@@ -1866,6 +2147,90 @@ private final class BrandResultCell: UITableViewCell {
             $0.top.equalTo(brandNameLabel.snp.bottom).offset(8)
             $0.leading.trailing.equalTo(brandNameLabel)
             $0.bottom.lessThanOrEqualToSuperview().offset(-10)
+        }
+    }
+}
+
+private final class PerfumeSearchResultCell: UITableViewCell {
+    static let identifier = "PerfumeSearchResultCell"
+
+    private let thumbnailImageView = UIImageView().then {
+        $0.contentMode = .scaleAspectFill
+        $0.clipsToBounds = true
+        $0.layer.cornerRadius = 12
+        $0.layer.cornerCurve = .continuous
+        $0.layer.borderWidth = 1
+        $0.layer.borderColor = UIColor(red: 0.93, green: 0.93, blue: 0.93, alpha: 1).cgColor
+        $0.backgroundColor = .systemGray6
+    }
+
+    private let nameLabel = UILabel().then {
+        $0.font = .systemFont(ofSize: 16, weight: .medium)
+        $0.textColor = .label
+        $0.numberOfLines = 2
+        $0.lineBreakMode = .byWordWrapping
+    }
+
+    private let brandLabel = UILabel().then {
+        $0.font = .systemFont(ofSize: 16, weight: .medium)
+        $0.textColor = .secondaryLabel
+        $0.numberOfLines = 1
+    }
+
+    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
+        super.init(style: style, reuseIdentifier: reuseIdentifier)
+        setup()
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError()
+    }
+
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        thumbnailImageView.kf.cancelDownloadTask()
+        thumbnailImageView.image = nil
+        nameLabel.text = nil
+        brandLabel.text = nil
+    }
+
+    func configure(with perfume: Perfume) {
+        nameLabel.text = PerfumePresentationSupport.displayPerfumeName(perfume.name)
+        brandLabel.text = PerfumePresentationSupport.displayBrand(perfume.brand)
+
+        if let imageUrl = perfume.imageUrl, let url = URL(string: imageUrl) {
+            thumbnailImageView.kf.setImage(with: url)
+        }
+    }
+
+    private func setup() {
+        selectionStyle = .none
+        backgroundColor = .systemBackground
+        contentView.backgroundColor = .systemBackground
+
+        [thumbnailImageView, nameLabel, brandLabel].forEach {
+            contentView.addSubview($0)
+        }
+
+        thumbnailImageView.snp.makeConstraints {
+            $0.leading.equalToSuperview().offset(16)
+            $0.centerY.equalToSuperview()
+            $0.top.greaterThanOrEqualToSuperview().offset(6)
+            $0.bottom.lessThanOrEqualToSuperview().offset(-6)
+            $0.size.equalTo(62)
+        }
+
+        nameLabel.snp.makeConstraints {
+            $0.leading.equalTo(thumbnailImageView.snp.trailing).offset(12)
+            $0.top.equalToSuperview().offset(6)
+            $0.trailing.equalToSuperview().offset(-16)
+        }
+
+        brandLabel.snp.makeConstraints {
+            $0.leading.equalTo(nameLabel)
+            $0.top.equalTo(nameLabel.snp.bottom).offset(2)
+            $0.trailing.lessThanOrEqualToSuperview().offset(-16)
+            $0.bottom.equalToSuperview().offset(-6)
         }
     }
 }

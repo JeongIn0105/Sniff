@@ -21,6 +21,7 @@ final class LocalTastingNoteEntity: NSManagedObject {
     @NSManaged var revisitDesire: String?
     @NSManaged var memo: String
     @NSManaged var perfumeImageURL: String?
+    @NSManaged var usageContext: String?
     @NSManaged var createdAt: Date
     @NSManaged var updatedAt: Date
     @NSManaged var syncStatus: String

@@ -120,8 +120,10 @@ final class TasteProfileViewController: UIViewController {
 
     // 현재 적용 중인 히스토리 entry ID (가장 최신)
     private var currentEntryId: String?
-    // 히스토리 항목 캐시 (탭 시 entry 조회용)
-    private var cachedEntries: [TasteProfileHistoryEntry] = []
+    private var historyEntries: [TasteProfileHistoryEntry] = []
+    private var isHistoryExpanded = false
+    private let collapsedHistoryCount = 2
+    private let maxVisibleHistoryCount = 5
 
     // MARK: - Init
 
@@ -311,24 +313,44 @@ private extension TasteProfileViewController {
             ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast)
         }
         currentEntryId = sorted.first?.id
-        cachedEntries = sorted  // entry 탭 시 조회를 위해 캐싱
+        historyEntries = Array(sorted.prefix(maxVisibleHistoryCount))
+        isHistoryExpanded = false
+
+        renderHistoryRows()
+    }
+
+    func renderHistoryRows() {
+        let visibleEntries = isHistoryExpanded
+            ? historyEntries
+            : Array(historyEntries.prefix(collapsedHistoryCount))
 
         // 기존 뷰 초기화
         historyStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
 
-        sorted.enumerated().forEach { index, entry in
+        visibleEntries.enumerated().forEach { index, entry in
             let isCurrent = entry.id == currentEntryId
             let row = makeHistoryRow(entry: entry, isCurrent: isCurrent)
             historyStackView.addArrangedSubview(row)
 
             // 구분선 (마지막 항목 제외)
-            if index < sorted.count - 1 {
-                let divider = UIView()
-                divider.backgroundColor = UIColor(red: 0.93, green: 0.93, blue: 0.93, alpha: 1)
-                historyStackView.addArrangedSubview(divider)
-                divider.snp.makeConstraints { $0.height.equalTo(1) }
+            if index < visibleEntries.count - 1 {
+                historyStackView.addArrangedSubview(makeHistoryDivider())
             }
         }
+
+        if historyEntries.count > collapsedHistoryCount {
+            if !visibleEntries.isEmpty {
+                historyStackView.addArrangedSubview(makeHistoryDivider())
+            }
+            historyStackView.addArrangedSubview(makeHistoryToggleRow())
+        }
+    }
+
+    func makeHistoryDivider() -> UIView {
+        let divider = UIView()
+        divider.backgroundColor = UIColor(red: 0.93, green: 0.93, blue: 0.93, alpha: 1)
+        divider.snp.makeConstraints { $0.height.equalTo(1) }
+        return divider
     }
 
     func makeHistoryRow(entry: TasteProfileHistoryEntry, isCurrent: Bool) -> UIView {
@@ -406,73 +428,30 @@ private extension TasteProfileViewController {
             $0.bottom.equalToSuperview().inset(14)
         }
 
-        // 현재 적용 중이 아닌 항목만 탭 가능
-        if !isCurrent {
-            let tap = UITapGestureRecognizer(target: self, action: #selector(historyRowTapped(_:)))
-            container.addGestureRecognizer(tap)
-            container.accessibilityIdentifier = entry.id
-            container.isUserInteractionEnabled = true
-        }
-
         return container
     }
 
-    @objc func historyRowTapped(_ gesture: UITapGestureRecognizer) {
-        guard let container = gesture.view,
-              let entryId = container.accessibilityIdentifier else { return }
-
-        // 해당 entry 찾기
-        guard let entry = findEntry(byId: entryId) else { return }
-
-        applyProfile(entry: entry)
+    func makeHistoryToggleRow() -> UIView {
+        let button = UIButton(type: .system)
+        var configuration = UIButton.Configuration.plain()
+        configuration.title = isHistoryExpanded ? "접기" : "더보기"
+        configuration.image = UIImage(systemName: isHistoryExpanded ? "chevron.down" : "chevron.up")
+        configuration.imagePlacement = .trailing
+        configuration.imagePadding = 6
+        configuration.baseForegroundColor = UIColor(red: 0.39, green: 0.39, blue: 0.39, alpha: 1)
+        configuration.contentInsets = NSDirectionalEdgeInsets(top: 12, leading: 0, bottom: 12, trailing: 0)
+        button.configuration = configuration
+        button.titleLabel?.font = UIFont(name: "Pretendard-Medium", size: 14)
+            ?? .systemFont(ofSize: 14, weight: .medium)
+        button.addTarget(self, action: #selector(historyToggleTapped), for: .touchUpInside)
+        return button
     }
 
-    private func findEntry(byId id: String) -> TasteProfileHistoryEntry? {
-        // historyStackView의 arranged subviews에서 entry 찾기
-        for view in historyStackView.arrangedSubviews {
-            if view.accessibilityIdentifier == id {
-                // entry 정보는 accessibilityLabel에 저장
-                // 대신 entry를 캐싱하는 방식 사용
-            }
-        }
-        return cachedEntries.first { $0.id == id }
-    }
-
-    func applyProfile(entry: TasteProfileHistoryEntry) {
-        // 로딩 인디케이터
-        let alert = UIAlertController(title: nil, message: "취향 프로필을 변경하는 중...", preferredStyle: .alert)
-        let loadingIndicator = UIActivityIndicatorView(frame: CGRect(x: 10, y: 5, width: 50, height: 50))
-        loadingIndicator.hidesWhenStopped = true
-        loadingIndicator.style = .medium
-        loadingIndicator.startAnimating()
-        alert.view.addSubview(loadingIndicator)
-        present(alert, animated: true)
-
-        Task {
-            do {
-                try await userTasteRepository.applyHistoricalProfile(entry)
-
-                // 홈 화면과 마이페이지에 프로필 변경 알림
-                NotificationCenter.default.post(
-                    name: .tasteProfileDidChange,
-                    object: nil,
-                    userInfo: [
-                        "title": entry.title,
-                        "families": entry.families
-                    ]
-                )
-
-                await MainActor.run {
-                    alert.dismiss(animated: true) { [weak self] in
-                        self?.navigationController?.popViewController(animated: true)
-                    }
-                }
-            } catch {
-                await MainActor.run {
-                    alert.dismiss(animated: true)
-                    print("[TasteProfile] 프로필 적용 실패:", error)
-                }
-            }
+    @objc func historyToggleTapped() {
+        isHistoryExpanded.toggle()
+        UIView.performWithoutAnimation {
+            renderHistoryRows()
+            view.layoutIfNeeded()
         }
     }
 }

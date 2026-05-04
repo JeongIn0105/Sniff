@@ -49,6 +49,36 @@ struct PerfumeScorer {
         breakdown(perfume: perfume, profile: profile).total
     }
 
+    func tasteMatchScore(
+        perfume: Perfume,
+        profile: UserTasteProfile
+    ) -> Double {
+        let families = ScentFamilyNormalizer.canonicalNames(for: perfume.mainAccords)
+        let rawAccordWeights = families.reduce(into: [String: Double]()) { dict, family in
+            dict[family] = perfume.mainAccordStrengths[family]?.weight
+                ?? AccordStrength.subtle.weight
+        }
+        let accordTotal = rawAccordWeights.values.reduce(0, +)
+        let normalizedAccordWeights: [String: Double] = accordTotal > 0
+            ? rawAccordWeights.mapValues { $0 / accordTotal }
+            : rawAccordWeights
+
+        let accordScore = families.reduce(0.0) { partialResult, family in
+            partialResult + profile.scentVector[family, default: 0] * normalizedAccordWeights[family, default: 0]
+        }
+        let noteVector = NoteToFamilyMapper.noteVector(
+            topNotes: perfume.topNotes,
+            middleNotes: perfume.middleNotes,
+            baseNotes: perfume.baseNotes,
+            generalNotes: perfume.generalNotes
+        )
+        let noteScore = noteVector.reduce(0.0) { partialResult, pair in
+            partialResult + profile.scentVector[pair.key, default: 0] * pair.value
+        }
+
+        return min(1, accordScore + noteScore)
+    }
+
     func breakdown(
         perfume: Perfume,
         profile: UserTasteProfile
@@ -128,16 +158,18 @@ struct PerfumeScorer {
         let preferredScore = min(1, accordScore + noteRawScore)
         let impressionScore = impressionScore(perfume: perfume, profile: profile)
         let seasonScore = seasonScore(perfume: perfume, profile: profile)
-        let koreaTrendScore = min(1.0, Double(PerfumeKoreanTranslator.domesticRetailPriority(for: perfume)) / 100.0)
+        let availabilityScore = min(1.0, Double(PerfumeKoreanTranslator.koreaBrandAvailabilityScore(for: perfume)) / 100.0)
+        let recentLaunchScore = recentLaunchScore(perfume: perfume)
         let popularityScore = popularityScore(perfume: perfume)
         let dislikedScore = dislikedScore(perfume: perfume, profile: profile)
 
         let weightedTotal =
             preferredScore * 35
-            + impressionScore * 20
-            + seasonScore * 15
-            + koreaTrendScore * 10
-            + popularityScore * 10
+            + impressionScore * 17
+            + seasonScore * 12
+            + availabilityScore * 18
+            + recentLaunchScore * 12
+            + popularityScore * 6
             - dislikedScore * 45
 
         let total = weightedTotal + intensityBonus
@@ -218,6 +250,29 @@ struct PerfumeScorer {
             return min(1, perfume.seasonRanking.map(\.score).reduce(0, +) / Double(perfume.seasonRanking.count))
         }
         return 0.5
+    }
+
+    private func recentLaunchScore(perfume: Perfume) -> Double {
+        guard let releaseYear = perfume.releaseYear else {
+            return 0.35
+        }
+
+        let currentYear = Calendar.current.component(.year, from: Date())
+        let age = max(0, currentYear - releaseYear)
+        switch age {
+        case 0...1:
+            return 1
+        case 2:
+            return 0.85
+        case 3:
+            return 0.7
+        case 4:
+            return 0.55
+        case 5:
+            return 0.4
+        default:
+            return 0.2
+        }
     }
 
     private func searchableTokens(for perfume: Perfume) -> String {

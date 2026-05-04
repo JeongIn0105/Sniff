@@ -55,6 +55,13 @@ struct TastingNoteDetailView: View {
                         .padding(.top, 40)
                         .padding(.bottom, 0)
 
+                    if let usageContext = currentNote.usageContext, !usageContext.isEmpty {
+                        usageContextSection(usageContext)
+                            .padding(.horizontal, 16)
+                            .padding(.top, 40)
+                            .padding(.bottom, 0)
+                    }
+
                     // 시향 메모 섹션 (구분선 없음, 40pt 상단 여백)
                     memoSection
                         .padding(.horizontal, 16)
@@ -235,7 +242,7 @@ struct TastingNoteDetailView: View {
 
             // 아웃라인 스타일 칩 (와이어프레임: 검정 테두리, 흰 배경, 검정 텍스트)
             ChipFlowLayout(spacing: 8) {
-                ForEach(currentNote.moodTags, id: \.self) { tag in
+                ForEach(displayMoodTags, id: \.self) { tag in
                     Text(tag)
                         .font(.custom("Pretendard", size: 13).weight(.regular))
                         .foregroundColor(Color(.label))
@@ -248,6 +255,32 @@ struct TastingNoteDetailView: View {
                         )
                 }
             }
+        }
+    }
+
+    private var displayMoodTags: [String] {
+        var seen = Set<String>()
+        return currentNote.moodTags
+            .map { kLegacyMoodTagToKorean[$0] ?? $0 }
+            .filter { seen.insert($0).inserted }
+    }
+
+    private func usageContextSection(_ usageContext: String) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("사용 맥락")
+                .font(.custom("Pretendard", size: 17).weight(.semibold))
+                .foregroundColor(.primary)
+
+            Text(usageContext)
+                .font(.custom("Pretendard", size: 13).weight(.regular))
+                .foregroundColor(Color(.label))
+                .padding(.horizontal, 13)
+                .padding(.vertical, 7)
+                .background(Color(.systemBackground))
+                .clipShape(Capsule())
+                .overlay(
+                    Capsule().stroke(Color(.label), lineWidth: 1)
+                )
         }
     }
 

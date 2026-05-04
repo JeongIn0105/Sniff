@@ -16,6 +16,7 @@
         <attribute name="revisitDesire" optional="YES" attributeType="String"/>
         <attribute name="syncStatus" optional="NO" attributeType="String" defaultValueString="pending"/>
         <attribute name="updatedAt" optional="NO" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="usageContext" optional="YES" attributeType="String"/>
     </entity>
     <elements>
         <element name="LocalTastingNoteEntity" positionX="-63" positionY="-18" width="128" height="254"/>

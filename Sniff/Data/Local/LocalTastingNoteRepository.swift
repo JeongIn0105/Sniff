@@ -297,6 +297,7 @@ final class LocalTastingNoteRepository {
         entity.revisitDesire = note.revisitDesire
         entity.memo = note.memo
         entity.perfumeImageURL = note.perfumeImageURL
+        entity.usageContext = note.usageContext
         entity.createdAt = note.createdAt
         entity.updatedAt = note.updatedAt
     }
@@ -313,6 +314,7 @@ final class LocalTastingNoteRepository {
             revisitDesire: entity.revisitDesire,
             memo: entity.memo,
             perfumeImageURL: entity.perfumeImageURL,
+            usageContext: entity.usageContext,
             createdAt: entity.createdAt,
             updatedAt: entity.updatedAt
         )

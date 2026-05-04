@@ -68,11 +68,13 @@ enum TastingNoteSceneFactory {
     static func makeFormView(
         editingNote: TastingNote? = nil,
         initialPerfume: Perfume? = nil,
+        isOwnedPerfumeContext: Bool = false,
         onSaveSuccess: @escaping (String) -> Void = { _ in }
     ) -> TastingNoteFormView {
         makeFormView(
             editingNote: editingNote,
             initialPerfume: initialPerfume,
+            isOwnedPerfumeContext: isOwnedPerfumeContext,
             dependencyContainer: AppDependencyContainer(),
             onSaveSuccess: onSaveSuccess
         )
@@ -82,13 +84,15 @@ enum TastingNoteSceneFactory {
     static func makeFormView(
         editingNote: TastingNote? = nil,
         initialPerfume: Perfume? = nil,
+        isOwnedPerfumeContext: Bool = false,
         dependencyContainer: AppDependencyContainer,
         onSaveSuccess: @escaping (String) -> Void = { _ in }
     ) -> TastingNoteFormView {
         TastingNoteFormView(
             viewModel: dependencyContainer.makeTastingNoteFormViewModel(
                 editingNote: editingNote,
-                initialPerfume: initialPerfume
+                initialPerfume: initialPerfume,
+                isOwnedPerfumeContext: isOwnedPerfumeContext
             ),
             onSaveSuccess: onSaveSuccess
         )

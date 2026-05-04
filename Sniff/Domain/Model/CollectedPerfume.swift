@@ -7,6 +7,50 @@
 
 import Foundation
 
+enum CollectedPerfumeUsageStatus: String, CaseIterable, Codable {
+    case inUse = "사용중"
+    case unopened = "새상품"
+    case finished = "다 쓴 향수"
+
+    nonisolated var displayName: String { rawValue }
+}
+
+enum CollectedPerfumeUsageFrequency: String, CaseIterable, Codable {
+    case often = "자주"
+    case sometimes = "가끔"
+    case rarely = "거의 안 씀"
+
+    nonisolated var displayName: String { rawValue }
+}
+
+enum CollectedPerfumePreferenceLevel: String, CaseIterable, Codable {
+    case liked = "좋아요"
+    case neutral = "보통"
+    case disappointed = "아쉬워요"
+
+    nonisolated var displayName: String { rawValue }
+}
+
+struct CollectedPerfumeRegistrationInfo: Codable {
+    let usageStatus: CollectedPerfumeUsageStatus
+    let usageFrequency: CollectedPerfumeUsageFrequency
+    let preferenceLevel: CollectedPerfumePreferenceLevel
+    let memo: String?
+
+    nonisolated init(
+        usageStatus: CollectedPerfumeUsageStatus = .inUse,
+        usageFrequency: CollectedPerfumeUsageFrequency = .sometimes,
+        preferenceLevel: CollectedPerfumePreferenceLevel = .liked,
+        memo: String? = nil
+    ) {
+        self.usageStatus = usageStatus
+        self.usageFrequency = usageFrequency
+        self.preferenceLevel = preferenceLevel
+        let trimmedMemo = memo?.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.memo = (trimmedMemo?.isEmpty ?? true) ? nil : trimmedMemo
+    }
+}
+
 struct CollectedPerfume {
     let id: String
     let name: String
@@ -24,6 +68,9 @@ struct CollectedPerfume {
     let concentration: String?
     let longevity: String?
     let sillage: String?
+    let usageStatus: CollectedPerfumeUsageStatus?
+    let usageFrequency: CollectedPerfumeUsageFrequency?
+    let preferenceLevel: CollectedPerfumePreferenceLevel?
 
     var scentFamilies: [String] {
         mainAccords.filter { !$0.isEmpty }
@@ -45,7 +92,10 @@ struct CollectedPerfume {
         seasonRanking: [SeasonRankingEntry] = [],
         concentration: String? = nil,
         longevity: String? = nil,
-        sillage: String? = nil
+        sillage: String? = nil,
+        usageStatus: CollectedPerfumeUsageStatus? = nil,
+        usageFrequency: CollectedPerfumeUsageFrequency? = nil,
+        preferenceLevel: CollectedPerfumePreferenceLevel? = nil
     ) {
         self.id = id
         self.name = name
@@ -63,6 +113,9 @@ struct CollectedPerfume {
         self.concentration = concentration
         self.longevity = longevity
         self.sillage = sillage
+        self.usageStatus = usageStatus
+        self.usageFrequency = usageFrequency
+        self.preferenceLevel = preferenceLevel
     }
 
     nonisolated init(

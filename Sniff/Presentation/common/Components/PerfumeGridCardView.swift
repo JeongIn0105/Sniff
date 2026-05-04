@@ -35,7 +35,7 @@ enum PerfumeCardStyle: Equatable {
     var imagePadding: CGFloat {
         switch self {
         case .preview:
-            return 4
+            return 0
         case .grid:
             return 4
         case .listThumbnail:
@@ -182,7 +182,7 @@ enum PerfumeCardStyle: Equatable {
     var artworkWidthRatio: CGFloat {
         switch self {
         case .preview:
-            return 0.9
+            return 1.0
         case .grid:
             return 0.86
         case .listThumbnail:
@@ -193,7 +193,7 @@ enum PerfumeCardStyle: Equatable {
     var artworkHeightRatio: CGFloat {
         switch self {
         case .preview:
-            return 0.9
+            return 1.0
         case .grid:
             return 0.88
         case .listThumbnail:

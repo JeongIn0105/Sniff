@@ -40,6 +40,8 @@ final class OnboardingViewModel: ObservableObject {
     @Published var errorMessage: String? = nil
     @Published var nickname: String = ""
     @Published private(set) var nicknameValidationState: NicknameValidationState = .idle
+    @Published private(set) var canReanalyzeResult: Bool = true
+    private var isReanalyzingResult = false
 
     private let nicknameValidator = NicknameValidator()
     private let userTasteRepository: UserTasteRepositoryType
@@ -132,7 +134,18 @@ final class OnboardingViewModel: ObservableObject {
 
     func finishOnboardingQuestions() async {
         guard canProceedFromImpressions else { return }
-        await saveTagOnboarding()
+        let didSave = await saveTagOnboarding()
+        if didSave && isReanalyzingResult {
+            canReanalyzeResult = false
+            isReanalyzingResult = false
+        }
+    }
+
+    func beginResultReanalysis() {
+        guard canReanalyzeResult, !isLoading, currentStep == .result else { return }
+        isReanalyzingResult = true
+        errorMessage = nil
+        currentStep = .dislikedScents
     }
 
     func clearNickname() {
@@ -350,7 +363,8 @@ final class OnboardingViewModel: ObservableObject {
         )
     }
 
-    private func saveTagOnboarding() async {
+    @discardableResult
+    private func saveTagOnboarding(failureStep: OnboardingStep = .impression) async -> Bool {
         isLoading = true
         errorMessage = nil
         currentStep = .loadingResult
@@ -365,9 +379,11 @@ final class OnboardingViewModel: ObservableObject {
             )
             tasteResult = result
             currentStep = .result
+            return true
         } catch {
-            currentStep = .impression
+            currentStep = failureStep
             errorMessage = error.localizedDescription
+            return false
         }
     }
 

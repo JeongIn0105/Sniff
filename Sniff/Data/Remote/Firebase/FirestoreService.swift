@@ -152,7 +152,7 @@ final class FirestoreService {
         try await ref.updateData(["tasteAnalysis.taste_title": title])
     }
 
-    func fetchTasteProfileHistory(limit: Int = 10) async throws -> [TasteProfileHistoryEntry] {
+    func fetchTasteProfileHistory(limit: Int = 5) async throws -> [TasteProfileHistoryEntry] {
         let snapshot = try await userDocumentRef()
             .collection("profileHistory")
             .order(by: "createdAt", descending: true)
@@ -273,6 +273,29 @@ final class FirestoreService {
         _ perfume: Perfume,
         memo: String? = nil
     ) async throws {
+        try await saveCollectedPerfume(
+            perfume,
+            registrationInfo: nil,
+            memo: memo
+        )
+    }
+
+    func saveCollectedPerfume(
+        _ perfume: Perfume,
+        registrationInfo: CollectedPerfumeRegistrationInfo
+    ) async throws {
+        try await saveCollectedPerfume(
+            perfume,
+            registrationInfo: registrationInfo,
+            memo: registrationInfo.memo
+        )
+    }
+
+    private func saveCollectedPerfume(
+        _ perfume: Perfume,
+        registrationInfo: CollectedPerfumeRegistrationInfo?,
+        memo: String?
+    ) async throws {
         let now = FieldValue.serverTimestamp()
         let ref = try userDocumentRef()
             .collection("collection")
@@ -290,11 +313,26 @@ final class FirestoreService {
             "updatedAt": now
         ]
 
+        if let registrationInfo {
+            data["usageStatus"] = registrationInfo.usageStatus.rawValue
+            data["usageFrequency"] = registrationInfo.usageFrequency.rawValue
+            data["preferenceLevel"] = registrationInfo.preferenceLevel.rawValue
+        }
+
         if let imageUrl = perfume.imageUrl { data["imageUrl"] = imageUrl }
+        if let topNotes = perfume.topNotes, !topNotes.isEmpty { data["topNotes"] = topNotes }
+        if let middleNotes = perfume.middleNotes, !middleNotes.isEmpty { data["middleNotes"] = middleNotes }
+        if let baseNotes = perfume.baseNotes, !baseNotes.isEmpty { data["baseNotes"] = baseNotes }
+        if let generalNotes = perfume.generalNotes, !generalNotes.isEmpty { data["generalNotes"] = generalNotes }
+        if !perfume.seasonRanking.isEmpty {
+            data["seasonRanking"] = perfume.seasonRanking.map { ["name": $0.name, "score": $0.score] }
+        }
         if let concentration = perfume.concentration, !concentration.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             data["concentration"] = concentration
         }
         if let gender = perfume.gender { data["gender"] = gender }
+        if let longevity = perfume.longevity { data["longevity"] = longevity }
+        if let sillage = perfume.sillage { data["sillage"] = sillage }
         if let memo, !memo.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             data["memo"] = memo
         }

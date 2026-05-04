@@ -9,6 +9,7 @@ struct TasteAnalysisInput {
     let experience: String
     let vibes: [String]
     let images: [String]
+    let tagOnboardingSignal: TagOnboardingSignalForGemini?
     let aggregatedProfile: AggregatedProfileForGemini?
     let records: [TastingRecordForGemini]
 
@@ -16,14 +17,34 @@ struct TasteAnalysisInput {
         experience: String,
         vibes: [String],
         images: [String],
+        tagOnboardingSignal: TagOnboardingSignalForGemini? = nil,
         aggregatedProfile: AggregatedProfileForGemini? = nil,
         records: [TastingRecordForGemini] = []
     ) {
         self.experience = experience
         self.vibes = vibes
         self.images = images
+        self.tagOnboardingSignal = tagOnboardingSignal
         self.aggregatedProfile = aggregatedProfile
         self.records = records
+    }
+}
+
+struct TagOnboardingSignalForGemini: Codable {
+    let seasonMood: String?
+    let preferredAndImpressionTags: [String]
+    let dislikedScents: [String]
+    let currentPreferredFamilies: [String]
+
+    nonisolated init(analysis: TasteAnalysisResult) {
+        let trimmedExperience = analysis.evidenceTags.experience
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        seasonMood = trimmedExperience.isEmpty ? nil : trimmedExperience
+        preferredAndImpressionTags = analysis.evidenceTags.vibes
+        dislikedScents = analysis.dislikedTags.isEmpty
+            ? analysis.evidenceTags.images
+            : analysis.dislikedTags
+        currentPreferredFamilies = analysis.recommendationDirection.preferredFamilies
     }
 }
 

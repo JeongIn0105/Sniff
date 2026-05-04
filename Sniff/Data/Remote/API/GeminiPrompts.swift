@@ -27,6 +27,11 @@ enum GeminiPrompts {
       - experience: "향수를 처음 시작했어요 | 향수를 가끔씩 뿌려요 | 향수를 꽤 알고 있어요"
       - vibes: ["분위기 태그들 — 앞쪽일수록 사용자가 더 중요하게 여기는 취향"]
       - images: ["향의 느낌 태그들 — 앞쪽일수록 사용자가 더 중요하게 여기는 취향"]
+    - Tag Onboarding Signal (JSON)
+      - seasonMood: 사용자가 고른 계절감/분위기
+      - preferredAndImpressionTags: 사용자가 끌린 향과 주고 싶은 인상 태그들
+      - dislikedScents: 사용자가 싫어한다고 고른 향 태그들
+      - currentPreferredFamilies: 기존 온보딩 분석에서 계산된 선호 계열
     - Aggregated Preference Profile
       - topFamilies: 이미 정렬된 상위 계열 3개
       - topMoods: 이미 정렬된 상위 무드 3개
@@ -36,10 +41,12 @@ enum GeminiPrompts {
 
     입력 해석 우선순위:
     - Aggregated Preference Profile이 있으면 이것을 가장 중요한 주 신호로 사용한다
+    - Tag Onboarding Signal이 있으면 이것을 새 온보딩 형식으로 해석한다
     - Onboarding Signal은 사용자의 원래 취향 출발점을 설명하는 데 사용한다
     - Tasting Records는 보조 증거로만 사용한다
     - record 하나만 보고 전체 취향 방향을 뒤집지 않는다
     - records에서 반복적으로 나타나는 패턴만 강화 신호로 반영한다
+    - dislikedScents는 싫어하는 향이므로 선호 취향으로 해석하지 않는다
 
     분위기 태그 목록:
     세련된, 자연스러운, 신비로운, 활기찬, 여유로운, 청순한, 섹시한, 차분한, 시크한
@@ -50,6 +57,7 @@ enum GeminiPrompts {
     해석 원칙:
     - 분위기 태그와 향의 느낌 태그를 따로 보지 말고 함께 읽는다
     - vibes와 images 배열의 앞쪽 항목일수록 사용자가 더 중요하게 여기는 취향이다
+    - Tag Onboarding Signal이 있으면 preferredAndImpressionTags와 seasonMood를 긍정 신호로 읽고, dislikedScents는 피해야 할 부정 신호로 읽는다
     - 1번째 항목은 가장 강한 신호, 2번째와 3번째 항목은 보조 신호로 해석한다
     - 사용자가 고른 태그의 공통된 흐름을 먼저 파악한다
     - 태그를 단순 나열하지 말고, 어떤 취향으로 읽히는지 자연스럽게 설명한다
@@ -120,8 +128,10 @@ enum GeminiPrompts {
     - 2~4문장으로 작성한다
     - 첫 문장은 전체 취향 인상을 자연스럽게 요약한다
       - 예: "맑고 부드러운 향을 편하게 느끼는 취향이에요"
-    - 둘째 문장까지는 vibes[0]와 images[0]를 가장 중요한 신호로 반영한다
+    - 일반 Onboarding Signal에서는 둘째 문장까지 vibes[0]와 images[0]를 가장 중요한 신호로 반영한다
+    - Tag Onboarding Signal에서는 preferredAndImpressionTags의 앞쪽 항목과 seasonMood를 가장 중요한 긍정 신호로 반영한다
     - 다음 문장에서는 사용자가 고른 태그가 어떻게 함께 읽혔는지 설명한다
+    - dislikedScents는 "좋아하는 느낌"이 아니라 "추천에서 조심할 향"으로만 설명한다
     - 마지막 문장에서는 어떤 향 계열이 잘 어울릴지 자연스럽게 연결한다
     - 어려운 향수 전문용어를 과하게 쓰지 않는다
     - 향 계열은 설명 없이 나열하지 말고, 왜 잘 맞는지 쉬운 말로 연결해서 설명한다
@@ -133,7 +143,8 @@ enum GeminiPrompts {
     - 사용자의 취향을 한 줄로 표현하는 짧은 제목이다
     - 아래 9개 제목 중 하나만 그대로 선택한다
     - 단어를 바꾸거나 새 제목을 만들지 않는다
-    - 사용자의 가장 강한 vibe 1개와 image 1개 조합을 중심으로 가장 가까운 제목을 고른다
+    - 일반 Onboarding Signal에서는 사용자의 가장 강한 vibe 1개와 image 1개 조합을 중심으로 가장 가까운 제목을 고른다
+    - Tag Onboarding Signal에서는 preferredAndImpressionTags, seasonMood, currentPreferredFamilies를 중심으로 가장 가까운 제목을 고른다
     - 애매하면 2번째, 3번째 선택 태그를 보조 신호로 활용한다
     - 허용 제목 목록:
       - 상큼하고 활기찬 취향
@@ -182,7 +193,9 @@ enum GeminiPrompts {
     출력 규칙:
     - 반드시 아래 JSON 구조로만 응답한다
     - JSON 외 설명, 제목, 인삿말, 코드블록 마크다운은 출력하지 않는다
-    - evidence_tags에는 experience, vibes, images만 그대로 반영한다
+    - 일반 Onboarding Signal만 있으면 evidence_tags에는 experience, vibes, images만 그대로 반영한다
+    - Tag Onboarding Signal이 있으면 evidence_tags.experience에는 seasonMood를, evidence_tags.vibes에는 preferredAndImpressionTags를, evidence_tags.images에는 dislikedScents를 반영한다
+    - disliked_tags에는 Tag Onboarding Signal의 dislikedScents를 그대로 유지한다
 
     출력 형식:
     {
@@ -193,6 +206,7 @@ enum GeminiPrompts {
         "vibes": [],
         "images": []
       },
+      "disliked_tags": [],
       "recommendation_direction": {
         "preferred_impression": [],
         "preferred_families": [],

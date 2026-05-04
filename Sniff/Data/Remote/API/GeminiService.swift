@@ -96,16 +96,33 @@ final class GeminiTasteAnalysisService {
     }
 
     private func makePromptInput(from input: TasteAnalysisInput) -> String {
-        var sections: [String] = [
-            makeJSONSection(
-                title: "Onboarding Signal (JSON)",
-                value: OnboardingSignalForGemini(
-                    experience: input.experience,
-                    vibes: input.vibes,
-                    images: input.images
+        var sections: [String] = []
+
+        if let tagOnboardingSignal = input.tagOnboardingSignal {
+            sections.append(
+                makeJSONSection(
+                    title: "Tag Onboarding Signal (JSON)",
+                    preface: """
+                    This user completed the newer tag-based onboarding.
+                    preferredAndImpressionTags are positive signals.
+                    dislikedScents are negative signals and must not be interpreted as desired images.
+                    Keep dislikedScents in disliked_tags when producing the response.
+                    """,
+                    value: tagOnboardingSignal
                 )
             )
-        ]
+        } else {
+            sections.append(
+                makeJSONSection(
+                    title: "Onboarding Signal (JSON)",
+                    value: OnboardingSignalForGemini(
+                        experience: input.experience,
+                        vibes: input.vibes,
+                        images: input.images
+                    )
+                )
+            )
+        }
 
         if let aggregatedProfile = input.aggregatedProfile {
             sections.append(

@@ -38,13 +38,13 @@ struct PreferenceAggregator {
         let dislikedOnboardingVec      = OnboardingTagMapper.weightedVector(for: onboarding.dislikedTags)
         let collectionVec              = collectionVector(from: collection)
         let (positiveVec, negativeVec) = tastingVectors(from: tastingRecords)
-        let combinedNegativeVec = normalize(negativeVec.merging(dislikedOnboardingVec) { $0 + $1 })
 
         let scentVector = buildScentVector(
             onboardingVec: onboardingVec,
             collectionVec: collectionVec,
             positiveVec: positiveVec,
-            negativeVec: combinedNegativeVec,
+            dislikedOnboardingVec: dislikedOnboardingVec,
+            negativeTastingVec: negativeVec,
             weights: weights
         )
 
@@ -121,15 +121,60 @@ private extension PreferenceAggregator {
         guard !collection.isEmpty else { return [:] }
 
         var sumVec: [String: Double] = [:]
+        var totalWeight: Double = 0
         for perfume in collection {
+            let ownershipWeight = collectionPreferenceWeight(for: perfume)
+            guard ownershipWeight > 0 else { continue }
             let vec = perfumeVector(from: perfume.accordStrengths, fallback: perfume.mainAccords)
             for (family, value) in vec {
-                sumVec[family, default: 0] += value
+                sumVec[family, default: 0] += value * ownershipWeight
             }
+            totalWeight += ownershipWeight
         }
 
-        let averaged = sumVec.mapValues { $0 / Double(collection.count) }
+        guard totalWeight > 0 else { return [:] }
+        let averaged = sumVec.mapValues { $0 / totalWeight }
         return normalize(averaged)
+    }
+
+    func collectionPreferenceWeight(for perfume: CollectedPerfume) -> Double {
+        let statusWeight: Double
+        switch perfume.usageStatus {
+        case .finished:
+            statusWeight = 1.2
+        case .inUse:
+            statusWeight = 1.0
+        case .unopened:
+            statusWeight = 0.25
+        case nil:
+            statusWeight = 0.8
+        }
+
+        let frequencyWeight: Double
+        switch perfume.usageFrequency {
+        case .often:
+            frequencyWeight = 1.25
+        case .sometimes:
+            frequencyWeight = 0.8
+        case .rarely:
+            frequencyWeight = 0.25
+        case nil:
+            frequencyWeight = 1.0
+        }
+
+        let preferenceWeight: Double
+        switch perfume.preferenceLevel {
+        case .liked:
+            preferenceWeight = 1.2
+        case .neutral:
+            preferenceWeight = 0.5
+        case .disappointed:
+            preferenceWeight = 0.1
+        case nil:
+            preferenceWeight = 1.0
+        }
+
+        return statusWeight * frequencyWeight * preferenceWeight
     }
 
         /// 시향 기록 → 긍정 벡터 + 부정 벡터
@@ -194,15 +239,16 @@ private extension PreferenceAggregator {
 
 private extension PreferenceAggregator {
 
-        /// 소스 벡터들을 가중 합산하고 부정 벡터를 차감
-        /// negativePenalty: 싫어하는 계열을 얼마나 강하게 피할지
+        /// 소스 벡터들을 가중 합산하고 온보딩/시향의 부정 신호를 각각 차감
     func buildScentVector(
         onboardingVec: [String: Double],
         collectionVec: [String: Double],
         positiveVec: [String: Double],
-        negativeVec: [String: Double],
+        dislikedOnboardingVec: [String: Double],
+        negativeTastingVec: [String: Double],
         weights: PreferenceWeights,
-        negativePenalty: Double = 1.5
+        onboardingNegativePenalty: Double = 1.5,
+        tastingNegativePenalty: Double = 1.5
     ) -> [String: Double] {
 
         let positiveKeys = Set(onboardingVec.keys)
@@ -218,8 +264,12 @@ private extension PreferenceAggregator {
             + positiveVec[key, default: 0]   * weights.tasting
         }
 
-        for (key, negValue) in negativeVec {
-            result[key, default: 0] -= negValue * negativePenalty * weights.tasting
+        for (key, negValue) in dislikedOnboardingVec {
+            result[key, default: 0] -= negValue * onboardingNegativePenalty * weights.onboarding
+        }
+
+        for (key, negValue) in negativeTastingVec {
+            result[key, default: 0] -= negValue * tastingNegativePenalty * weights.tasting
         }
 
         result = result.filter { $0.value > 0 }
@@ -320,15 +370,62 @@ private extension PreferenceAggregator {
 
     func mapMoodTagToFamilies(_ tag: String) -> [String] {
         switch tag {
-            case AppStrings.DomainDisplay.TastingNoteData.freshTag: return ["Citrus", "Fruity"]
-            case AppStrings.DomainDisplay.TastingNoteData.coolTag: return ["Water", "Green"]
-            case AppStrings.DomainDisplay.TastingNoteData.airyGreenTag: return ["Green", "Aromatic"]
-            case AppStrings.DomainDisplay.TastingNoteData.subtleTag: return ["Soft Floral", "Floral"]
-            case AppStrings.DomainDisplay.TastingNoteData.powderyTag: return ["Soft Floral", "Soft Amber"]
-            case AppStrings.DomainDisplay.TastingNoteData.warmTag: return ["Soft Amber", "Amber", "Woody Amber"]
-            case AppStrings.DomainDisplay.TastingNoteData.heavyTag: return ["Amber", "Mossy Woods", "Dry Woods"]
-            case AppStrings.DomainDisplay.TastingNoteData.heavierTag: return ["Woody Amber", "Dry Woods"]
-            default:         return []
+            case AppStrings.DomainDisplay.TastingNoteData.sophisticatedTag:
+                return ["Water", "Aromatic", "Citrus"]
+            case AppStrings.DomainDisplay.TastingNoteData.naturalTag:
+                return ["Green", "Mossy Woods", "Aromatic"]
+            case AppStrings.DomainDisplay.TastingNoteData.mysteriousTag:
+                return ["Water", "Amber", "Woody Amber"]
+            case AppStrings.DomainDisplay.TastingNoteData.vibrantTag:
+                return ["Citrus", "Fruity", "Green"]
+            case AppStrings.DomainDisplay.TastingNoteData.relaxedTag:
+                return ["Soft Amber", "Soft Floral", "Woods"]
+            case AppStrings.DomainDisplay.TastingNoteData.pureTag:
+                return ["Soft Floral", "Floral", "Water"]
+            case AppStrings.DomainDisplay.TastingNoteData.sensualTag:
+                return ["Amber", "Woody Amber", "Floral Amber"]
+            case AppStrings.DomainDisplay.TastingNoteData.calmTag:
+                return ["Woods", "Soft Amber", "Aromatic"]
+            case AppStrings.DomainDisplay.TastingNoteData.chicTag:
+                return ["Woods", "Dry Woods", "Woody Amber"]
+            case AppStrings.DomainDisplay.TastingNoteData.warmTag:
+                return ["Soft Amber", "Amber", "Woody Amber"]
+            case AppStrings.DomainDisplay.TastingNoteData.coolTag:
+                return ["Water", "Citrus", "Green"]
+            case AppStrings.DomainDisplay.TastingNoteData.freshTag:
+                return ["Citrus", "Fruity"]
+            case AppStrings.DomainDisplay.TastingNoteData.sweetTag:
+                return ["Fruity", "Floral Amber", "Amber"]
+            case AppStrings.DomainDisplay.TastingNoteData.cleanTag:
+                return ["Water", "Aromatic", "Soft Floral"]
+            case AppStrings.DomainDisplay.TastingNoteData.softTag:
+                return ["Soft Floral", "Soft Amber"]
+            case AppStrings.DomainDisplay.TastingNoteData.subtleTag:
+                return ["Soft Floral", "Floral"]
+            case AppStrings.DomainDisplay.TastingNoteData.clearTag:
+                return ["Water", "Citrus", "Aromatic"]
+            case AppStrings.DomainDisplay.TastingNoteData.deepTag:
+                return ["Amber", "Woody Amber", "Dry Woods"]
+            case AppStrings.DomainDisplay.TastingNoteData.airyGreenTag:
+                return ["Green", "Aromatic"]
+            case AppStrings.DomainDisplay.TastingNoteData.powderyTag:
+                return ["Soft Floral", "Soft Amber"]
+            case AppStrings.DomainDisplay.TastingNoteData.heavyTag:
+                return ["Amber", "Mossy Woods", "Dry Woods"]
+            case AppStrings.DomainDisplay.TastingNoteData.heavierTag:
+                return ["Woody Amber", "Dry Woods"]
+            case "강렬한":
+                return ["Amber", "Dry Woods", "Woody Amber"]
+            case "가벼운":
+                return ["Citrus", "Water", "Floral"]
+            case "포근한":
+                return ["Soft Amber", "Soft Floral"]
+            case "고급스러운":
+                return ["Amber", "Woody Amber", "Floral Amber", "Woods"]
+            case "중성적인":
+                return ["Soft Floral", "Woods", "Aromatic", "Water"]
+            default:
+                return []
         }
     }
 }

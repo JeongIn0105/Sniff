@@ -51,23 +51,31 @@ extension PerfumeKoreanTranslator {
         return normalizedBrandToKorean[normalizeBrandKey(trimmed)] ?? trimmed
     }
 
-    nonisolated static func domesticRetailPriority(for brand: String) -> Int {
+    nonisolated static func koreaBrandAvailabilityScore(for brand: String) -> Int {
         let trimmed = brand.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return 0 }
         if let priority = domesticRetailBrandPriority[trimmed] { return priority }
         return normalizedDomesticRetailBrandPriority[normalizeBrandKey(trimmed)] ?? 0
     }
 
-    nonisolated static func domesticRetailPriority(for perfume: Perfume) -> Int {
+    nonisolated static func koreaBrandAvailabilityScore(for perfume: Perfume) -> Int {
         ([perfume.brand] + perfume.brandAliases)
-            .map { domesticRetailPriority(for: $0) }
+            .map { koreaBrandAvailabilityScore(for: $0) }
             .max() ?? 0
+    }
+
+    nonisolated static func domesticRetailPriority(for brand: String) -> Int {
+        koreaBrandAvailabilityScore(for: brand)
+    }
+
+    nonisolated static func domesticRetailPriority(for perfume: Perfume) -> Int {
+        koreaBrandAvailabilityScore(for: perfume)
     }
 
     nonisolated static func sortedByDomesticRetailPriority(_ perfumes: [Perfume]) -> [Perfume] {
         perfumes.sorted { lhs, rhs in
-            let lhsPriority = domesticRetailPriority(for: lhs)
-            let rhsPriority = domesticRetailPriority(for: rhs)
+            let lhsPriority = koreaBrandAvailabilityScore(for: lhs)
+            let rhsPriority = koreaBrandAvailabilityScore(for: rhs)
             if lhsPriority != rhsPriority { return lhsPriority > rhsPriority }
 
             let lhsBrand = koreanBrand(for: lhs.brand)

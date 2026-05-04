@@ -52,6 +52,9 @@ private struct CachedCollectedPerfume: Codable {
     let accordStrengths: [String: String]
     let memo: String?
     let createdAt: Date?
+    let usageStatus: String?
+    let usageFrequency: String?
+    let preferenceLevel: String?
 
     nonisolated init(_ perfume: CollectedPerfume) {
         id = perfume.id
@@ -62,6 +65,9 @@ private struct CachedCollectedPerfume: Codable {
         accordStrengths = perfume.accordStrengths.mapValues(\.rawValue)
         memo = perfume.memo
         createdAt = perfume.createdAt
+        usageStatus = perfume.usageStatus?.rawValue
+        usageFrequency = perfume.usageFrequency?.rawValue
+        preferenceLevel = perfume.preferenceLevel?.rawValue
     }
 
     nonisolated var model: CollectedPerfume {
@@ -76,7 +82,10 @@ private struct CachedCollectedPerfume: Codable {
                 result[pair.key] = strength
             },
             memo: memo,
-            createdAt: createdAt
+            createdAt: createdAt,
+            usageStatus: usageStatus.flatMap(CollectedPerfumeUsageStatus.init(rawValue:)),
+            usageFrequency: usageFrequency.flatMap(CollectedPerfumeUsageFrequency.init(rawValue:)),
+            preferenceLevel: preferenceLevel.flatMap(CollectedPerfumePreferenceLevel.init(rawValue:))
         )
     }
 }
