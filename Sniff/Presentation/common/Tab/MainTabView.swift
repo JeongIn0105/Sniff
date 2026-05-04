@@ -5,11 +5,11 @@
 //  Created by t2025-m0239 on 2026.04.13.
 //
 
+import Combine
 import SwiftUI
 import UIKit
 
 extension Notification.Name {
-    static let mainTabSelectionRequested = Notification.Name("sniff.mainTabSelectionRequested")
     static let perfumeCollectionDidChange = Notification.Name("sniff.perfumeCollectionDidChange")
     static let tasteProfileDidChange = Notification.Name("sniff.tasteProfileDidChange")
 }
@@ -21,11 +21,23 @@ enum MainTabSelection: Int, Hashable {
     case my = 3
 }
 
+final class MainTabRouter: ObservableObject {
+    static let shared = MainTabRouter()
+
+    @Published var selectedTab: MainTabSelection = .home
+
+    private init() {}
+
+    func select(_ tab: MainTabSelection) {
+        selectedTab = tab
+    }
+}
+
 struct MainTabView: View {
-    @State private var selectedTab: MainTabSelection = .home
+    @ObservedObject private var tabRouter = MainTabRouter.shared
 
     var body: some View {
-        TabView(selection: $selectedTab) {
+        TabView(selection: $tabRouter.selectedTab) {
             HomeTabContainerView()
                 .ignoresSafeArea(.all, edges: .top)  // 상태바 영역까지 그라데이션 확장
                 .tabItem {
@@ -56,14 +68,6 @@ struct MainTabView: View {
                 .tag(MainTabSelection.my)
         }
         .tint(.black)
-        .onReceive(NotificationCenter.default.publisher(for: .mainTabSelectionRequested)) { notification in
-            guard
-                let rawValue = notification.object as? Int,
-                let tab = MainTabSelection(rawValue: rawValue)
-            else { return }
-
-            selectedTab = tab
-        }
     }
 }
 

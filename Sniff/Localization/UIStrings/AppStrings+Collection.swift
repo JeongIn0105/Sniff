@@ -12,13 +12,20 @@ extension AppStrings {
         static let emptyTitle = "아직 등록된 향수가 없어요"
         static let emptyMessage = "첫 번째 향수를 찾아볼까요?"
         static let addSuccess = "컬렉션에 추가됐어요"
+        static let registerSuccessTitle = "보유 향수에 추가했어요"
+        static let writeTastingNoteButton = "시향기 남기기"
+        static let doneButton = "완료"
         static let removeConfirm = "컬렉션에서 제거할까요?"
         static let removeButton = "제거할게요"
         static let cancelButton = "아니요, 유지할게요"
+
+        static func registerSuccessMessage(_ perfumeName: String) -> String {
+            "\(perfumeName) 정보를 불러와 저장했어요.\n이 향수의 시향기도 이어서 남길 수 있어요."
+        }
     }
 
     enum CollectionUsageLimits {
-        static let monthlyCollectionLimitReached = "이번 달 5개 한도를 채웠어요. 다음 달에 추가할 수 있어요"
+        static let monthlyCollectionLimitReached = "이번 달 10개 한도를 채웠어요. 다음 달에 추가할 수 있어요"
         static let dailyLikeLimitReached = "오늘 10개 한도를 채웠어요"
         static let totalLikeLimitReached = "최대 100개까지 저장할 수 있어요"
 

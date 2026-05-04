@@ -58,11 +58,11 @@ final class OnboardingViewModel: ObservableObject {
     let preferredScentGroups: [(title: String, tags: [String])] = [
         (
             "깨끗하고 산뜻한 향",
-            ["상큼한 레몬", "시원한 바다", "맑은 허브 향", "싱그러운 풀잎 향", "깨끗한 섬유유연제 향"]
+            ["상큼한 레몬 향", "깨끗한 샤워 향", "싱그러운 풀잎 향", "맑은 허브 향", "깨끗한 섬유유연제 향"]
         ),
         (
             "은은한 꽃 향",
-            ["장미꽃 향", "라일락 향", "복숭아꽃 향", "포근한 목련 향", "진한 자스민 향"]
+            ["장미꽃 향", "라일락 향", "복숭아꽃 향", "포근한 목련 향", "진한 재스민 향"]
         ),
         (
             "따뜻하고 달콤한 향",
@@ -389,7 +389,13 @@ final class OnboardingViewModel: ObservableObject {
 
         return TasteAnalysisResult(
             tasteTitle: title,
-            analysisSummary: "활기찬, 트렌디한 분위기와 상큼한 향의 느낌을 선호하시는 것으로 보니, 생기 넘치고 밝은 향을 좋아하시는 것 같아요. 여유로운 분위기와 싱그러운, 은은한 느낌도 함께 선택해주셔서, 너무 강하기보다는 자연스럽고 편안한 향도 즐기시는 경향이 있어요. 전체적으로 긍정적이고 기분 좋은 향을 선호하시는 것 같네요! 💕",
+            analysisSummary: makeTagAnalysisSummary(
+                preferredScents: selectedPreferredScents,
+                seasonMood: selectedSeasonMood,
+                impressions: selectedImpressions,
+                dislikedTags: cleanDislikes,
+                preferredFamilies: preferredFamilies
+            ),
             evidenceTags: EvidenceTags(
                 experience: selectedSeasonMood ?? "",
                 vibes: selectedPreferredScents + selectedImpressions,
@@ -399,10 +405,62 @@ final class OnboardingViewModel: ObservableObject {
                 preferredImpression: selectedImpressions + [selectedSeasonMood].compactMap { $0 },
                 preferredFamilies: preferredFamilies,
                 intensityLevel: selectedSeasonMood ?? "",
-                safeStartingPoint: "취향에 맞는 향수를 골라봤어요"
+                safeStartingPoint: makeSafeStartingPoint(
+                    preferredScents: selectedPreferredScents,
+                    seasonMood: selectedSeasonMood,
+                    dislikedTags: cleanDislikes
+                )
             ),
             dislikedTags: cleanDislikes
         )
+    }
+
+    private func makeTagAnalysisSummary(
+        preferredScents: [String],
+        seasonMood: String?,
+        impressions: [String],
+        dislikedTags: [String],
+        preferredFamilies: [String]
+    ) -> String {
+        let scentText = joinedDisplayText(preferredScents, fallback: "선택한 향")
+        let impressionText = joinedDisplayText(impressions, fallback: "자연스러운 인상")
+        let seasonText = seasonMood ?? "무난한 계절감"
+        let familyText = FragranceProfileText.majorFamilySummary(for: preferredFamilies)
+
+        var summary = "\(scentText)을 끌리는 향으로 고르고, \(seasonText)의 분위기를 선호해 \(familyText)이 잘 맞는 편이에요. \(impressionText)처럼 느껴지는 향을 좋아해서 너무 튀기보다는 취향이 자연스럽게 드러나는 향을 추천할게요."
+
+        if !dislikedTags.isEmpty {
+            summary += " 반대로 \(joinedDisplayText(dislikedTags, fallback: ""))은 덜 보이도록 추천에서 조심해서 반영했어요."
+        }
+
+        return summary
+    }
+
+    private func makeSafeStartingPoint(
+        preferredScents: [String],
+        seasonMood: String?,
+        dislikedTags: [String]
+    ) -> String {
+        let scentText = joinedDisplayText(Array(preferredScents.prefix(2)), fallback: "선택한 취향")
+        let seasonText = seasonMood.map { "\($0) 느낌으로 " } ?? ""
+        let avoidText = dislikedTags.isEmpty ? "" : ", 부담스러운 향은 덜어내고"
+        return "\(seasonText)\(scentText)를 중심으로\(avoidText) 시작하기 좋은 향수를 골라봤어요"
+    }
+
+    private func joinedDisplayText(_ values: [String], fallback: String) -> String {
+        let cleanValues = values
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        guard !cleanValues.isEmpty else { return fallback }
+        guard cleanValues.count > 1 else { return cleanValues[0] }
+
+        let visibleValues = Array(cleanValues.prefix(3))
+        if visibleValues.count == cleanValues.count {
+            return visibleValues.joined(separator: ", ")
+        }
+
+        return "\(visibleValues.joined(separator: ", ")) 외 \(cleanValues.count - visibleValues.count)개"
     }
 
     private func experienceText(for experience: ExperienceLevel) -> String {

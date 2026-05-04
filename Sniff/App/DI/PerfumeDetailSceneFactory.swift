@@ -54,7 +54,7 @@ enum PerfumeDetailSceneFactory {
     private static func configuredDetailViewController(
         _ viewController: PerfumeDetailViewController
     ) -> PerfumeDetailViewController {
-        viewController.hidesBottomBarWhenPushed = true
+        viewController.hidesBottomBarWhenPushed = false
         return viewController
     }
 }

@@ -63,11 +63,13 @@ final class HomeViewController: UIViewController {
     private let tastingRecordRepository: TastingRecordRepositoryType
     private let localTastingNoteRepository: LocalTastingNoteRepository
     private let disposeBag = DisposeBag()
+    private let homeRefreshRelay = PublishRelay<Void>()
     private var recommendations: [HomePerfumeItem] = []
     private var currentProfileItem: HomeViewModel.HomeProfileItem?
     private var currentBannerItem: HomeTasteBannerItem?
     private var likedPerfumeIDs = Set<String>()
     private var tastingNoteKeys = Set<String>()
+    private var profileChangeObserver: NSObjectProtocol?
 
     private let scrollView = UIScrollView()
     private let contentView = UIView()
@@ -207,6 +209,12 @@ button.setPreferredSymbolConfiguration(
 
     required init?(coder: NSCoder) { fatalError() }
 
+    deinit {
+        if let profileChangeObserver {
+            NotificationCenter.default.removeObserver(profileChangeObserver)
+        }
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
         // 상태바 영역까지 레이아웃 확장
@@ -336,7 +344,8 @@ private extension HomeViewController {
 
         profileSummaryLabel.snp.makeConstraints {
             $0.top.equalTo(profileHeadlineLabel.snp.bottom).offset(8)
-            $0.leading.trailing.equalToSuperview().inset(20)
+            $0.leading.equalTo(profileHeadlineLabel)
+            $0.trailing.equalToSuperview().inset(20)
         }
 
         profileTagStack.snp.makeConstraints {
@@ -389,14 +398,17 @@ private extension HomeViewController {
 private extension HomeViewController {
 
     func observeProfileChange() {
-        NotificationCenter.default.addObserver(
+        profileChangeObserver = NotificationCenter.default.addObserver(
             forName: .tasteProfileDidChange,
             object: nil,
             queue: .main
         ) { [weak self] notification in
-            guard let self,
-                  let title = notification.userInfo?["title"] as? String,
-                  let families = notification.userInfo?["families"] as? [String] else { return }
+            guard let self else { return }
+            self.homeRefreshRelay.accept(())
+            guard
+                let title = notification.userInfo?["title"] as? String,
+                let families = notification.userInfo?["families"] as? [String]
+            else { return }
             // 배너 타이틀 즉시 갱신
             self.profileHeadlineLabel.text = title
             self.topGradientView.configure(title: title, fallbackFamilies: Array(families.prefix(2)))
@@ -404,8 +416,20 @@ private extension HomeViewController {
     }
 
     func bind() {
+        let notificationRefresh = Observable.merge(
+            NotificationCenter.default.rx.notification(.perfumeCollectionDidChange).map { _ in },
+            NotificationCenter.default.rx.notification(.tastingNotesDidChange).map { _ in }
+        )
+
+        let homeRefresh = Observable.merge(
+            homeRefreshRelay.asObservable(),
+            notificationRefresh
+        )
+        .throttle(.milliseconds(500), scheduler: MainScheduler.instance)
+
         let input = HomeViewModel.Input(
             viewDidLoad: Observable.just(()),
+            refresh: homeRefresh,
             perfumeRegisterTap: .never(),
             tastingNoteTap: .never(),
             reportTap: .never(),
@@ -478,7 +502,8 @@ private extension HomeViewController {
             .subscribe(onNext: { [weak self] in
                 let searchViewController = SearchSceneFactory.makeSearchViewController(
                     dependencyContainer: AppDependencyContainer.shared,
-                    showsRecentOnAppear: true
+                    showsRecentOnAppear: true,
+                    mode: .register
                 )
                 self?.navigationController?.pushViewController(searchViewController, animated: true)
             })
@@ -596,10 +621,7 @@ private extension HomeViewController {
     }
 
     func navigateToMyPage() {
-        NotificationCenter.default.post(
-            name: .mainTabSelectionRequested,
-            object: MainTabSelection.my.rawValue
-        )
+        MainTabRouter.shared.select(.my)
     }
 }
 
@@ -832,6 +854,11 @@ final class HomeGradientView: UIView {
     }
 
     func configure(title: String, fallbackFamilies: [String]) {
+        if let preset = TasteProfileGradientIconView.profilePreset(forTitle: title) {
+            configure(exactColors: preset.colors, locations: preset.locations)
+            return
+        }
+
         guard let palette = FragranceProfileText.profileColorPalette(forTitle: title) else {
             configure(topFamilies: fallbackFamilies)
             return
@@ -844,6 +871,11 @@ final class HomeGradientView: UIView {
         ]
         // location 0.0부터 시작: 중심에 고형색 원(blob) 없이 부드러운 방사형 그라데이션
         gradientLayer.locations = [0.0, NSNumber(value: palette.primaryLocation), 1.00]
+    }
+
+    func configure(exactColors colors: [UIColor], locations: [NSNumber]) {
+        gradientLayer.colors = colors.map(\.cgColor)
+        gradientLayer.locations = locations
     }
 
     // Figma EllipticalGradient 기본값:

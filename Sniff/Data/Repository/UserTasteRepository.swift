@@ -50,12 +50,18 @@ final class UserTasteRepository: UserTasteRepositoryType {
 
             let task = Task {
                 do {
-                    let result = try await self.firestoreService.fetchTasteAnalysis()
+                    let fetchedResult = try await self.firestoreService.fetchTasteAnalysis()
+                    let result = self.normalizedTasteAnalysis(fetchedResult)
+                    if let title = result.tasteTitle, title != fetchedResult.tasteTitle {
+                        try? await self.firestoreService.applyHistoricalProfile(title: title)
+                    }
                     self.cacheTasteAnalysis(result)
                     single(.success(result))
                 } catch {
                     if let cached = self.cachedTasteAnalysis() {
-                        single(.success(cached))
+                        let result = self.normalizedTasteAnalysis(cached)
+                        self.cacheTasteAnalysis(result)
+                        single(.success(result))
                     } else {
                         single(.failure(error))
                     }
@@ -125,7 +131,7 @@ final class UserTasteRepository: UserTasteRepositoryType {
             throw AppSecretsError.missingValue("GEMINI_API_KEY")
         }
 
-        let result = try await geminiService.requestTasteAnalysis(input: input)
+        let result = normalizedTasteAnalysis(try await geminiService.requestTasteAnalysis(input: input))
         cacheTasteAnalysis(result)
         return result
     }
@@ -140,7 +146,11 @@ final class UserTasteRepository: UserTasteRepositoryType {
         async let tastingRecords = firestoreService.fetchTastingRecords()
         async let userProfile = firestoreService.fetchUserProfile()
 
-        let baseAnalysis = try await onboardingAnalysis
+        let fetchedBaseAnalysis = try await onboardingAnalysis
+        let baseAnalysis = normalizedTasteAnalysis(fetchedBaseAnalysis)
+        if let title = baseAnalysis.tasteTitle, title != fetchedBaseAnalysis.tasteTitle {
+            try? await firestoreService.applyHistoricalProfile(title: title)
+        }
         let collectionItems = try await collection
         let recordItems = try await tastingRecords
         let user = try await userProfile
@@ -165,7 +175,7 @@ final class UserTasteRepository: UserTasteRepositoryType {
             records: TastingRecordForGemini.supportingRecords(from: recordItems)
         )
 
-        let refreshedAnalysis = try await geminiService.requestTasteAnalysis(input: enrichedInput)
+        let refreshedAnalysis = normalizedTasteAnalysis(try await geminiService.requestTasteAnalysis(input: enrichedInput))
         try await saveUserProfile(
             nickname: user.nickname,
             tasteAnalysis: refreshedAnalysis,
@@ -204,12 +214,33 @@ final class UserTasteRepository: UserTasteRepositoryType {
         tasteAnalysis: TasteAnalysisResult,
         experienceLevel: String? = nil
     ) async throws {
+        let normalizedAnalysis = normalizedTasteAnalysis(tasteAnalysis)
         try await firestoreService.saveUserProfile(
             nickname: nickname,
-            tasteAnalysis: tasteAnalysis,
+            tasteAnalysis: normalizedAnalysis,
             experienceLevel: experienceLevel
         )
-        cacheTasteAnalysis(tasteAnalysis)
+        cacheTasteAnalysis(normalizedAnalysis)
+    }
+
+    private func normalizedTasteAnalysis(_ result: TasteAnalysisResult) -> TasteAnalysisResult {
+        let scentVector = Dictionary(uniqueKeysWithValues: result.recommendationDirection.preferredFamilies.enumerated().map {
+            ($0.element, max(0.1, 1.0 - Double($0.offset) * 0.18))
+        })
+        let title = FragranceProfileText.profileTitle(
+            originalTitle: result.tasteTitle,
+            scentVector: scentVector,
+            stage: .onboardingOnly
+        )
+
+        guard title != result.tasteTitle else { return result }
+        return TasteAnalysisResult(
+            tasteTitle: title,
+            analysisSummary: result.analysisSummary,
+            evidenceTags: result.evidenceTags,
+            recommendationDirection: result.recommendationDirection,
+            dislikedTags: result.dislikedTags
+        )
     }
 
     private func cacheTasteAnalysis(_ result: TasteAnalysisResult) {

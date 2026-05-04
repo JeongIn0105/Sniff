@@ -8,6 +8,7 @@
    
 
 import UIKit
+import SwiftUI
 import SnapKit
 import Then
 import RxSwift
@@ -92,8 +93,11 @@ final class SearchViewController: UIViewController {
     private var suggestions: [SuggestionItem] = []
     private var keyboardInset: CGFloat = 0
     private var likedPerfumeIDs = Set<String>()
+    private var ownedPerfumeIDs = Set<String>()
     private var tastingNoteKeys = Set<String>()
     private var hasHandledRecentOnAppear = false
+    private var isRegisteringCollection = false
+    private weak var presentedTastingFormController: UIViewController?
 
     // MARK: - 자동저장 상태
     /// ViewModel에서 받아온 자동저장 활성화 여부 로컬 캐시
@@ -404,6 +408,7 @@ private let sortButton = UIButton(type: .system).then {
         }
         updateSearchBarLeadingConstraint()
         loadLikedPerfumes()
+        loadCollectedPerfumes()
         loadTastingNoteKeys()
     }
 
@@ -466,7 +471,9 @@ private extension SearchViewController {
         }
 
         searchBar.searchTextField.attributedPlaceholder = NSAttributedString(
-            string: AppStrings.UIKitScreens.Search.placeholder,
+            string: mode == .register
+                ? AppStrings.UIKitScreens.Search.registerPlaceholder
+                : AppStrings.UIKitScreens.Search.placeholder,
             attributes: [
                 .font: SearchStyle.pretendard(size: 16, weight: .medium),
                 .foregroundColor: SearchStyle.neutral400
@@ -1373,7 +1380,14 @@ private extension SearchViewController {
         return attributed
     }
 
-    private func loadCollectedPerfumes() { }
+    private func loadCollectedPerfumes() {
+        collectionRepository.fetchCollection()
+            .observe(on: MainScheduler.instance)
+            .subscribe(onSuccess: { [weak self] items in
+                self?.ownedPerfumeIDs = Set(items.map(\.id))
+            }, onFailure: { _ in })
+            .disposed(by: disposeBag)
+    }
 
     private func loadTastingNoteKeys() {
         // 1단계: CoreData 로컬에서 즉시 반영 (동기)
@@ -1435,13 +1449,96 @@ private extension SearchViewController {
             .disposed(by: disposeBag)
     }
 
+    private func registerCollectedPerfume(_ perfume: Perfume) {
+        guard !isRegisteringCollection else { return }
+        let collectionID = perfume.collectionDocumentID
+        if ownedPerfumeIDs.contains(collectionID) {
+            showAppToast(message: AppStrings.UIKitScreens.Search.registerDuplicate)
+            return
+        }
+
+        isRegisteringCollection = true
+        view.isUserInteractionEnabled = false
+
+        collectionRepository.saveCollectedPerfume(perfume, memo: nil)
+            .observe(on: MainScheduler.instance)
+            .subscribe(onCompleted: { [weak self] in
+                guard let self else { return }
+                self.isRegisteringCollection = false
+                self.view.isUserInteractionEnabled = true
+                self.ownedPerfumeIDs.insert(collectionID)
+                NotificationCenter.default.post(name: .perfumeCollectionDidChange, object: nil)
+                self.presentCollectionRegisteredAlert(for: perfume)
+            }, onError: { [weak self] error in
+                guard let self else { return }
+                self.isRegisteringCollection = false
+                self.view.isUserInteractionEnabled = true
+                self.presentSaveFailure(error)
+            })
+            .disposed(by: disposeBag)
+    }
+
+    private func presentCollectionRegisteredAlert(for perfume: Perfume) {
+        let perfumeName = PerfumePresentationSupport.displayPerfumeName(perfume.name)
+        let alert = UIAlertController(
+            title: AppStrings.Collection.registerSuccessTitle,
+            message: AppStrings.Collection.registerSuccessMessage(perfumeName),
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(
+            title: AppStrings.Collection.writeTastingNoteButton,
+            style: .default
+        ) { [weak self] _ in
+            self?.presentTastingForm(for: perfume)
+        })
+        alert.addAction(UIAlertAction(
+            title: AppStrings.Collection.doneButton,
+            style: .cancel
+        ) { [weak self] _ in
+            self?.finishRegisterFlow()
+        })
+        present(alert, animated: true)
+    }
+
+    private func presentTastingForm(for perfume: Perfume) {
+        let formView = TastingNoteSceneFactory.makeFormView(initialPerfume: perfume) { [weak self] perfumeName in
+            guard let self else { return }
+            self.presentedTastingFormController?.dismiss(animated: true) {
+                self.presentedTastingFormController = nil
+                self.showAppToast(message: AppStrings.ViewModelMessages.TastingNote.saved(perfumeName))
+                self.finishRegisterFlow()
+            }
+        }
+        let hostingController = UIHostingController(rootView: formView)
+        hostingController.modalPresentationStyle = .fullScreen
+        presentedTastingFormController = hostingController
+        present(hostingController, animated: true)
+    }
+
+    private func finishRegisterFlow() {
+        guard mode == .register else { return }
+
+        if let navigationController,
+           navigationController.presentingViewController != nil,
+           navigationController.viewControllers.first === self {
+            navigationController.dismiss(animated: true)
+        } else if (navigationController?.viewControllers.count ?? 0) > 1 {
+            navigationController?.popViewController(animated: true)
+        } else {
+            dismiss(animated: true)
+        }
+    }
+
     private func presentSaveFailure(_ error: Error) {
         if let limitError = error as? CollectionUsageLimitError {
             showAppToast(message: limitError.localizedDescription)
             return
         }
 
-        let alert = UIAlertController(title: nil, message: AppStrings.UIKitScreens.Search.likeSaveFailed, preferredStyle: .alert)
+        let message = mode == .register
+            ? AppStrings.UIKitScreens.Search.registerFailed
+            : AppStrings.UIKitScreens.Search.likeSaveFailed
+        let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: AppStrings.UIKitScreens.confirm, style: .default))
         present(alert, animated: true)
     }
@@ -1641,6 +1738,11 @@ extension SearchViewController: UICollectionViewDataSource, UICollectionViewDele
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         let perfume = filteredPerfumeResults[indexPath.item]
+        if mode == .register {
+            registerCollectedPerfume(perfume)
+            return
+        }
+
         let detailVC = PerfumeDetailSceneFactory.makeViewController(perfume: perfume)
         navigationController?.pushViewController(detailVC, animated: true)
     }
@@ -1806,4 +1908,3 @@ private final class SearchMessageCell: UITableViewCell {
         }
     }
 }
-

@@ -51,7 +51,7 @@ struct TastingNoteView: View {
             }
             .toolbar(.hidden, for: .navigationBar)
             .fullScreenCover(isPresented: $viewModel.showFormSheet, onDismiss: {
-                Task { await viewModel.reload() }
+                Task { await viewModel.reloadFromLocal() }
             }) {
                 TastingNoteSceneFactory.makeFormView { perfumeName in
                     viewModel.showToast(perfumeName: perfumeName)
@@ -95,7 +95,7 @@ struct TastingNoteView: View {
     private var normalHeaderView: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .center) {
-                Text(viewModel.perfumeScope?.title ?? "시향기")
+                Text(viewModel.perfumeScope?.title ?? AppStrings.TastingNoteUI.List.defaultTitle)
                     .font(.system(size: 26, weight: .bold))
                     .foregroundColor(.black)
 
@@ -145,7 +145,7 @@ struct TastingNoteView: View {
                     .frame(width: 24, height: 24, alignment: .center)
             }
 
-            Text("시향 기록 편집")
+            Text("시향기 편집")
                 .font(.custom("Pretendard", size: 20).weight(.medium))
                 .foregroundColor(.black)
                 .lineLimit(1)

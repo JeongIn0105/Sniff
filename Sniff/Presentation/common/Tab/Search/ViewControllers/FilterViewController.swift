@@ -326,15 +326,23 @@ final class FilterViewController: UIViewController {
         ScentFamilyFilter.allCases.forEach { family in
             let isSelected = filter.scentFamilies.contains(family)
             let isAtSelectionLimit = !isSelected && filter.scentFamilies.count >= SelectionLimit.scentFamilies
-            tagButtons[family.displayName]?.isEnabled = !isAtSelectionLimit
+            guard let button = tagButtons[family.displayName] as? FilterTagButton else { return }
+            button.isEnabled = !isAtSelectionLimit
+            button.isDimmed = isAtSelectionLimit
         }
 
+        let hasSelectedConcentration = !filter.concentrations.isEmpty
         Concentration.allCases.forEach { concentration in
-            tagButtons[concentration.displayName]?.isEnabled = true
+            guard let button = tagButtons[concentration.displayName] as? FilterTagButton else { return }
+            button.isEnabled = true
+            button.isDimmed = hasSelectedConcentration && !filter.concentrations.contains(concentration)
         }
 
+        let hasSelectedSeason = !filter.seasons.isEmpty
         Season.allCases.forEach { season in
-            tagButtons[season.displayName]?.isEnabled = true
+            guard let button = tagButtons[season.displayName] as? FilterTagButton else { return }
+            button.isEnabled = true
+            button.isDimmed = hasSelectedSeason && !filter.seasons.contains(season)
         }
     }
 
@@ -639,6 +647,12 @@ final class TagWrapView: UIView {
 }
 
 private final class FilterTagButton: UIButton {
+    var isDimmed = false {
+        didSet {
+            updateAppearance()
+        }
+    }
+
     var baseTitle: String = "" {
         didSet {
             updateAppearance()
@@ -660,14 +674,19 @@ private final class FilterTagButton: UIButton {
     private func updateAppearance() {
         setTitle(baseTitle, for: .normal)
         titleLabel?.font = .systemFont(ofSize: 14, weight: isSelected ? .semibold : .regular)
-        let textColor: UIColor = isEnabled ? .label : .systemGray3
+        let textColor: UIColor
+        if !isEnabled || isDimmed {
+            textColor = .systemGray3
+        } else {
+            textColor = .label
+        }
         setTitleColor(textColor, for: .normal)
         setTitleColor(textColor, for: .selected)
         setTitleColor(textColor, for: .highlighted)
         tintColor = textColor
         let backgroundColor = isSelected
             ? FilterViewController.Layout.chipSelectedBackground
-            : UIColor.systemBackground
+            : UIColor.systemBackground.withAlphaComponent(isDimmed ? 0.45 : 1)
         var configuration = configuration ?? UIButton.Configuration.plain()
         configuration.baseForegroundColor = textColor
         configuration.background.backgroundColor = backgroundColor
@@ -683,7 +702,7 @@ private final class FilterTagButton: UIButton {
         layer.cornerRadius = FilterViewController.Layout.chipRadius
         layer.borderColor = isSelected
             ? FilterViewController.Layout.chipSelectedBorder.cgColor
-            : FilterViewController.Layout.chipBorder.cgColor
+            : FilterViewController.Layout.chipBorder.withAlphaComponent(isDimmed ? 0.45 : 1).cgColor
     }
 }
 

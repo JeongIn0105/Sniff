@@ -32,13 +32,13 @@ final class TasteProfileColorInfoViewController: UIViewController {
         // 2. 맑고 세련된 취향
         .init(
             title: "맑고 세련된 취향",
-            subtitle: "워터 · 시트러스 중심",
+            subtitle: "워터 · 아로마틱 중심",
             gradientColors: [
-                UIColor(red: 0.95, green: 0.90, blue: 0.68, alpha: 1),
-                UIColor(red: 0.60, green: 0.81, blue: 0.89, alpha: 1),
+                UIColor(red: 0.97, green: 0.94, blue: 0.80, alpha: 1),
+                UIColor(red: 0.73, green: 0.87, blue: 0.92, alpha: 1),
                 UIColor(red: 0.95, green: 0.91, blue: 0.87, alpha: 1)
             ],
-            gradientLocations: [0.20, 0.47, 1.00]
+            gradientLocations: [0.20, 0.52, 1.00]
         ),
         // 3. 시원하고 신비로운 취향
         .init(

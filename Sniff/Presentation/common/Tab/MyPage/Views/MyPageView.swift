@@ -155,17 +155,7 @@ struct MyPageView: View {
 
     private func tasteProfileRow(title: String) -> some View {
         HStack(spacing: 8) {
-            Circle()
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color(red: 0.94, green: 0.62, blue: 0.73),
-                            Color(red: 0.98, green: 0.95, blue: 0.88)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+            TasteProfileMiniIcon(title: title)
                 .frame(width: Layout.tasteIconSize, height: Layout.tasteIconSize)
 
             Text(title)
@@ -339,10 +329,7 @@ struct MyPageView: View {
         heartAction: @escaping () -> Void
     ) -> some View {
         ZStack(alignment: .bottomTrailing) {
-            NavigationLink {
-                PerfumeDetailContainerView(perfume: perfume)
-                    .toolbar(.hidden, for: .navigationBar)
-            } label: {
+            PerfumeDetailPushLink(perfume: perfume) {
                 compactPreviewCard(
                     imageURL: imageURL,
                     brand: brand,
@@ -359,6 +346,23 @@ struct MyPageView: View {
                 .padding(.bottom, PerfumeCardStyle.preview.likeIconInset + (PerfumeCardStyle.preview.textBlockHeight ?? 0) + PerfumeCardStyle.preview.contentTopSpacing)
         }
         .frame(width: Layout.cardWidth, alignment: .topLeading)
+    }
+}
+
+private struct TasteProfileMiniIcon: UIViewRepresentable {
+    let title: String
+
+    func makeUIView(context: Context) -> TasteProfileGradientIconView {
+        let view = TasteProfileGradientIconView()
+        view.layer.cornerRadius = 9
+        view.layer.cornerCurve = .continuous
+        view.clipsToBounds = true
+        return view
+    }
+
+    func updateUIView(_ uiView: TasteProfileGradientIconView, context: Context) {
+        let families = FragranceProfileText.profileFamilies(forTitle: title) ?? []
+        uiView.configure(title: title, fallbackFamilies: families)
     }
 }
 

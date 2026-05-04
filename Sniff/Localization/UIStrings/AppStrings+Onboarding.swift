@@ -29,7 +29,7 @@ extension AppStrings {
         static let analyzing = "취향을 분석하고 있어요..."
         static let loadingTitle = "킁!킁! 취향 분석 중"
         static let loadingResult = "결과를 불러오는 중이에요"
-        static let recommendationFamilies = "추천 향 계열"
+        static let recommendationFamilies = "대표 향 계열"
 
         enum Experience {
             static let beginner = "향수, 이제 막 시작했어요"

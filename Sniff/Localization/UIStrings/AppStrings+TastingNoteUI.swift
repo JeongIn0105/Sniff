@@ -37,7 +37,7 @@ extension AppStrings {
         }
 
         enum List {
-            static let defaultTitle = "시향 기록"
+            static let defaultTitle = "시향기"
             static let done = "완료"
             static let delete = "삭제"
             static let add = "시향기 등록"
@@ -57,7 +57,7 @@ extension AppStrings {
             static let emptyLikedMessage = "좋아요를 누른 향수의 시향기만 여기에 표시돼요"
 
             static func scopeEmptyTitle(_ perfumeName: String) -> String {
-                "\(perfumeName) 시향 기록이 없어요"
+                "\(perfumeName) 시향기가 없어요"
             }
         }
     }

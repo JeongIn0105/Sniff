@@ -10,8 +10,34 @@ enum OnboardingTagMapper {
     nonisolated static let softFloralFamilies = ["Floral", "Soft Floral"]
     nonisolated static let warmSweetFamilies = ["Floral Amber", "Soft Amber", "Amber"]
     nonisolated static let calmWoodsFamilies = ["Woods", "Woody Amber", "Mossy Woods", "Dry Woods"]
+    nonisolated private static let preferredTagFamilyMap: [String: [String]] = [
+        "상큼한 레몬 향": ["Citrus", "Fruity"],
+        "깨끗한 샤워 향": ["Water", "Aromatic", "Citrus"],
+        "싱그러운 풀잎 향": ["Green"],
+        "맑은 허브 향": ["Aromatic", "Green"],
+        "깨끗한 섬유유연제 향": ["Soft Floral", "Aromatic"],
+        "장미꽃 향": ["Floral"],
+        "라일락 향": ["Soft Floral", "Floral"],
+        "복숭아꽃 향": ["Floral", "Fruity"],
+        "포근한 목련 향": ["Soft Floral", "Floral"],
+        "진한 재스민 향": ["Floral"],
+        "달달한 바닐라 향": ["Soft Amber", "Amber"],
+        "포근한 머스크 향": ["Soft Amber"],
+        "달콤한 꿀 향": ["Amber", "Floral Amber"],
+        "고소한 카라멜 향": ["Amber", "Soft Amber"],
+        "따뜻한 코코아 향": ["Amber", "Soft Amber"],
+        "비 온 뒤 숲 향": ["Mossy Woods", "Green"],
+        "마른 나무 향": ["Dry Woods", "Woods"],
+        "묵직한 우드 향": ["Woody Amber", "Dry Woods", "Woods"],
+        "따뜻한 차 향": ["Aromatic", "Woods"],
+        "이끼 낀 숲 향": ["Mossy Woods", "Green"]
+    ]
 
     nonisolated static func families(for tag: String) -> [String] {
+        if let preferredFamilies = preferredTagFamilyMap[tag] {
+            return preferredFamilies
+        }
+
         switch tag {
         case "너무 달달한 향", "달콤한 복숭아 향", "과일주스 같은 향", "복숭아꽃 향":
             return ["Fruity"]
@@ -80,10 +106,10 @@ enum OnboardingTagMapper {
             return ["floral amber", "soft amber", "amber", "vanilla", "sweet"]
         case "차분한 숲과 나무 향":
             return ["woody", "woody amber", "mossy woods", "dry woods", "forest"]
-        case "상큼한 레몬":
+        case "상큼한 레몬", "상큼한 레몬 향":
             return ["citrus", "lemon", "fresh"]
-        case "시원한 바다":
-            return ["aquatic", "marine", "water"]
+        case "시원한 바다", "깨끗한 샤워 향":
+            return ["aquatic", "marine", "water", "clean", "aromatic"]
         case "맑은 허브 향":
             return ["aromatic", "herbal", "green"]
         case "싱그러운 풀잎 향":
@@ -98,7 +124,7 @@ enum OnboardingTagMapper {
             return ["peach", "fruity", "floral"]
         case "포근한 목련 향":
             return ["magnolia", "soft floral"]
-        case "진한 자스민 향":
+        case "진한 자스민 향", "진한 재스민 향":
             return ["jasmine", "floral"]
         case "달달한 바닐라 향":
             return ["vanilla", "sweet", "soft amber"]

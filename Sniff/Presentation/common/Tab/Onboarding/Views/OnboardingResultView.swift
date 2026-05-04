@@ -16,35 +16,19 @@ struct OnboardingResultView: View {
     var body: some View {
         Group {
             if let result = viewModel.tasteResult {
-                VStack(spacing: 0) {
-                    Spacer()
-                        .frame(height: 166)
+                GeometryReader { geometry in
+                    VStack(spacing: 0) {
+                        Spacer(minLength: 36)
 
-                    Text(AppStrings.Onboarding.Result.title(nickname: viewModel.nickname))
-                        .font(.system(size: 25, weight: .bold))
-                        .multilineTextAlignment(.center)
-                        .lineSpacing(6)
-                        .foregroundColor(.black)
-                        .padding(.horizontal, 32)
+                        resultContent(result)
+                            .padding(.top, max(12, geometry.safeAreaInsets.top * 0.35))
 
-                    resultCard(result)
-                        .padding(.horizontal, horizontalInset)
-                        .padding(.top, 36)
+                        Spacer(minLength: 28)
 
-                    Text(AppStrings.Onboarding.Result.footnote)
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(Color(.systemGray))
-                        .lineSpacing(5)
-                        .multilineTextAlignment(.leading)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, horizontalInset)
-                        .padding(.top, 18)
-
-                    Spacer(minLength: 0)
-
-                    bottomAction
+                        bottomAction
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Color.white.ignoresSafeArea())
             } else {
                 VStack(spacing: 16) {
@@ -55,6 +39,30 @@ struct OnboardingResultView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Color.white.ignoresSafeArea())
             }
+        }
+    }
+
+    private func resultContent(_ result: TasteAnalysisResult) -> some View {
+        VStack(spacing: 0) {
+            Text(AppStrings.Onboarding.Result.title(nickname: viewModel.nickname))
+                .font(.system(size: 25, weight: .bold))
+                .multilineTextAlignment(.center)
+                .lineSpacing(6)
+                .foregroundColor(.black)
+                .padding(.horizontal, 32)
+
+            resultCard(result)
+                .padding(.horizontal, horizontalInset)
+                .padding(.top, 32)
+
+            Text(AppStrings.Onboarding.Result.footnote)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(Color(.systemGray))
+                .lineSpacing(5)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, horizontalInset)
+                .padding(.top, 18)
         }
     }
 
@@ -100,7 +108,7 @@ struct OnboardingResultView: View {
                     .foregroundColor(Color(.systemGray))
 
                 FlowLayout(spacing: 8) {
-                    ForEach(result.recommendationDirection.preferredFamilies, id: \.self) { family in
+                    ForEach(displayFamilies(for: result), id: \.self) { family in
                         RecommendedFamilyChip(title: family)
                     }
                 }
@@ -141,7 +149,19 @@ struct OnboardingResultView: View {
     }
 
     private func resultAccentGradient(result: TasteAnalysisResult) -> LinearGradient {
-        let families = result.recommendationDirection.preferredFamilies
+        if let palette = FragranceProfileText.profileColorPalette(forTitle: result.displayTitle) {
+            return LinearGradient(
+                colors: [
+                    Color(hex: palette.accentHex).opacity(0.55),
+                    Color(hex: palette.primaryHex).opacity(0.42),
+                    Color(hex: palette.baseHex).opacity(0.9)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        }
+
+        let families = displayFamilies(for: result)
         let first = families.first.map { Color(uiColor: ScentFamilyColor.color(for: $0)) } ?? Color.sniffBeige
         let second = families.dropFirst().first.map { Color(uiColor: ScentFamilyColor.color(for: $0)) } ?? Color.white
 
@@ -154,6 +174,11 @@ struct OnboardingResultView: View {
             startPoint: .top,
             endPoint: .bottom
         )
+    }
+
+    private func displayFamilies(for result: TasteAnalysisResult) -> [String] {
+        FragranceProfileText.profileFamilies(forTitle: result.displayTitle)
+            ?? result.recommendationDirection.preferredFamilies
     }
 }
 

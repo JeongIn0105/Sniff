@@ -55,12 +55,7 @@ enum SearchFilterEngine {
 
         if !filter.seasons.isEmpty {
             result = result.filter { perfume in
-                guard let seasons = perfume.season else { return false }
-                let perfumeSeasonTokens = Set(
-                    seasons.flatMap { seasonValue in
-                        normalizedSeasonTokens(for: seasonValue)
-                    }
-                )
+                let perfumeSeasonTokens = seasonTokens(for: perfume)
 
                 return filter.seasons.contains { season in
                     let targetTokens = Set(normalizedSeasonTokens(for: season))
@@ -102,13 +97,100 @@ enum SearchFilterEngine {
     }
 
     nonisolated private static func normalizeString(_ value: String) -> String {
-        value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        value
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "en_US_POSIX"))
+            .lowercased()
     }
 
     nonisolated private static func normalizedSeasonTokens(for season: Season) -> [String] {
         let display = normalizeString(season.displayName)
         let fragella = season.fragellaValue.map(normalizeString)
         return [display, fragella].compactMap { $0 }
+    }
+
+    nonisolated private static func seasonTokens(for perfume: Perfume) -> Set<String> {
+        let explicitSeasons = (perfume.season ?? []) + perfume.seasonRanking.map(\.name)
+        var tokens = Set(
+            explicitSeasons.flatMap { seasonValue in
+                normalizedSeasonTokens(for: seasonValue)
+            }
+        )
+
+        if tokens.isEmpty {
+            tokens.formUnion(inferredSeasonTokens(for: perfume))
+        }
+
+        return tokens
+    }
+
+    nonisolated private static func inferredSeasonTokens(for perfume: Perfume) -> Set<String> {
+        let text = seasonInferenceText(for: perfume)
+        guard !text.isEmpty else { return [] }
+
+        var tokens = Set<String>()
+
+        if containsAny(
+            text,
+            [
+                "green", "fresh", "floral", "soft floral", "white floral", "rose",
+                "violet", "iris", "powdery", "aromatic", "herbal", "lavender"
+            ]
+        ) {
+            tokens.formUnion(normalizedSeasonTokens(for: .spring))
+        }
+
+        if containsAny(
+            text,
+            [
+                "citrus", "aquatic", "water", "marine", "ozonic", "tropical",
+                "coconut", "fruity", "fresh spicy", "sea", "salt", "bergamot",
+                "lemon", "orange", "grapefruit"
+            ]
+        ) {
+            tokens.formUnion(normalizedSeasonTokens(for: .summer))
+        }
+
+        if containsAny(
+            text,
+            [
+                "woody", "wood", "woods", "patchouli", "moss", "earthy", "tobacco",
+                "leather", "coffee", "cacao", "warm spicy", "spicy", "cinnamon",
+                "nutmeg", "cedar", "sandalwood", "vetiver"
+            ]
+        ) {
+            tokens.formUnion(normalizedSeasonTokens(for: .fall))
+        }
+
+        if containsAny(
+            text,
+            [
+                "amber", "vanilla", "sweet", "balsamic", "resinous", "oud",
+                "smoky", "incense", "animalic", "honey", "caramel", "tonka",
+                "gourmand", "chocolate", "cocoa", "musk"
+            ]
+        ) {
+            tokens.formUnion(normalizedSeasonTokens(for: .winter))
+        }
+
+        return tokens
+    }
+
+    nonisolated private static func seasonInferenceText(for perfume: Perfume) -> String {
+        let values = perfume.rawMainAccords
+            + perfume.mainAccords
+            + Array(perfume.mainAccordStrengths.keys)
+            + (perfume.topNotes ?? [])
+            + (perfume.middleNotes ?? [])
+            + (perfume.baseNotes ?? [])
+            + (perfume.generalNotes ?? [])
+            + (perfume.situation ?? [])
+
+        return values.map(normalizeString).joined(separator: " ")
+    }
+
+    nonisolated private static func containsAny(_ text: String, _ keywords: [String]) -> Bool {
+        keywords.contains { text.contains(normalizeString($0)) }
     }
 
     nonisolated private static func normalizedSeasonTokens(for rawValue: String) -> [String] {
@@ -118,18 +200,22 @@ enum SearchFilterEngine {
         let fall = normalizeString(Season.fall.displayName)
         let winter = normalizeString(Season.winter.displayName)
 
-        switch normalized {
-        case let value where value == spring || value == "spring":
-            return [spring, "spring"]
-        case let value where value == summer || value == "summer":
-            return [summer, "summer"]
-        case let value where value == fall || value == "fall" || value == "autumn":
-            return [fall, "fall", "autumn"]
-        case let value where value == winter || value == "winter":
-            return [winter, "winter"]
-        default:
-            return [normalized]
+        var tokens = Set([normalized])
+
+        if normalized.contains(spring) || normalized.contains("spring") {
+            tokens.formUnion([spring, "spring"])
         }
+        if normalized.contains(summer) || normalized.contains("summer") {
+            tokens.formUnion([summer, "summer"])
+        }
+        if normalized.contains(fall) || normalized.contains("fall") || normalized.contains("autumn") {
+            tokens.formUnion([fall, "fall", "autumn"])
+        }
+        if normalized.contains(winter) || normalized.contains("winter") {
+            tokens.formUnion([winter, "winter"])
+        }
+
+        return Array(tokens)
     }
 
     nonisolated private static func normalizedSortKey(_ value: String) -> String {
