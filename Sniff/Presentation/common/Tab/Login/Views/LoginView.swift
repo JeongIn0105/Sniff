@@ -37,16 +37,19 @@ struct LoginView: View {
 
                     Spacer()
 
+                    googleLoginButton {
+                        guard let window = keyWindow else { return }
+                        viewModel.signInWithGoogle(presentingWindow: window)
+                    }
+                    .disabled(viewModel.isLoading)
+                    .padding(.horizontal, 24)
+
+                    Spacer()
+                        .frame(height: 12)
+
                     loginButton(
                         action: {
-                            let scenes = UIApplication.shared.connectedScenes
-                                .compactMap { $0 as? UIWindowScene }
-                            guard let window = scenes
-                                .flatMap(\.windows)
-                                .first(where: \.isKeyWindow)
-                                ?? scenes.flatMap(\.windows).first
-                            else { return }
-
+                            guard let window = keyWindow else { return }
                             viewModel.signInWithApple(presentationAnchor: window)
                         },
                         label: AppStrings.AppShell.Login.appleButton
@@ -71,6 +74,39 @@ struct LoginView: View {
         )
     }
     // MARK: - 공용 로그인 버튼 빌더
+
+    private var keyWindow: UIWindow? {
+        let scenes = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+        return scenes
+            .flatMap(\.windows)
+            .first(where: \.isKeyWindow)
+            ?? scenes.flatMap(\.windows).first
+    }
+
+    @ViewBuilder
+    private func googleLoginButton(action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Image("google_logo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 20, height: 20)
+
+                Text(AppStrings.AppShell.Login.googleButton)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.black)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 57)
+            .background(Color.white)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(Color(hex: "#E5E5E5"), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+    }
 
     @ViewBuilder
     private func loginButton(

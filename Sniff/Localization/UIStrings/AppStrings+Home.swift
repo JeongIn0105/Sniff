@@ -22,7 +22,7 @@ extension AppStrings {
         static let emptyRecommend = "취향 분석을 완료하면\n맞춤 향수를 추천해드려요"
         static let fallbackAccords = "• Floral  • Musk"
         static let emptySummary = "취향에 맞는 향수를 골라봤어요"
-        static let pendingTitle = "오늘의 향"
+        static let pendingTitle = "취향 프로필"
 
         static func familySummary(_ familyText: String) -> String {
             "\(familyText) 계열을 중심으로 추천을 이어가고 있어요"

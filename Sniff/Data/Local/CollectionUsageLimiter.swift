@@ -26,7 +26,7 @@ final class CollectionUsageLimiter {
     static let shared = CollectionUsageLimiter()
 
     private enum Limit {
-        static let monthlyCollectionChanges = 5
+        static let monthlyCollectionChanges = 10
         static let dailyLikes = 10
         static let totalLikes = 100
     }

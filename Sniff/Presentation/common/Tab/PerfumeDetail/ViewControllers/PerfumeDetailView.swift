@@ -35,6 +35,9 @@ final class PerfumeDetailViewController: UIViewController {
     private var hasTastingRecord = false
     private weak var presentedTastingFormController: UIViewController?
     private weak var toastView: UIView?
+    private weak var controlledTabBar: UITabBar?
+    private var bottomBarCenterYConstraint: Constraint?
+    private weak var bottomBarHostView: UIView?
 
     private let addCollectionRelay = PublishRelay<Void>()
     private let addTastingRecordRelay = PublishRelay<Void>()
@@ -52,6 +55,10 @@ final class PerfumeDetailViewController: UIViewController {
 
     required init?(coder: NSCoder) { fatalError() }
 
+    deinit {
+        restoreControlledTabBar()
+    }
+
     private let scrollView = UIScrollView().then {
         $0.showsVerticalScrollIndicator = false
         $0.alwaysBounceVertical = true
@@ -66,7 +73,10 @@ final class PerfumeDetailViewController: UIViewController {
     private let accordsSectionView = SectionContainerView(title: AppStrings.UIKitScreens.PerfumeDetail.accords)
     private let notesSectionView = SectionContainerView(title: AppStrings.UIKitScreens.PerfumeDetail.notes)
     private let seasonSectionView = SectionContainerView(title: AppStrings.UIKitScreens.PerfumeDetail.season)
-    private let bottomBarView = UIView()
+    private let bottomBarView = UIView().then {
+        $0.backgroundColor = .clear
+        $0.isOpaque = false
+    }
 
     private let backButton = UIButton(type: .system).then {
         $0.setImage(UIImage(systemName: "arrow.left"), for: .normal)
@@ -138,25 +148,63 @@ final class PerfumeDetailViewController: UIViewController {
         bind()
     }
 
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        guard navigationController?.topViewController === self || navigationController == nil else { return }
+        attachBottomBarToTabBarHostIfNeeded()
+        updateBottomBarPosition()
+    }
+
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         navigationController?.setNavigationBarHidden(true, animated: animated)
-        tabBarController?.tabBar.isHidden = true
+        setTabBarHidden(true, animated: false)
+        attachBottomBarToTabBarHostIfNeeded()
         loadLikedPerfumes()
         refreshTastingRecordState()
     }
 
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        guard isLeavingDetailFlow else {
+            bottomBarView.removeFromSuperview()
+            bottomBarHostView = nil
+            setTabBarHidden(false, animated: false)
+            return
+        }
+
+        if let transitionCoordinator {
+            transitionCoordinator.animate(alongsideTransition: nil) { context in
+                if context.isCancelled {
+                    self.setTabBarHidden(true, animated: false)
+                    self.attachBottomBarToTabBarHostIfNeeded()
+                    self.updateBottomBarPosition()
+                } else {
+                    self.bottomBarView.removeFromSuperview()
+                    self.bottomBarHostView = nil
+                    self.setTabBarHidden(false, animated: false)
+                }
+            }
+        } else {
+            bottomBarView.removeFromSuperview()
+            bottomBarHostView = nil
+            setTabBarHidden(false, animated: false)
+        }
+    }
+
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
-        if isMovingFromParent || isBeingDismissed || navigationController?.isBeingDismissed == true {
-            tabBarController?.tabBar.isHidden = false
-        }
+        guard view.window == nil, !isStillInNavigationStack else { return }
+        bottomBarView.removeFromSuperview()
+        bottomBarHostView = nil
+        setTabBarHidden(false, animated: false)
     }
 
     private func setupUI() {
         view.backgroundColor = Palette.background
 
-        [topBarView, scrollView, bottomBarView, loadingIndicator].forEach { view.addSubview($0) }
+        [topBarView, scrollView, loadingIndicator].forEach { view.addSubview($0) }
+        view.bringSubviewToFront(topBarView)
         scrollView.addSubview(contentView)
 
         [
@@ -189,12 +237,7 @@ final class PerfumeDetailViewController: UIViewController {
         scrollView.snp.makeConstraints {
             $0.top.equalTo(topBarView.snp.bottom)
             $0.leading.trailing.equalToSuperview()
-            $0.bottom.equalTo(bottomBarView.snp.top)
-        }
-
-        bottomBarView.snp.makeConstraints {
-            $0.leading.trailing.bottom.equalToSuperview()
-            $0.height.equalTo(104)
+            $0.bottom.equalToSuperview()
         }
 
         contentView.snp.makeConstraints {
@@ -274,16 +317,12 @@ final class PerfumeDetailViewController: UIViewController {
         seasonSectionView.snp.makeConstraints {
             $0.top.equalTo(usageSectionView.snp.bottom)
             $0.leading.trailing.equalToSuperview()
-            $0.bottom.equalToSuperview().offset(-24)
+            $0.bottom.equalToSuperview().offset(-40)
         }
-
-        bottomBarView.backgroundColor = Palette.background
-        bottomBarView.layer.borderWidth = 0
-        bottomBarView.layer.borderColor = Palette.border.cgColor
 
         addCollectionButton.snp.makeConstraints {
             $0.leading.equalToSuperview().offset(20)
-            $0.bottom.equalTo(view.safeAreaLayoutGuide).offset(-10)
+            $0.top.bottom.equalToSuperview().inset(5)
             $0.height.equalTo(48)
         }
 
@@ -437,12 +476,86 @@ final class PerfumeDetailViewController: UIViewController {
         scrollView.isHidden = isLoading
     }
 
+    private func attachBottomBarToTabBarHostIfNeeded() {
+        guard let hostView = tabBarController?.view ?? navigationController?.view ?? view else { return }
+        guard bottomBarHostView !== hostView else {
+            hostView.bringSubviewToFront(bottomBarView)
+            return
+        }
+
+        bottomBarView.removeFromSuperview()
+        hostView.addSubview(bottomBarView)
+        hostView.bringSubviewToFront(bottomBarView)
+        bottomBarHostView = hostView
+
+        bottomBarView.snp.remakeConstraints {
+            $0.leading.trailing.equalToSuperview()
+            bottomBarCenterYConstraint = $0.centerY.equalToSuperview().constraint
+            $0.height.equalTo(58)
+        }
+    }
+
+    private func updateBottomBarPosition() {
+        guard let hostView = bottomBarHostView ?? bottomBarView.superview else { return }
+
+        if let tabBar = tabBarController?.tabBar ?? controlledTabBar,
+           let tabBarSuperview = tabBar.superview {
+            let tabBarFrame = hostView.convert(tabBar.frame, from: tabBarSuperview)
+            bottomBarCenterYConstraint?.update(offset: tabBarFrame.midY - hostView.bounds.midY)
+            return
+        }
+
+        let fallbackMidY = hostView.bounds.height - hostView.safeAreaInsets.bottom - 24
+        bottomBarCenterYConstraint?.update(offset: fallbackMidY - hostView.bounds.midY)
+    }
+
     @objc private func backTapped() {
         navigationController?.popViewController(animated: true)
     }
 
     @objc private func likeButtonTapped() {
         toggleLike()
+    }
+
+    private func setTabBarHidden(_ hidden: Bool, animated: Bool) {
+        guard let tabBar = tabBarController?.tabBar ?? controlledTabBar else { return }
+        controlledTabBar = tabBar
+        let targetAlpha: CGFloat = hidden ? 0 : 1
+        guard tabBar.isHidden != hidden || tabBar.alpha != targetAlpha else { return }
+
+        tabBar.layer.removeAllAnimations()
+        let changes = {
+            tabBar.alpha = targetAlpha
+        }
+
+        if animated {
+            if !hidden {
+                tabBar.isHidden = false
+            }
+            UIView.animate(withDuration: 0.2, animations: changes) { _ in
+                tabBar.isHidden = hidden
+            }
+        } else {
+            if !hidden {
+                tabBar.isHidden = false
+            }
+            changes()
+            tabBar.isHidden = hidden
+        }
+    }
+
+    private var isLeavingDetailFlow: Bool {
+        isMovingFromParent || isBeingDismissed || navigationController?.isBeingDismissed == true
+    }
+
+    private var isStillInNavigationStack: Bool {
+        navigationController?.viewControllers.contains(self) == true
+    }
+
+    private func restoreControlledTabBar() {
+        guard let controlledTabBar else { return }
+        controlledTabBar.alpha = 1
+        controlledTabBar.isHidden = false
     }
 
     private func navigateToTastingRecord(perfume: Perfume) {
@@ -471,6 +584,10 @@ final class PerfumeDetailViewController: UIViewController {
         )
         let tastingView = TastingNoteSceneFactory.makeListView(perfumeScope: scope)
         let hostingController = UIHostingController(rootView: tastingView)
+        hostingController.hidesBottomBarWhenPushed = false
+        bottomBarView.removeFromSuperview()
+        bottomBarHostView = nil
+        setTabBarHidden(false, animated: false)
         navigationController?.pushViewController(hostingController, animated: true)
     }
 
@@ -505,7 +622,7 @@ final class PerfumeDetailViewController: UIViewController {
 
         container.snp.makeConstraints {
             $0.leading.trailing.equalToSuperview().inset(24)
-            $0.bottom.equalTo(bottomBarView.snp.top).offset(-12)
+            $0.bottom.equalTo(addCollectionButton.snp.top).offset(-12)
         }
 
         container.alpha = 0
@@ -601,7 +718,6 @@ final class PerfumeDetailViewController: UIViewController {
                 .subscribe(onCompleted: { [weak self] in
                     self?.likeButton.isEnabled = true
                     self?.notifyCollectionChanged()
-                    self?.navigateToMyPage()
                 }, onError: { [weak self] error in
                     self?.likeButton.isEnabled = true
                     self?.updateLikeState(for: collectionID, isLiked: wasLiked)
@@ -718,10 +834,7 @@ final class PerfumeDetailViewController: UIViewController {
     }
 
     private func navigateToMyPage() {
-        tabBarController?.tabBar.isHidden = false
-        NotificationCenter.default.post(
-            name: .mainTabSelectionRequested,
-            object: MainTabSelection.my.rawValue
-        )
+        setTabBarHidden(false, animated: false)
+        MainTabRouter.shared.select(.my)
     }
 }

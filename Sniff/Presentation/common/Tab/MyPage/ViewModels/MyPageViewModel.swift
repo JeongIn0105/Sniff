@@ -674,15 +674,15 @@ extension MyPageViewModel {
         vm.profileInfo = ProfileInfo(nickname: "강지수", email: "asdgh1423@gmail.com")
         vm.tasteProfileItem = HomeViewModel.HomeProfileItem(
             profile: UserTasteProfile(
-                tasteTitle: "깨끗하고 자연스러운 취향",
+                tasteTitle: "맑고 세련된 취향",
                 analysisSummary: "시트러스나 워터리 계열처럼 가볍고 산뜻한 향으로 부담 없이 시작해보시는 걸 추천해요.",
                 preferredImpressions: ["깨끗한", "자연스러운"],
-                preferredFamilies: ["Citrus", "Water"],
+                preferredFamilies: ["Water", "Aromatic"],
                 dislikedFamilies: [],
                 intensityLevel: "light",
-                safeStartingPoint: "Citrus",
-                familyScores: ["Citrus": 0.6, "Water": 0.4],
-                scentVector: ["Citrus": 0.6, "Water": 0.4],
+                safeStartingPoint: "Water",
+                familyScores: ["Water": 0.6, "Aromatic": 0.4],
+                scentVector: ["Water": 0.6, "Aromatic": 0.4],
                 stage: .onboardingCollection
             ),
             collectionCount: 3,

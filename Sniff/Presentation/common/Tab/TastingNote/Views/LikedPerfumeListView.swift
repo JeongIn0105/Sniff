@@ -122,10 +122,7 @@ struct LikedPerfumeListView: View {
 
     private func perfumeNavigationRow(_ perfume: LikedPerfumeListViewModel.PerfumeRowItem) -> some View {
         HStack(alignment: .center, spacing: 12) {
-            NavigationLink {
-                PerfumeDetailContainerView(perfume: perfume.sourcePerfume)
-                    .toolbar(.hidden, for: .navigationBar)
-            } label: {
+            PerfumeDetailPushLink(perfume: perfume.sourcePerfume) {
                 perfumeRowContent(perfume)
             }
             .buttonStyle(.plain)

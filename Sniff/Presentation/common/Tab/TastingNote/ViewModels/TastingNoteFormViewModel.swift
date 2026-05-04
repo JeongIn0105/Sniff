@@ -45,13 +45,47 @@ final class TastingNoteFormViewModel: ObservableObject {
     var navigationTitle: String { isEditMode ? AppStrings.TastingNoteUI.List.edit : AppStrings.TastingNoteUI.List.add }
 
     var canSave: Bool {
-        !perfumeName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        !brandName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        !selectedMoodTags.isEmpty
+        isPerfumeNameValid &&
+        isBrandNameValid &&
+        isRatingValid &&
+        isMoodTagsValid &&
+        isMemoValid
+    }
+
+    var saveRequirementMessage: String? {
+        if !isPerfumeNameValid || !isBrandNameValid {
+            return "향수 명과 브랜드를 입력해주세요"
+        }
+        if !isRatingValid {
+            return "향 선호도 점수를 선택해주세요"
+        }
+        if !isMoodTagsValid {
+            return "분위기&이미지를 1개 이상 선택해주세요"
+        }
+        if !isMemoValid {
+            return "시향 메모를 10자 이상 입력해주세요"
+        }
+        return nil
     }
 
     var memoCount: Int { memo.count }
     var maxMemoCount: Int { Self.maxMemoCount }
+
+    var isPerfumeNameValid: Bool {
+        !perfumeName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var isBrandNameValid: Bool {
+        !brandName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var isRatingValid: Bool {
+        (1...5).contains(rating)
+    }
+
+    var isMoodTagsValid: Bool {
+        !selectedMoodTags.isEmpty
+    }
 
     var isMemoValid: Bool {
         let trimmedMemo = memo.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -170,7 +204,10 @@ final class TastingNoteFormViewModel: ObservableObject {
 
     func save() async {
         guard !isSaving else { return }
-        guard canSave else { return }
+        guard canSave else {
+            errorMessage = saveRequirementMessage
+            return
+        }
         isSaving = true
         errorMessage = nil
 

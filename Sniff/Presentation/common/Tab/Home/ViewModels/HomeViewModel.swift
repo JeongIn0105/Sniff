@@ -20,6 +20,7 @@ final class HomeViewModel {
 
     struct Input {
         let viewDidLoad: Observable<Void>
+        let refresh: Observable<Void>
         let perfumeRegisterTap: Observable<Void>
         let tastingNoteTap: Observable<Void>
         let reportTap: Observable<Void>
@@ -76,10 +77,15 @@ final class HomeViewModel {
             }
             .asDriver(onErrorJustReturn: [])
 
-        let sourceData = input.viewDidLoad
-            .flatMapLatest { [weak self] _ -> Observable<HomeFeedData?> in
+        let feedRefreshTrigger = Observable.merge(
+            input.viewDidLoad.map { false },
+            input.refresh.map { true }
+        )
+
+        let sourceData = feedRefreshTrigger
+            .flatMapLatest { [weak self] forceReload -> Observable<HomeFeedData?> in
                 guard let self else { return .just(nil) }
-                return self.fetchHomeFeedIfNeeded()
+                return self.fetchHomeFeedIfNeeded(forceReload: forceReload)
                     .map(Optional.some)
                     .catchAndReturn(nil)
                     .asObservable()
@@ -182,9 +188,9 @@ final class HomeViewModel {
 
 private extension HomeViewModel {
 
-    func fetchHomeFeedIfNeeded() -> Single<HomeFeedData> {
+    func fetchHomeFeedIfNeeded(forceReload: Bool) -> Single<HomeFeedData> {
         // 당일 한도(2회) 소진 + 캐시 있음 → Firestore 재조회 없이 캐시 반환
-        if updateTracker.todayUpdateCount >= 2, let cached = cachedFeedData {
+        if !forceReload, updateTracker.todayUpdateCount >= 2, let cached = cachedFeedData {
             return .just(cached)
         }
 
@@ -310,7 +316,7 @@ private func prioritizedHomeAccords(_ perfume: Perfume, profile: UserTasteProfil
 private func makeHomeBanner(from profile: UserTasteProfile) -> HomeTasteBannerItem {
     let familyText = profile.displayFamilySummary
     return HomeTasteBannerItem(
-        title: "오늘의 향",
+        title: profile.displayTitle,
         summary: "취향에 맞는 향수를 골라봤어요",
         familyText: familyText
     )

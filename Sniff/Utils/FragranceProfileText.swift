@@ -79,13 +79,23 @@ enum FragranceProfileText {
         scentVector: [String: Double],
         stage: RecommendationStage
     ) -> String {
+        let validatedOriginalTitle = validatedTasteTitle(originalTitle)
+        switch stage {
+        case .onboardingOnly, .onboardingCollection:
+            if let validatedOriginalTitle {
+                return validatedOriginalTitle
+            }
+        case .earlyTasting, .heavyTasting:
+            break
+        }
+
         let dominantVector = dominantDisplayVector(from: scentVector)
         let fullVector = normalizedVector(from: scentVector)
         let rankedFamilies = rankedFamilies(from: scentVector)
 
         return inferredTasteTitle(from: dominantVector)
             ?? inferredTasteTitle(from: fullVector)
-            ?? validatedTasteTitle(originalTitle)
+            ?? validatedOriginalTitle
             ?? inferredTasteTitle(from: rankedFamilies)
             ?? displayTitle(for: rankedFamilies)
     }
@@ -247,20 +257,20 @@ enum FragranceProfileText {
         "상큼하고 활기찬 취향": [
             "Citrus": 1.0,
             "Fruity": 0.9,
-            "Green": 0.6,
-            "Aromatic": 0.5
+            "Green": 0.45,
+            "Aromatic": 0.35
         ],
         "맑고 세련된 취향": [
             "Water": 1.0,
-            "Citrus": 0.8,
-            "Soft Floral": 0.6,
-            "Floral": 0.5
+            "Aromatic": 0.90,
+            "Citrus": 0.70,
+            "Soft Floral": 0.35
         ],
         "시원하고 신비로운 취향": [
-            "Water": 1.0,
-            "Aromatic": 0.9,
-            "Green": 0.6,
-            "Woody Amber": 0.5
+            "Aromatic": 0.95,
+            "Water": 0.75,
+            "Woods": 0.45,
+            "Woody Amber": 0.45
         ],
         "부드럽고 청순한 취향": [
             "Soft Floral": 1.0,
@@ -282,27 +292,27 @@ enum FragranceProfileText {
         ],
         "싱그럽고 자연스러운 취향": [
             "Green": 1.0,
-            "Water": 0.9,
-            "Citrus": 0.6,
-            "Aromatic": 0.5
+            "Mossy Woods": 0.85,
+            "Water": 0.55,
+            "Aromatic": 0.40
         ],
         "짙고 시크한 취향": [
             "Woods": 1.0,
-            "Dry Woods": 0.9,
-            "Amber": 0.6,
-            "Woody Amber": 0.5
+            "Dry Woods": 1.0,
+            "Woody Amber": 0.75,
+            "Aromatic": 0.30
         ],
         "짙고 강렬한 취향": [
             "Amber": 1.0,
             "Woody Amber": 0.9,
-            "Dry Woods": 0.7,
-            "Mossy Woods": 0.5
+            "Dry Woods": 0.45,
+            "Mossy Woods": 0.35
         ]
     ]
 
     nonisolated private static let tasteTitleDisplayFamilies: [String: [String]] = [
         "상큼하고 활기찬 취향": ["Citrus", "Fruity"],
-        "맑고 세련된 취향": ["Water", "Citrus"],
+        "맑고 세련된 취향": ["Water", "Aromatic"],
         "시원하고 신비로운 취향": ["Water", "Aromatic"],
         "부드럽고 청순한 취향": ["Soft Floral", "Floral"],
         "포근하고 여유로운 취향": ["Soft Amber", "Soft Floral"],
@@ -319,10 +329,10 @@ enum FragranceProfileText {
             baseHex: "#F2E8DE"
         ),
         "맑고 세련된 취향": FragranceProfileColorPalette(
-            accentHex: "#F2E6AD",
-            primaryHex: "#99CFE3",
+            accentHex: "#F7EFCB",
+            primaryHex: "#B9DDEA",
             baseHex: "#F2E8DE",
-            primaryLocation: 0.47
+            primaryLocation: 0.52
         ),
         "시원하고 신비로운 취향": FragranceProfileColorPalette(
             accentHex: "#CDBED4",

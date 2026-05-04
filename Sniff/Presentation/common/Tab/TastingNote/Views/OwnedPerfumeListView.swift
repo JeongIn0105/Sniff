@@ -10,7 +10,6 @@ struct OwnedPerfumeListView: View {
 
     @StateObject private var viewModel: OwnedPerfumeListViewModel
     @Environment(\.dismiss) private var dismiss
-    @State private var showsRegisterSearch = false
     private enum Layout {
         static let horizontalPadding: CGFloat = 16
         static let columnSpacing: CGFloat = 14
@@ -65,10 +64,6 @@ struct OwnedPerfumeListView: View {
             Text(viewModel.errorMessage ?? "")
         }
         .animation(.easeInOut(duration: 0.2), value: viewModel.toastMessage)
-        .sheet(isPresented: $showsRegisterSearch) {
-            SearchRegisterContainerView()
-                .ignoresSafeArea()
-        }
     }
 
     // MARK: - 헤더
@@ -109,17 +104,6 @@ struct OwnedPerfumeListView: View {
 
             Spacer()
 
-            if !viewModel.isEditMode {
-                Button {
-                    showsRegisterSearch = true
-                } label: {
-                    Text("+ 향수 등록하기")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.primary)
-                }
-                .padding(.trailing, 14)
-            }
-
             // 편집 / 삭제 버튼
             Button(viewModel.isEditMode ? AppStrings.TastingNoteUI.OwnedList.delete : AppStrings.TastingNoteUI.OwnedList.edit) {
                 if viewModel.isEditMode {
@@ -149,18 +133,6 @@ struct OwnedPerfumeListView: View {
             Text(AppStrings.TastingNoteUI.OwnedList.emptyMessage)
                 .font(.system(size: 16))
                 .foregroundColor(Color(.systemGray2))
-            Button {
-                showsRegisterSearch = true
-            } label: {
-                Text("+ 향수 등록하기")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 18)
-                    .frame(height: 44)
-                    .background(Color.black)
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-            }
-            .padding(.top, 12)
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -227,10 +199,7 @@ struct OwnedPerfumeListView: View {
         cardWidth: CGFloat
     ) -> some View {
         ZStack(alignment: .bottomTrailing) {
-            NavigationLink {
-                PerfumeDetailContainerView(perfume: perfume.sourcePerfume)
-                    .toolbar(.hidden, for: .navigationBar)
-            } label: {
+            PerfumeDetailPushLink(perfume: perfume.sourcePerfume) {
                 PerfumeGridCardView(
                     imageURL: perfume.imageURL,
                     brand: perfume.brand,
@@ -290,20 +259,6 @@ struct OwnedPerfumeListView: View {
         }
         .frame(width: 24, height: 24)
     }
-}
-
-private struct SearchRegisterContainerView: UIViewControllerRepresentable {
-    func makeUIViewController(context: Context) -> UINavigationController {
-        let searchViewController = SearchSceneFactory.makeSearchViewController(
-            showsRecentOnAppear: true,
-            mode: .register
-        )
-        let navigationController = UINavigationController(rootViewController: searchViewController)
-        navigationController.navigationBar.isHidden = true
-        return navigationController
-    }
-
-    func updateUIViewController(_ uiViewController: UINavigationController, context: Context) {}
 }
 
 // MARK: - Preview

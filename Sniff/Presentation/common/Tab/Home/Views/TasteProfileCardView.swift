@@ -353,7 +353,7 @@ final class TasteProfileGradientIconView: UIView {
     }
 
     func configure(title: String, fallbackFamilies: [String]) {
-        if let exactPreset = exactProfilePreset(forTitle: title) {
+        if let exactPreset = Self.profilePreset(forTitle: title) {
             configure(exactColors: exactPreset.colors, locations: exactPreset.locations)
             return
         }
@@ -373,7 +373,7 @@ final class TasteProfileGradientIconView: UIView {
         )
     }
 
-    private func exactProfilePreset(forTitle title: String) -> (colors: [UIColor], locations: [NSNumber])? {
+    static func profilePreset(forTitle title: String) -> (colors: [UIColor], locations: [NSNumber])? {
         switch title {
         case "상큼하고 활기찬 취향":
             return (
@@ -387,11 +387,11 @@ final class TasteProfileGradientIconView: UIView {
         case "맑고 세련된 취향":
             return (
                 colors: [
-                    UIColor(red: 0.95, green: 0.90, blue: 0.68, alpha: 1),
-                    UIColor(red: 0.60, green: 0.81, blue: 0.89, alpha: 1),
+                    UIColor(red: 0.97, green: 0.94, blue: 0.80, alpha: 1),
+                    UIColor(red: 0.73, green: 0.87, blue: 0.92, alpha: 1),
                     UIColor(red: 0.95, green: 0.91, blue: 0.87, alpha: 1)
                 ],
-                locations: [0.20, 0.47, 1.00]
+                locations: [0.20, 0.52, 1.00]
             )
         case "시원하고 신비로운 취향":
             return (

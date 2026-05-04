@@ -316,35 +316,44 @@ struct TastingNoteFormView: View {
     // MARK: - 하단 버튼 바
 
     private var bottomBar: some View {
-        HStack(spacing: 12) {
-            // 초기화 버튼
-            Button { vm.reset() } label: {
-                Text(AppStrings.TastingNoteFormUI.reset)
-                    .font(.custom("Pretendard", size: 16).weight(.semibold))
-                    .foregroundColor(.primary)
-                    .frame(width: 108)
-                    .frame(height: 52)
-                    .background(Color(.systemGray6))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+        VStack(alignment: .leading, spacing: 8) {
+            if let message = vm.saveRequirementMessage {
+                Text(message)
+                    .font(.custom("Pretendard", size: 13).weight(.medium))
+                    .foregroundColor(Color(.systemGray2))
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            // 작성 완료 버튼 (canSave 시 검정, 아니면 회색)
-            Button { Task { await vm.save() } } label: {
-                ZStack {
-                    if vm.isSaving {
-                        ProgressView().tint(.white)
-                    } else {
-                        Text(AppStrings.TastingNoteFormUI.save)
-                            .font(.custom("Pretendard", size: 16).weight(.semibold))
-                            .foregroundColor(.white)
-                    }
+            HStack(spacing: 12) {
+                // 초기화 버튼
+                Button { vm.reset() } label: {
+                    Text(AppStrings.TastingNoteFormUI.reset)
+                        .font(.custom("Pretendard", size: 16).weight(.semibold))
+                        .foregroundColor(.primary)
+                        .frame(width: 108)
+                        .frame(height: 52)
+                        .background(Color(.systemGray6))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
-                .frame(maxWidth: .infinity)
-                .frame(height: 52)
-                .background(vm.canSave ? Color.black : Color(.systemGray4))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                // 작성 완료 버튼 (canSave 시 검정, 아니면 회색)
+                Button { Task { await vm.save() } } label: {
+                    ZStack {
+                        if vm.isSaving {
+                            ProgressView().tint(.white)
+                        } else {
+                            Text(AppStrings.TastingNoteFormUI.save)
+                                .font(.custom("Pretendard", size: 16).weight(.semibold))
+                                .foregroundColor(.white)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 52)
+                    .background(vm.canSave ? Color.black : Color(.systemGray4))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .disabled(!vm.canSave || vm.isSaving)
             }
-            .disabled(!vm.canSave || vm.isSaving)
         }
         .padding(.horizontal, 20)
         .padding(.top, 10)

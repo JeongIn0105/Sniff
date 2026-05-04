@@ -40,6 +40,7 @@ extension AppStrings {
             static let registerAction = "등록하기"
             static let registerSuccess = "내 향수에 등록했어요"
             static let registerDuplicate = "이미 등록된 향수예요"
+            static let registerFailed = "보유 향수 등록에 실패했어요."
             static let sortRecommended = "추천순 ▾"
             static let recentTitle = "최근 검색어"
             static let clearAll = "모두 지우기"

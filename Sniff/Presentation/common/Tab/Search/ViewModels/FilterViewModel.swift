@@ -92,7 +92,7 @@ final class FilterViewModel {
                 if filter.seasons.contains(season) {
                     filter.seasons.remove(season)
                 } else {
-                    filter.seasons.insert(season)
+                    filter.seasons = [season]
                 }
                 self.filterRelay.accept(filter)
                 self.updateResultCount(filter: filter)
