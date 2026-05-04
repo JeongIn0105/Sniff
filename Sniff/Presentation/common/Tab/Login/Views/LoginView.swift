@@ -114,9 +114,17 @@ struct LoginView: View {
         label: String
     ) -> some View {
         Button(action: action) {
-            Text(label)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(.white)
+            HStack(spacing: 10) {
+                Image(systemName: "apple.logo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 20, height: 20)
+                    .foregroundStyle(.white)
+
+                Text(label)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
             .frame(maxWidth: .infinity)
             .frame(height: 57)
             .background(Color(hex: "#242424"))

@@ -177,14 +177,15 @@ enum SearchFilterEngine {
     }
 
     nonisolated private static func seasonInferenceText(for perfume: Perfume) -> String {
-        let values = perfume.rawMainAccords
-            + perfume.mainAccords
-            + Array(perfume.mainAccordStrengths.keys)
-            + (perfume.topNotes ?? [])
-            + (perfume.middleNotes ?? [])
-            + (perfume.baseNotes ?? [])
-            + (perfume.generalNotes ?? [])
-            + (perfume.situation ?? [])
+        // 타입 체커 시간 초과 방지를 위해 표현식을 단계적으로 분리
+        var values: [String] = perfume.rawMainAccords
+        values += perfume.mainAccords
+        values += Array(perfume.mainAccordStrengths.keys)
+        values += perfume.topNotes ?? []
+        values += perfume.middleNotes ?? []
+        values += perfume.baseNotes ?? []
+        values += perfume.generalNotes ?? []
+        values += perfume.situation ?? []
 
         return values.map(normalizeString).joined(separator: " ")
     }
