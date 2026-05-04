@@ -369,7 +369,18 @@ final class CollectedPerfumeRegistrationViewController: UIViewController {
         label.font = .systemFont(ofSize: 18, weight: .bold)
         label.textColor = .label
 
-        let stack = UIStackView(arrangedSubviews: [label, memoTextView])
+        let optionalLabel = UILabel()
+        optionalLabel.text = "(선택)"
+        optionalLabel.font = .systemFont(ofSize: 14, weight: .medium)
+        optionalLabel.textColor = .secondaryLabel
+
+        let titleRow = UIStackView(arrangedSubviews: [label, optionalLabel])
+        titleRow.axis = .horizontal
+        titleRow.alignment = .firstBaseline
+        titleRow.spacing = 8
+        optionalLabel.setContentHuggingPriority(.required, for: .horizontal)
+
+        let stack = UIStackView(arrangedSubviews: [titleRow, memoTextView])
         stack.axis = .vertical
         stack.spacing = 12
         return stack
@@ -434,7 +445,7 @@ final class CollectedPerfumeRegistrationViewController: UIViewController {
             usageStatus: status,
             usageFrequency: frequency,
             preferenceLevel: preference,
-            memo: memoTextView.text
+            memo: memoTextView.text?.trimmingCharacters(in: .whitespacesAndNewlines)
         )
         onRegister?(info)
     }

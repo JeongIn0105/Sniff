@@ -19,8 +19,8 @@ struct MyPageView: View {
         static let sectionSpacing: CGFloat = 18
         static let sectionContentSpacing: CGFloat = 6
         static let sectionHeaderBottomSpacing: CGFloat = 0
-        static let profileTopSpacing: CGFloat = -14.5
-        static let profileBottomSpacing: CGFloat = 2
+        static let profileTopSpacing: CGFloat = 4
+        static let profileBottomSpacing: CGFloat = 6
         static let profileImageSize: CGFloat = 60
         static let profileTextSpacing: CGFloat = 6
         static let profileTasteTopSpacing: CGFloat = 8
@@ -95,7 +95,7 @@ struct MyPageView: View {
     private var headerSection: some View {
         HStack(alignment: .center) {
             Text(AppStrings.Profile.MyPage.title)
-                .font(.system(size: 22, weight: .semibold))
+                .font(.system(size: 24, weight: .bold))
                 .foregroundColor(.primary)
 
             Spacer()
@@ -116,7 +116,7 @@ struct MyPageView: View {
         HStack(alignment: .center, spacing: 16) {
             VStack(alignment: .leading, spacing: Layout.profileTextSpacing) {
                 Text(viewModel.profileInfo?.nickname ?? AppStrings.Profile.userFallback)
-                    .font(.system(size: 22, weight: .semibold))
+                    .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(.primary)
 
                 Text(viewModel.profileInfo?.email ?? AppStrings.Profile.missingEmail)
