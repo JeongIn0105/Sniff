@@ -66,6 +66,7 @@ struct Perfume {
     let season: [String]?
     let seasonRanking: [SeasonRankingEntry]
     let popularity: Double?
+    let releaseYear: Int?
     let situation: [String]?
     let longevity: String?
     let sillage: String?
@@ -89,6 +90,7 @@ struct Perfume {
         season: [String]?,
         seasonRanking: [SeasonRankingEntry] = [],
         popularity: Double? = nil,
+        releaseYear: Int? = nil,
         situation: [String]?,
         longevity: String?,
         sillage: String?
@@ -116,6 +118,7 @@ struct Perfume {
         self.season = season
         self.seasonRanking = seasonRanking
         self.popularity = popularity
+        self.releaseYear = releaseYear
         self.situation = situation
         self.longevity = longevity
         self.sillage = sillage

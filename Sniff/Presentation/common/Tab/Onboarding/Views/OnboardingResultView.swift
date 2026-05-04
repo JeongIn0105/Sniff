@@ -131,16 +131,35 @@ struct OnboardingResultView: View {
             Divider()
                 .background(Color(hex: "#EEF0F3"))
 
-            Button {
-                onComplete()
-            } label: {
-                Text(AppStrings.Onboarding.Result.cta)
-                    .font(.system(size: 16, weight: .semibold))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 54)
-                    .background(Color(hex: "#F1E8DF"))
-                    .foregroundColor(.black)
-                    .cornerRadius(12)
+            HStack(spacing: 10) {
+                Button {
+                    viewModel.beginResultReanalysis()
+                } label: {
+                    Text(viewModel.canReanalyzeResult ? AppStrings.Onboarding.Result.reanalyze : AppStrings.Onboarding.Result.reanalyzed)
+                        .font(.system(size: 15, weight: .semibold))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 54)
+                        .background(viewModel.canReanalyzeResult ? Color.white : Color(hex: "#E2E5EA"))
+                        .foregroundColor(viewModel.canReanalyzeResult ? .black : Color(hex: "#9EA6B5"))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color(hex: "#D8DCE3"), lineWidth: 1)
+                        )
+                        .cornerRadius(12)
+                }
+                .disabled(!viewModel.canReanalyzeResult || viewModel.isLoading)
+
+                Button {
+                    onComplete()
+                } label: {
+                    Text(AppStrings.Onboarding.Result.cta)
+                        .font(.system(size: 15, weight: .semibold))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 54)
+                        .background(Color(hex: "#F1E8DF"))
+                        .foregroundColor(.black)
+                        .cornerRadius(12)
+                }
             }
             .padding(.horizontal, horizontalInset)
             .padding(.top, 18)

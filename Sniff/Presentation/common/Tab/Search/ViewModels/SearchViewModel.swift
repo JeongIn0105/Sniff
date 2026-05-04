@@ -241,8 +241,8 @@ final class SearchViewModel {
                 let lhsScore = brandMatchScore(for: $0, query: query)
                 let rhsScore = brandMatchScore(for: $1, query: query)
                 if lhsScore != rhsScore { return lhsScore > rhsScore }
-                let lhsPriority = PerfumeKoreanTranslator.domesticRetailPriority(for: $0)
-                let rhsPriority = PerfumeKoreanTranslator.domesticRetailPriority(for: $1)
+                let lhsPriority = PerfumeKoreanTranslator.koreaBrandAvailabilityScore(for: $0)
+                let rhsPriority = PerfumeKoreanTranslator.koreaBrandAvailabilityScore(for: $1)
                 if lhsPriority != rhsPriority { return lhsPriority > rhsPriority }
                 return $0.brand.localizedCaseInsensitiveCompare($1.brand) == .orderedAscending
             }
@@ -254,8 +254,8 @@ final class SearchViewModel {
             .filter { $0.score > 0 }
             .sorted { lhs, rhs in
                 if lhs.score != rhs.score { return lhs.score > rhs.score }
-                let lhsPriority = PerfumeKoreanTranslator.domesticRetailPriority(for: lhs.perfume)
-                let rhsPriority = PerfumeKoreanTranslator.domesticRetailPriority(for: rhs.perfume)
+                let lhsPriority = PerfumeKoreanTranslator.koreaBrandAvailabilityScore(for: lhs.perfume)
+                let rhsPriority = PerfumeKoreanTranslator.koreaBrandAvailabilityScore(for: rhs.perfume)
                 if lhsPriority != rhsPriority { return lhsPriority > rhsPriority }
                 if lhs.perfume.brand != rhs.perfume.brand {
                     return lhs.perfume.brand.localizedCaseInsensitiveCompare(rhs.perfume.brand) == .orderedAscending

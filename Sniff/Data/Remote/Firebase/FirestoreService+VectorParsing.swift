@@ -55,7 +55,10 @@ extension FirestoreService {
             seasonRanking: seasonRanking,
             concentration: data["concentration"] as? String,
             longevity: data["longevity"] as? String,
-            sillage: data["sillage"] as? String
+            sillage: data["sillage"] as? String,
+            usageStatus: CollectedPerfumeUsageStatus(rawValue: data["usageStatus"] as? String ?? ""),
+            usageFrequency: CollectedPerfumeUsageFrequency(rawValue: data["usageFrequency"] as? String ?? ""),
+            preferenceLevel: CollectedPerfumePreferenceLevel(rawValue: data["preferenceLevel"] as? String ?? "")
         )
     }
 

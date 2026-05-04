@@ -15,6 +15,7 @@ extension AppStrings {
         }
 
         static let recommendTitle = "취향 맞춤 향수"
+        static let popularRecommendTitle = "국내에서 찾기 쉬운 취향 향수"
         static let recommendBasis = "취향 분석 기반 추천이에요"
         static let shortcutPerfume = "향수 등록"
         static let shortcutTasting = "시향기 등록"

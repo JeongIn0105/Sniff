@@ -12,6 +12,14 @@ import SwiftUI
 
 // MARK: - 시향 기록 모델
 
+enum TastingUsageContext: String, CaseIterable, Codable {
+    case today = "오늘 사용"
+    case recent = "최근 사용"
+    case memory = "기억으로 기록"
+
+    nonisolated var displayName: String { rawValue }
+}
+
 struct TastingNote: Identifiable, Codable {
     @DocumentID var id: String?
     var perfumeName: String
@@ -23,6 +31,7 @@ struct TastingNote: Identifiable, Codable {
     var revisitDesire: String?   // 다시 쓰고 싶은지 태그 (선택)
     var memo: String
     var perfumeImageURL: String?
+    var usageContext: String?
     var createdAt: Date
     var updatedAt: Date
 
@@ -38,6 +47,7 @@ struct TastingNote: Identifiable, Codable {
         case memo
         case perfumeImageURL
         case imageUrl
+        case usageContext
         case createdAt
         case updatedAt
     }
@@ -53,6 +63,7 @@ struct TastingNote: Identifiable, Codable {
         revisitDesire: String?,
         memo: String,
         perfumeImageURL: String?,
+        usageContext: String? = nil,
         createdAt: Date,
         updatedAt: Date
     ) {
@@ -66,6 +77,7 @@ struct TastingNote: Identifiable, Codable {
         self.revisitDesire = revisitDesire
         self.memo = memo
         self.perfumeImageURL = perfumeImageURL
+        self.usageContext = usageContext
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -84,6 +96,7 @@ struct TastingNote: Identifiable, Codable {
         perfumeImageURL =
             try container.decodeIfPresent(String.self, forKey: .perfumeImageURL)
             ?? container.decodeIfPresent(String.self, forKey: .imageUrl)
+        usageContext = try container.decodeIfPresent(String.self, forKey: .usageContext)
         createdAt = try container.decode(Date.self, forKey: .createdAt)
         updatedAt = try container.decode(Date.self, forKey: .updatedAt)
     }
@@ -101,6 +114,7 @@ struct TastingNote: Identifiable, Codable {
         try container.encodeIfPresent(revisitDesire, forKey: .revisitDesire)
         try container.encode(memo, forKey: .memo)
         try container.encodeIfPresent(perfumeImageURL, forKey: .perfumeImageURL)
+        try container.encodeIfPresent(usageContext, forKey: .usageContext)
         try container.encode(createdAt, forKey: .createdAt)
         try container.encode(updatedAt, forKey: .updatedAt)
     }
@@ -137,28 +151,9 @@ struct FragellaFragrance: Identifiable {
     }
 }
 
-// MARK: - 분위기&이미지 태그 목록 (18개)
+// MARK: - 분위기&이미지 태그 목록
 
-let kMoodTagList: [String] = [
-    AppStrings.DomainDisplay.TastingNoteData.moodTagList[0],
-    AppStrings.DomainDisplay.TastingNoteData.moodTagList[1],
-    AppStrings.DomainDisplay.TastingNoteData.moodTagList[2],
-    AppStrings.DomainDisplay.TastingNoteData.moodTagList[3],
-    AppStrings.DomainDisplay.TastingNoteData.moodTagList[4],
-    AppStrings.DomainDisplay.TastingNoteData.moodTagList[5],
-    AppStrings.DomainDisplay.TastingNoteData.moodTagList[6],
-    AppStrings.DomainDisplay.TastingNoteData.moodTagList[7],
-    AppStrings.DomainDisplay.TastingNoteData.moodTagList[8],
-    AppStrings.DomainDisplay.TastingNoteData.moodTagList[9],
-    AppStrings.DomainDisplay.TastingNoteData.moodTagList[10],
-    AppStrings.DomainDisplay.TastingNoteData.moodTagList[11],
-    AppStrings.DomainDisplay.TastingNoteData.moodTagList[12],
-    AppStrings.DomainDisplay.TastingNoteData.moodTagList[13],
-    AppStrings.DomainDisplay.TastingNoteData.moodTagList[14],
-    AppStrings.DomainDisplay.TastingNoteData.moodTagList[15],
-    AppStrings.DomainDisplay.TastingNoteData.moodTagList[16],
-    AppStrings.DomainDisplay.TastingNoteData.moodTagList[17]
-]
+let kMoodTagList: [String] = AppStrings.DomainDisplay.TastingNoteData.moodTagList
 
 // MARK: - 향 계열(Accord) 색상
 
@@ -174,23 +169,23 @@ extension String {
 // MARK: - 이전 무드 태그 → 현재 무드 태그 매핑
 
 let kLegacyMoodTagToKorean: [String: String] = [
-    "Woody": "묵직한",
+    "Woody": "짙은",
     "Fresh": "상큼한",
     "Amber(Oriental)": "따뜻한",
-    "Musky": "보송보송한",
+    "Musky": "부드러운",
     "White Floral": "은은한",
     "Rose": "은은한",
-    "Powdery": "보송보송한",
+    "Powdery": "부드러운",
     "Vanilla": "달콤한",
     "Sweet": "달콤한",
-    "Spicy": "강렬한",
+    "Spicy": "짙은",
     "Citrus": "상큼한",
     "Green": "자연스러운",
     "Aquatic": "시원한",
     "Water": "시원한",
-    "Leather": "묵직한",
-    "Oud": "묵직한",
-    "우디": "묵직한",
+    "Leather": "짙은",
+    "Oud": "짙은",
+    "우디": "짙은",
     "앰버(오리엔탈)": "따뜻한",
     "바닐라": "달콤한",
     "시트러스": "상큼한",
@@ -198,6 +193,15 @@ let kLegacyMoodTagToKorean: [String: String] = [
     "아쿠아틱": "시원한",
     "워터": "시원한",
     "워터리": "시원한",
+    "강렬한": "짙은",
+    "보송보송한": "부드러운",
+    "묵직한": "짙은",
+    "가벼운": "맑은",
+    "포근한": "따뜻한",
+    "고급스러운": "세련된",
+    "중성적인": "시크한",
+    "싱그러운": "자연스러운",
+    "무거운": "짙은",
 ]
 
 // MARK: - 별점 라벨

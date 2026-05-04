@@ -55,6 +55,25 @@ final class CollectionRepository: CollectionRepositoryType {
     }
 
     func saveCollectedPerfume(_ perfume: Perfume, memo: String? = nil) -> Completable {
+        makeSaveCollectedPerfumeCompletable(perfume, memo: memo, registrationInfo: nil)
+    }
+
+    func saveCollectedPerfume(
+        _ perfume: Perfume,
+        registrationInfo: CollectedPerfumeRegistrationInfo
+    ) -> Completable {
+        makeSaveCollectedPerfumeCompletable(
+            perfume,
+            memo: registrationInfo.memo,
+            registrationInfo: registrationInfo
+        )
+    }
+
+    private func makeSaveCollectedPerfumeCompletable(
+        _ perfume: Perfume,
+        memo: String?,
+        registrationInfo: CollectedPerfumeRegistrationInfo?
+    ) -> Completable {
         Completable.create { [weak self] completable in
             guard let self else {
                 completable(.error(AppSecretsError.missingValue("FIRESTORE_SERVICE")))
@@ -63,7 +82,11 @@ final class CollectionRepository: CollectionRepositoryType {
             let task = Task {
                 do {
                     try self.usageLimiter.validateCollectionChange()
-                    try await self.firestoreService.saveCollectedPerfume(perfume, memo: memo)
+                    if let registrationInfo {
+                        try await self.firestoreService.saveCollectedPerfume(perfume, registrationInfo: registrationInfo)
+                    } else {
+                        try await self.firestoreService.saveCollectedPerfume(perfume, memo: memo)
+                    }
                     self.usageLimiter.recordCollectionChange()
                     self.cacheStore.upsert(
                         CollectedPerfume(
@@ -74,7 +97,18 @@ final class CollectionRepository: CollectionRepositoryType {
                             mainAccords: perfume.mainAccords,
                             accordStrengths: perfume.mainAccordStrengths,
                             memo: memo,
-                            createdAt: Date()
+                            createdAt: Date(),
+                            topNotes: perfume.topNotes,
+                            middleNotes: perfume.middleNotes,
+                            baseNotes: perfume.baseNotes,
+                            generalNotes: perfume.generalNotes,
+                            seasonRanking: perfume.seasonRanking,
+                            concentration: perfume.concentration,
+                            longevity: perfume.longevity,
+                            sillage: perfume.sillage,
+                            usageStatus: registrationInfo?.usageStatus,
+                            usageFrequency: registrationInfo?.usageFrequency,
+                            preferenceLevel: registrationInfo?.preferenceLevel
                         )
                     )
                     completable(.completed)

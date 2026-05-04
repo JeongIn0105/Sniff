@@ -39,7 +39,6 @@ final class PerfumeDetailViewController: UIViewController {
     private var bottomBarCenterYConstraint: Constraint?
     private weak var bottomBarHostView: UIView?
 
-    private let addCollectionRelay = PublishRelay<Void>()
     private let addTastingRecordRelay = PublishRelay<Void>()
 
     init(
@@ -121,14 +120,6 @@ final class PerfumeDetailViewController: UIViewController {
     private let accordListView = ScentFamilyListView()
     private let notesView = DetailNotesView()
     private let seasonChipsView = SeasonSelectionView()
-
-    private let addCollectionButton = UIButton(type: .system).then {
-        $0.setTitle(AppStrings.UIKitScreens.PerfumeDetail.addCollection, for: .normal)
-        $0.titleLabel?.font = .systemFont(ofSize: 15, weight: .medium)
-        $0.setTitleColor(Palette.textSecondary, for: .normal)
-        $0.backgroundColor = UIColor(hex: "#F6F6F8")
-        $0.layer.cornerRadius = 12
-    }
 
     private let addTastingButton = UIButton(type: .system).then {
         $0.setTitle(AppStrings.UIKitScreens.PerfumeDetail.addTasting, for: .normal)
@@ -226,7 +217,7 @@ final class PerfumeDetailViewController: UIViewController {
         accordsSectionView.embed(accordListView)
         notesSectionView.embed(notesView)
         seasonSectionView.embed(seasonChipsView)
-        [addCollectionButton, addTastingButton].forEach { bottomBarView.addSubview($0) }
+        bottomBarView.addSubview(addTastingButton)
 
         topBarView.snp.makeConstraints {
             $0.top.equalTo(view.safeAreaLayoutGuide)
@@ -320,18 +311,11 @@ final class PerfumeDetailViewController: UIViewController {
             $0.bottom.equalToSuperview().offset(-40)
         }
 
-        addCollectionButton.snp.makeConstraints {
+        addTastingButton.snp.makeConstraints {
             $0.leading.equalToSuperview().offset(20)
+            $0.trailing.equalToSuperview().offset(-20)
             $0.top.bottom.equalToSuperview().inset(5)
             $0.height.equalTo(48)
-        }
-
-        addTastingButton.snp.makeConstraints {
-            $0.leading.equalTo(addCollectionButton.snp.trailing).offset(12)
-            $0.trailing.equalToSuperview().offset(-20)
-            $0.centerY.equalTo(addCollectionButton)
-            $0.height.equalTo(addCollectionButton)
-            $0.width.equalTo(addCollectionButton)
         }
 
         backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
@@ -341,7 +325,7 @@ final class PerfumeDetailViewController: UIViewController {
     private func bind() {
         let input = PerfumeDetailViewModel.Input(
             viewDidLoad: Observable.just(()),
-            addToCollectionTap: addCollectionRelay.asObservable(),
+            addToCollectionTap: .empty(),
             addTastingRecordTap: addTastingRecordRelay.asObservable()
         )
 
@@ -367,22 +351,11 @@ final class PerfumeDetailViewController: UIViewController {
             })
             .disposed(by: disposeBag)
 
-        output.onAddToCollection
-            .observe(on: MainScheduler.instance)
-            .subscribe(onNext: { [weak self] _ in
-                self?.toggleOwnedCollection()
-            })
-            .disposed(by: disposeBag)
-
         output.onAddTastingRecord
             .observe(on: MainScheduler.instance)
             .subscribe(onNext: { [weak self] perfume in
                 self?.navigateToTastingRecord(perfume: perfume)
             })
-            .disposed(by: disposeBag)
-
-        addCollectionButton.rx.tap
-            .bind(to: addCollectionRelay)
             .disposed(by: disposeBag)
 
         addTastingButton.rx.tap
@@ -430,7 +403,6 @@ final class PerfumeDetailViewController: UIViewController {
         seasonChipsView.configure(selectedSeasons: topSeasonNames(for: perfume))
         let collectionID = perfume.collectionDocumentID
         updateLikeUI(isLiked: likedPerfumeIDs.contains(collectionID))
-        updateOwnedUI(isOwned: ownedPerfumeIDs.contains(collectionID))
         updateTastingButtonUI()
     }
 
@@ -559,7 +531,10 @@ final class PerfumeDetailViewController: UIViewController {
     }
 
     private func navigateToTastingRecord(perfume: Perfume) {
-        let formView = TastingNoteSceneFactory.makeFormView(initialPerfume: perfume) { [weak self] perfumeName in
+        let formView = TastingNoteSceneFactory.makeFormView(
+            initialPerfume: perfume,
+            isOwnedPerfumeContext: ownedPerfumeIDs.contains(perfume.collectionDocumentID)
+        ) { [weak self] perfumeName in
             guard let self else { return }
             self.hasTastingRecord = true
             self.updateTastingButtonUI()
@@ -622,7 +597,7 @@ final class PerfumeDetailViewController: UIViewController {
 
         container.snp.makeConstraints {
             $0.leading.trailing.equalToSuperview().inset(24)
-            $0.bottom.equalTo(addCollectionButton.snp.top).offset(-12)
+            $0.bottom.equalTo(addTastingButton.snp.top).offset(-12)
         }
 
         container.alpha = 0
@@ -681,9 +656,6 @@ final class PerfumeDetailViewController: UIViewController {
                 onSuccess: { [weak self] items in
                     guard let self else { return }
                     self.ownedPerfumeIDs = Set(items.map(\.id))
-                    if let perfume = self.currentPerfume {
-                        self.updateOwnedUI(isOwned: self.ownedPerfumeIDs.contains(perfume.collectionDocumentID))
-                    }
                 },
                 onFailure: { error in
                     print("[PerfumeDetail] fetchCollection failed: \(error)")
@@ -736,58 +708,8 @@ final class PerfumeDetailViewController: UIViewController {
         updateLikeUI(isLiked: isLiked)
     }
 
-    private func toggleOwnedCollection() {
-        guard let perfume = currentPerfume else { return }
-
-        let collectionID = perfume.collectionDocumentID
-        let wasOwned = ownedPerfumeIDs.contains(collectionID)
-        updateOwnedState(for: collectionID, isOwned: !wasOwned)
-        addCollectionButton.isEnabled = false
-
-        if wasOwned {
-            collectionRepository.deleteCollectedPerfume(id: collectionID)
-                .observe(on: MainScheduler.instance)
-                .subscribe(onCompleted: { [weak self] in
-                    self?.addCollectionButton.isEnabled = true
-                    self?.notifyCollectionChanged()
-                }, onError: { [weak self] error in
-                    self?.addCollectionButton.isEnabled = true
-                    self?.updateOwnedState(for: collectionID, isOwned: wasOwned)
-                    self?.presentMutationError(error)
-                })
-                .disposed(by: disposeBag)
-        } else {
-            collectionRepository.saveCollectedPerfume(perfume, memo: nil)
-                .observe(on: MainScheduler.instance)
-                .subscribe(onCompleted: { [weak self] in
-                    self?.addCollectionButton.isEnabled = true
-                    self?.notifyCollectionChanged()
-                    self?.navigateToMyPage()
-                }, onError: { [weak self] error in
-                    self?.addCollectionButton.isEnabled = true
-                    self?.updateOwnedState(for: collectionID, isOwned: wasOwned)
-                    self?.presentMutationError(error)
-                })
-                .disposed(by: disposeBag)
-        }
-    }
-
-    private func updateOwnedState(for perfumeID: String, isOwned: Bool) {
-        if isOwned {
-            ownedPerfumeIDs.insert(perfumeID)
-        } else {
-            ownedPerfumeIDs.remove(perfumeID)
-        }
-        updateOwnedUI(isOwned: isOwned)
-    }
-
     private func updateLikeUI(isLiked: Bool) {
         PerfumeHeartStyle.applyState(to: likeButton, isLiked: isLiked)
-    }
-
-    private func updateOwnedUI(isOwned: Bool) {
-        let title = isOwned ? AppStrings.UIKitScreens.PerfumeDetail.addedCollection : AppStrings.UIKitScreens.PerfumeDetail.addCollection
-        addCollectionButton.setTitle(title, for: .normal)
     }
 
     private func refreshTastingRecordState() {
@@ -813,8 +735,7 @@ final class PerfumeDetailViewController: UIViewController {
     }
 
     private func updateTastingButtonUI() {
-        let title = hasTastingRecord ? "시향기로 이동" : AppStrings.UIKitScreens.PerfumeDetail.addTasting
-        addTastingButton.setTitle(title, for: .normal)
+        addTastingButton.setTitle(AppStrings.UIKitScreens.PerfumeDetail.addTasting, for: .normal)
     }
 
     private func presentMutationError(_ error: Error) {

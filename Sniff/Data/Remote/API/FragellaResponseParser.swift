@@ -93,6 +93,10 @@ enum FragellaResponseParser {
                 forKeys: ["popularity", "Popularity", "popularity_score", "rating", "score", "votes"],
                 in: dictionary
             ),
+            releaseYear: yearValue(
+                forKeys: ["release_year", "releaseYear", "year", "launch_year", "launchYear", "launched", "released"],
+                in: dictionary
+            ),
             situation: stringArrayValue(
                 forKeys: ["situation", "situations", "occasion", "occasions"],
                 in: dictionary
@@ -224,6 +228,31 @@ enum FragellaResponseParser {
             }
         }
         return nil
+    }
+
+    private static func yearValue(forKeys keys: [String], in dictionary: [String: Any]) -> Int? {
+        for key in keys {
+            guard let raw = dictionary[key] else { continue }
+            if let number = raw as? NSNumber {
+                let year = number.intValue
+                if isValidReleaseYear(year) { return year }
+            }
+            if let string = raw as? String {
+                let yearCandidates = string.split { !$0.isNumber }
+                for candidate in yearCandidates {
+                    if candidate.count == 4,
+                       let year = Int(String(candidate)),
+                       isValidReleaseYear(year) {
+                        return year
+                    }
+                }
+            }
+        }
+        return nil
+    }
+
+    private static func isValidReleaseYear(_ year: Int) -> Bool {
+        (1900...Calendar.current.component(.year, from: Date()) + 1).contains(year)
     }
 
     private static func makeSyntheticID(name: String, brand: String) -> String {

@@ -65,6 +65,7 @@ final class HomeViewController: UIViewController {
     private let disposeBag = DisposeBag()
     private let homeRefreshRelay = PublishRelay<Void>()
     private var recommendations: [HomePerfumeItem] = []
+    private var popularRecommendations: [HomePerfumeItem] = []
     private var currentProfileItem: HomeViewModel.HomeProfileItem?
     private var currentBannerItem: HomeTasteBannerItem?
     private var likedPerfumeIDs = Set<String>()
@@ -155,6 +156,24 @@ button.setPreferredSymbolConfiguration(
     }()
 
     private let recommendationCollectionView: UICollectionView = {
+        let layout = UICollectionViewFlowLayout()
+        layout.scrollDirection = .horizontal
+        layout.minimumLineSpacing = Layout.cardSpacing
+        let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        collectionView.backgroundColor = .clear
+        collectionView.showsHorizontalScrollIndicator = false
+        return collectionView
+    }()
+
+    private let popularRecommendationTitleLabel: UILabel = {
+        let label = UILabel()
+        label.text = AppStrings.Home.popularRecommendTitle
+        label.font = Typography.pretendard(size: 18, weight: .semibold)
+        label.textColor = UIColor(red: 0.13, green: 0.13, blue: 0.13, alpha: 1)
+        return label
+    }()
+
+    private let popularRecommendationCollectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
         layout.scrollDirection = .horizontal
         layout.minimumLineSpacing = Layout.cardSpacing
@@ -263,6 +282,12 @@ private extension HomeViewController {
             HomePerfumeCardCell.self,
             forCellWithReuseIdentifier: HomePerfumeCardCell.reuseIdentifier
         )
+        popularRecommendationCollectionView.delegate = self
+        popularRecommendationCollectionView.dataSource = self
+        popularRecommendationCollectionView.register(
+            HomePerfumeCardCell.self,
+            forCellWithReuseIdentifier: HomePerfumeCardCell.reuseIdentifier
+        )
 
         view.addSubview(scrollView)
         scrollView.contentInsetAdjustmentBehavior = .never  // 상태바 영역까지 그라데이션 확장
@@ -276,6 +301,8 @@ private extension HomeViewController {
             profileHeroCard,
             recommendationTitleLabel,
             recommendationCollectionView,
+            popularRecommendationTitleLabel,
+            popularRecommendationCollectionView,
             guideContainerView
         ].forEach { contentView.addSubview($0) }
 
@@ -367,8 +394,19 @@ private extension HomeViewController {
             $0.height.equalTo(Layout.cardHeight)
         }
 
+        popularRecommendationTitleLabel.snp.makeConstraints {
+            $0.top.equalTo(recommendationCollectionView.snp.bottom).offset(28)
+            $0.leading.equalToSuperview().offset(16)
+        }
+
+        popularRecommendationCollectionView.snp.makeConstraints {
+            $0.top.equalTo(popularRecommendationTitleLabel.snp.bottom).offset(12)
+            $0.leading.trailing.equalToSuperview()
+            $0.height.equalTo(Layout.cardHeight)
+        }
+
         guideContainerView.snp.makeConstraints {
-            $0.top.equalTo(recommendationCollectionView.snp.bottom).offset(34)  // Figma: 34pt gap
+            $0.top.equalTo(popularRecommendationCollectionView.snp.bottom).offset(34)  // Figma: 34pt gap
             $0.leading.trailing.equalToSuperview().inset(16)  // Figma: 16pt 좌우 여백 → 358pt 너비
             $0.bottom.equalToSuperview().inset(20)
         }
@@ -441,6 +479,7 @@ private extension HomeViewController {
         bindBanner(output.banner)
         bindProfile(output.profile)
         bindRecommendations(output.recommendations)
+        bindPopularRecommendations(output.popularRecommendations)
         bindRoute(output.route)
         bindAddPerfumeButton()
     }
@@ -487,6 +526,17 @@ private extension HomeViewController {
             .drive(with: self) { owner, items in
                 owner.recommendations = items
                 owner.recommendationCollectionView.reloadData()
+            }
+            .disposed(by: disposeBag)
+    }
+
+    func bindPopularRecommendations(_ recommendations: Driver<[HomePerfumeItem]>) {
+        recommendations
+            .drive(with: self) { owner, items in
+                owner.popularRecommendations = items
+                owner.popularRecommendationTitleLabel.isHidden = items.isEmpty
+                owner.popularRecommendationCollectionView.isHidden = items.isEmpty
+                owner.popularRecommendationCollectionView.reloadData()
             }
             .disposed(by: disposeBag)
     }
@@ -632,7 +682,7 @@ private extension HomeViewController {
             .observe(on: MainScheduler.instance)
             .subscribe(onSuccess: { [weak self] items in
                 self?.likedPerfumeIDs = Set(items.map(\.id))
-                self?.recommendationCollectionView.reloadData()
+                self?.reloadRecommendationCollections()
             })
             .disposed(by: disposeBag)
     }
@@ -646,7 +696,7 @@ private extension HomeViewController {
                     brandName: $0.brandName
                 )
             })
-            recommendationCollectionView.reloadData()
+            reloadRecommendationCollections()
         }
 
         // 2단계: Firestore에서 추가 병합 (비동기) — 다른 기기 기록까지 포함
@@ -661,7 +711,7 @@ private extension HomeViewController {
                     )
                 })
                 self.tastingNoteKeys.formUnion(remoteKeys)
-                self.recommendationCollectionView.reloadData()
+                self.reloadRecommendationCollections()
             }, onFailure: { _ in })
             .disposed(by: disposeBag)
     }
@@ -690,7 +740,7 @@ private extension HomeViewController {
             .observe(on: MainScheduler.instance)
             .subscribe(onCompleted: { [weak self] in
                 self?.likedPerfumeIDs.insert(collectionID)
-                self?.recommendationCollectionView.reloadData()
+                self?.reloadRecommendationCollections()
                 NotificationCenter.default.post(name: .perfumeCollectionDidChange, object: nil)
             }, onError: { [weak self] error in
                 self?.presentLikeMutationError(error)
@@ -703,7 +753,7 @@ private extension HomeViewController {
             .observe(on: MainScheduler.instance)
             .subscribe(onCompleted: { [weak self] in
                 self?.likedPerfumeIDs.remove(id)
-                self?.recommendationCollectionView.reloadData()
+                self?.reloadRecommendationCollections()
                 NotificationCenter.default.post(name: .perfumeCollectionDidChange, object: nil)
             }, onError: { [weak self] error in
                 self?.presentLikeMutationError(error)
@@ -722,11 +772,26 @@ private extension HomeViewController {
     var visibleRecommendations: [HomePerfumeItem] {
         Array(recommendations.prefix(5))
     }
+
+    var visiblePopularRecommendations: [HomePerfumeItem] {
+        Array(popularRecommendations.prefix(5))
+    }
+
+    func visibleItems(for collectionView: UICollectionView) -> [HomePerfumeItem] {
+        collectionView == popularRecommendationCollectionView
+            ? visiblePopularRecommendations
+            : visibleRecommendations
+    }
+
+    func reloadRecommendationCollections() {
+        recommendationCollectionView.reloadData()
+        popularRecommendationCollectionView.reloadData()
+    }
 }
 
 extension HomeViewController: UICollectionViewDataSource {
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        visibleRecommendations.count
+        visibleItems(for: collectionView).count
     }
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
@@ -737,7 +802,7 @@ extension HomeViewController: UICollectionViewDataSource {
             return UICollectionViewCell()
         }
 
-        let item = visibleRecommendations[indexPath.item]
+        let item = visibleItems(for: collectionView)[indexPath.item]
         let collectionID = Perfume.collectionDocumentID(from: item.id)
         let hasTastingRecord = !tastingNoteKeys.isDisjoint(
             with: PerfumePresentationSupport.recordMatchingKeys(
@@ -782,7 +847,7 @@ extension HomeViewController: UICollectionViewDelegateFlowLayout {
     }
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        navigateToPerfumeDetail(visibleRecommendations[indexPath.item].perfume)
+        navigateToPerfumeDetail(visibleItems(for: collectionView)[indexPath.item].perfume)
     }
 }
 

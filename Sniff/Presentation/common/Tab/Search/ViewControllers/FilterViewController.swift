@@ -375,7 +375,7 @@ final class FilterViewController: UIViewController {
             ),
             .init(
                 title: AppStrings.UIKitScreens.Filter.season,
-                subtitle: nil,
+                subtitle: "최대 1개 선택 가능",
                 tags: Season.allCases.map(\.displayName),
                 type: .season,
                 topInset: 15,

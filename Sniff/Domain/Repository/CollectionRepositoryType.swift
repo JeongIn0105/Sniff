@@ -13,6 +13,7 @@ protocol CollectionRepositoryType {
     func currentMonthlyCollectionUsage() -> Int
     var monthlyCollectionLimit: Int { get }
     func saveCollectedPerfume(_ perfume: Perfume, memo: String?) -> Completable
+    func saveCollectedPerfume(_ perfume: Perfume, registrationInfo: CollectedPerfumeRegistrationInfo) -> Completable
     func deleteCollectedPerfume(id: String) -> Completable
     func fetchLikedPerfumes() -> Single<[LikedPerfume]>
     func saveLikedPerfume(_ perfume: Perfume) -> Completable

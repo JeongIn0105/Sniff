@@ -36,10 +36,10 @@ final class LocalPerfumeSearchService {
     // MARK: - 인덱스 로드
 
     /// 앱 시작 후 한 번만 호출 — 디스크 캐시 + Firestore 데이터를 비동기로 인덱싱
-    func buildIndex() {
+    func buildIndex(includesUserData: Bool = true) {
         Task.detached(priority: .utility) { [weak self] in
             guard let self else { return }
-            await self.loadIndex()
+            await self.loadIndex(includesUserData: includesUserData)
         }
     }
 
@@ -71,11 +71,7 @@ final class LocalPerfumeSearchService {
         var seenBrands = Set<String>()
         var brandItems: [SuggestionItem] = []
         for item in scored {
-            let brandTokens = item.entry.searchableBrands.map(normalizeForSearch(_:))
-            if brandTokens.contains(where: { token in
-                    // 쿼리가 브랜드명을 포함하거나(token ⊇ query), 쿼리가 브랜드명으로 시작(query.hasPrefix(token))
-                    normalizedQueries.contains(where: { q in token.contains(q) || (q.hasPrefix(token) && token.count >= 2) })
-                }),
+            if normalizedQueries.contains(where: { brandMatchScore(entry: item.entry, query: $0) >= 600 }),
                !seenBrands.contains(item.entry.dedupeBrandKey) {
                 seenBrands.insert(item.entry.dedupeBrandKey)
                 brandItems.append(.brand(name: item.entry.brand, imageUrl: item.entry.imageUrl))
@@ -94,7 +90,7 @@ final class LocalPerfumeSearchService {
 
     // MARK: - Private: 인덱스 구축
 
-    private func loadIndex() async {
+    private func loadIndex(includesUserData: Bool) async {
         var entries: [IndexedEntry] = []
         var seenKeys = Set<String>()
 
@@ -106,21 +102,23 @@ final class LocalPerfumeSearchService {
             entries.append(makeIndexedEntry(name: p.name, brand: p.brand, imageUrl: p.imageUrl))
         }
 
-        // 2. Firestore 보유 향수
-        if let collection = try? await firestoreService.fetchCollection() {
-            for item in collection {
-                let key = dedupeKey(name: item.name, brand: item.brand)
-                guard seenKeys.insert(key).inserted else { continue }
-                entries.append(makeIndexedEntry(name: item.name, brand: item.brand, imageUrl: item.imageUrl))
+        if includesUserData {
+            // 2. Firestore 보유 향수
+            if let collection = try? await firestoreService.fetchCollection() {
+                for item in collection {
+                    let key = dedupeKey(name: item.name, brand: item.brand)
+                    guard seenKeys.insert(key).inserted else { continue }
+                    entries.append(makeIndexedEntry(name: item.name, brand: item.brand, imageUrl: item.imageUrl))
+                }
             }
-        }
 
-        // 3. Firestore LIKE 향수 (LikedPerfume 모델은 imageURL — 대문자)
-        if let liked = try? await firestoreService.fetchLikedPerfumes() {
-            for item in liked {
-                let key = dedupeKey(name: item.name, brand: item.brand)
-                guard seenKeys.insert(key).inserted else { continue }
-                entries.append(makeIndexedEntry(name: item.name, brand: item.brand, imageUrl: item.imageURL))
+            // 3. Firestore LIKE 향수 (LikedPerfume 모델은 imageURL — 대문자)
+            if let liked = try? await firestoreService.fetchLikedPerfumes() {
+                for item in liked {
+                    let key = dedupeKey(name: item.name, brand: item.brand)
+                    guard seenKeys.insert(key).inserted else { continue }
+                    entries.append(makeIndexedEntry(name: item.name, brand: item.brand, imageUrl: item.imageURL))
+                }
             }
         }
 
@@ -150,13 +148,25 @@ final class LocalPerfumeSearchService {
     // MARK: - Private: 매칭 점수
 
     private func matchScore(entry: IndexedEntry, query: String) -> Int {
-        let names = entry.searchableNames.map(normalizeForSearch(_:))
-        let brands = entry.searchableBrands.map(normalizeForSearch(_:))
+        max(
+            brandMatchScore(entry: entry, query: query),
+            nameMatchScore(entry: entry, query: query)
+        )
+    }
 
+    private func brandMatchScore(entry: IndexedEntry, query: String) -> Int {
+        let brands = entry.searchableBrands.map(normalizeForSearch(_:))
         if brands.contains(query) { return 1000 }
-        if names.contains(query) { return 900 }
         if brands.contains(where: { $0.contains(query) }) { return 800 }
+        if brands.contains(where: { isNearTypo($0, query) }) { return 650 }
+        return 0
+    }
+
+    private func nameMatchScore(entry: IndexedEntry, query: String) -> Int {
+        let names = entry.searchableNames.map(normalizeForSearch(_:))
+        if names.contains(query) { return 900 }
         if names.contains(where: { $0.contains(query) }) { return 700 }
+        if names.contains(where: { isNearTypo($0, query) }) { return 600 }
         return 0
     }
 
@@ -183,6 +193,43 @@ final class LocalPerfumeSearchService {
 
     private func dedupeKey(name: String, brand: String) -> String {
         "\(normalizeForSearch(brand))__\(normalizeForSearch(name))"
+    }
+
+    private func isNearTypo(_ lhs: String, _ rhs: String) -> Bool {
+        guard lhs.count >= 2, rhs.count >= 2 else { return false }
+        let lengthGap = abs(lhs.count - rhs.count)
+        guard lengthGap <= 1 else { return false }
+
+        if lhs.count <= 5 || rhs.count <= 5 {
+            return editDistance(lhs, rhs, maxDistance: 1) <= 1
+        }
+        return editDistance(lhs, rhs, maxDistance: 2) <= 2
+    }
+
+    private func editDistance(_ lhs: String, _ rhs: String, maxDistance: Int) -> Int {
+        let lhs = Array(lhs)
+        let rhs = Array(rhs)
+        if abs(lhs.count - rhs.count) > maxDistance { return maxDistance + 1 }
+        if lhs.isEmpty { return rhs.count }
+        if rhs.isEmpty { return lhs.count }
+
+        var previous = Array(0...rhs.count)
+        for i in 1...lhs.count {
+            var current = [i] + Array(repeating: 0, count: rhs.count)
+            var rowMinimum = current[0]
+            for j in 1...rhs.count {
+                let cost = lhs[i - 1] == rhs[j - 1] ? 0 : 1
+                current[j] = min(
+                    previous[j] + 1,
+                    current[j - 1] + 1,
+                    previous[j - 1] + cost
+                )
+                rowMinimum = min(rowMinimum, current[j])
+            }
+            if rowMinimum > maxDistance { return maxDistance + 1 }
+            previous = current
+        }
+        return previous[rhs.count]
     }
 
     private func makeIndexedEntry(name: String, brand: String, imageUrl: String? = nil) -> IndexedEntry {

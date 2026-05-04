@@ -165,10 +165,14 @@ final class UserTasteRepository: UserTasteRepositoryType {
             return baseAnalysis
         }
 
+        let isTagOnboarding = user.experienceLevel == "tag_onboarding"
         let enrichedInput = TasteAnalysisInput(
             experience: baseAnalysis.evidenceTags.experience,
             vibes: baseAnalysis.evidenceTags.vibes,
             images: baseAnalysis.evidenceTags.images,
+            tagOnboardingSignal: isTagOnboarding
+                ? TagOnboardingSignalForGemini(analysis: baseAnalysis)
+                : nil,
             aggregatedProfile: (!collectionItems.isEmpty || !recordItems.isEmpty)
                 ? AggregatedProfileForGemini(profile: aggregatedProfile)
                 : nil,
@@ -196,13 +200,6 @@ final class UserTasteRepository: UserTasteRepositoryType {
         )
 
         return refreshedAnalysis
-    }
-
-    func applyHistoricalProfile(_ entry: TasteProfileHistoryEntry) async throws {
-        // Firestore taste_title 업데이트
-        try await firestoreService.applyHistoricalProfile(title: entry.title)
-        // UserDefaults 캐시 초기화 → 다음 fetch 시 Firestore에서 최신 데이터 로드
-        defaults.removeObject(forKey: CacheKey.latestTasteAnalysis)
     }
 
     func checkNicknameAvailability(_ nickname: String) async throws -> Bool {
