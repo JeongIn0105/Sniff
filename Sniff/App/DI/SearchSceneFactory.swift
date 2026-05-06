@@ -47,8 +47,13 @@ enum SearchSceneFactory {
     }
 
     @MainActor
+    static func makeOwnedPerfumeRegistrationViewController() -> UIViewController {
+        makeOwnedPerfumeRegistrationViewController(dependencyContainer: AppDependencyContainer.shared)
+    }
+
+    @MainActor
     static func makeOwnedPerfumeRegistrationViewController(
-        dependencyContainer: AppDependencyContainer = .shared
+        dependencyContainer: AppDependencyContainer
     ) -> UIViewController {
         UIHostingController(
             rootView: OwnedPerfumeRegistrationView(

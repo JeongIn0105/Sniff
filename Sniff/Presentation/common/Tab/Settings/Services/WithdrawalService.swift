@@ -9,13 +9,13 @@ import FirebaseFirestore
 import Foundation
 import UIKit
 
-enum WithdrawalReauthenticationProvider: Equatable {
+nonisolated enum WithdrawalReauthenticationProvider: Equatable {
     case apple
     case google
     case unsupported
 }
 
-enum WithdrawalServiceError: Error, Equatable {
+nonisolated enum WithdrawalServiceError: Error, Equatable {
     case requiresReauthentication(WithdrawalReauthenticationProvider)
 }
 
@@ -87,7 +87,7 @@ final class WithdrawalService: WithdrawalServiceType {
 
     func isRecentLoginError(_ error: Error) -> Bool {
         let nsError = error as NSError
-        return AuthErrorCode.Code(rawValue: nsError.code) == .requiresRecentLogin
+        return AuthErrorCode(rawValue: nsError.code) == .requiresRecentLogin
     }
 }
 

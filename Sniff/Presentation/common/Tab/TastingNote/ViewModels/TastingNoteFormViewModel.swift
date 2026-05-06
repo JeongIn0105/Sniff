@@ -329,15 +329,20 @@ final class TastingNoteFormViewModel: ObservableObject {
         guard !isSaving else { return }
         guard canSave else { return }
         isSaving = true
+        defer { isSaving = false }
+        saveSuccess = false
         errorMessage = nil
 
         let now = Date()
+        let trimmedPerfumeName = perfumeName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedBrandName = brandName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedConcentration = concentration.trimmingCharacters(in: .whitespacesAndNewlines)
         let note = TastingNote(
             id: editingNote?.id,
-            perfumeName: perfumeName,
-            brandName: brandName,
+            perfumeName: trimmedPerfumeName,
+            brandName: trimmedBrandName,
             mainAccords: mainAccords,
-            concentration: concentration.isEmpty ? nil : concentration,
+            concentration: trimmedConcentration.isEmpty ? nil : trimmedConcentration,
             rating: rating,
             moodTags: orderedMoodTags(from: selectedMoodTags),
             revisitDesire: revisitDesire,
@@ -362,7 +367,6 @@ final class TastingNoteFormViewModel: ObservableObject {
         } catch {
             errorMessage = AppStrings.ViewModelMessages.TastingNoteForm.saveFailed
         }
-        isSaving = false
     }
 
     private func orderedMoodTags(from tags: Set<String>) -> [String] {

@@ -213,6 +213,15 @@ final class FirestoreService {
             }
     }
 
+    func hasCollectedPerfume(id: String) async throws -> Bool {
+        let snapshot = try await userDocumentRef()
+            .collection("collection")
+            .document(id)
+            .getDocument()
+
+        return snapshot.exists
+    }
+
     func deleteCollectionItems(ids: [String]) async throws {
         guard !ids.isEmpty else { return }
 

@@ -370,8 +370,8 @@ enum RecommendationPerfumeIdentity {
     }
 }
 
-private enum RecommendationCacheKeyBuilder {
-    static func makeKey(
+nonisolated private enum RecommendationCacheKeyBuilder {
+    nonisolated static func makeKey(
         profile: UserTasteProfile,
         queries: [String],
         ownedPerfumeKeys: [String]
@@ -396,15 +396,15 @@ private enum RecommendationCacheKeyBuilder {
         return digest.map { String(format: "%02x", $0) }.joined()
     }
 
-    private static func normalized(_ value: String) -> String {
+    nonisolated private static func normalized(_ value: String) -> String {
         value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
 
-    private static func normalizedList(_ values: [String]) -> String {
+    nonisolated private static func normalizedList(_ values: [String]) -> String {
         values.map(normalized(_:)).joined(separator: "|")
     }
 
-    private static func normalizedScores(_ scores: [String: Double]) -> String {
+    nonisolated private static func normalizedScores(_ scores: [String: Double]) -> String {
         scores
             .sorted { lhs, rhs in normalized(lhs.key) < normalized(rhs.key) }
             .map { key, value in

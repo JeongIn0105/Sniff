@@ -5,6 +5,7 @@
 //  Created by t2025-m0239 on 2026.04.17.
 //
 
+import Combine
 import RxSwift
 import SnapKit
 import SwiftUI
@@ -12,7 +13,7 @@ import UIKit
 
 final class TasteProfileViewController: UIViewController {
 
-    static func koreanFamilyName(_ family: String) -> String {
+    nonisolated static func koreanFamilyName(_ family: String) -> String {
         switch family {
         case "Soft Floral": return "소프트 플로럴"
         case "Floral": return "플로럴"

@@ -599,20 +599,19 @@ private extension PreferenceAggregator {
     }
 
     func hasUsageRecordSignals(_ record: TastingRecord) -> Bool {
-        record.usageContext != nil
-        || record.longevityExperience != nil
-        || record.sillageExperience != nil
-        || record.drydownChange != nil
-        || record.skinChemistry != nil
-        || !record.wearSituations.isEmpty
-        || !record.weatherContexts.isEmpty
-        || !record.applicationAreas.isEmpty
+        record.longevityExperience != nil
+            || record.sillageExperience != nil
+            || record.drydownChange != nil
+            || record.skinChemistry != nil
+            || !record.wearSituations.isEmpty
+            || !record.weatherContexts.isEmpty
+            || !record.applicationAreas.isEmpty
     }
 
     func positiveUsageRecordMultiplier(for record: TastingRecord, isOwnedUsageRecord: Bool) -> Double {
         guard isOwnedUsageRecord else { return 1.0 }
 
-        var multiplier = usageContextReliabilityMultiplier(for: record.usageContext)
+        var multiplier = usageContextReliabilityMultiplier(for: record)
 
         switch record.longevityExperience {
         case TastingLongevityExperience.overSixHours.displayName:
@@ -644,7 +643,7 @@ private extension PreferenceAggregator {
     func negativeUsageRecordMultiplier(for record: TastingRecord, isOwnedUsageRecord: Bool) -> Double {
         guard isOwnedUsageRecord else { return 1.0 }
 
-        var multiplier = usageContextReliabilityMultiplier(for: record.usageContext)
+        var multiplier = usageContextReliabilityMultiplier(for: record)
 
         switch record.longevityExperience {
         case TastingLongevityExperience.underTwoHours.displayName:
@@ -673,14 +672,18 @@ private extension PreferenceAggregator {
         return min(1.45, max(0.75, multiplier))
     }
 
-    func usageContextReliabilityMultiplier(for value: String?) -> Double {
-        switch value {
-        case TastingUsageContext.today.displayName:
-            return 1.1
-        case TastingUsageContext.recent.displayName:
-            return 1.0
-        case TastingUsageContext.memory.displayName:
-            return 0.8
+    func usageContextReliabilityMultiplier(for record: TastingRecord) -> Double {
+        let contextSignalCount = record.wearSituations.count
+            + record.weatherContexts.count
+            + record.applicationAreas.count
+
+        switch contextSignalCount {
+        case 3...:
+            return 1.06
+        case 2:
+            return 1.04
+        case 1:
+            return 1.02
         default:
             return 1.0
         }

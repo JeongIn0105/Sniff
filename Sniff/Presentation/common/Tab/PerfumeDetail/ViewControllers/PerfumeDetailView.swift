@@ -331,7 +331,7 @@ final class PerfumeDetailViewController: UIViewController {
 
         ownedInfoCardView.snp.makeConstraints {
             $0.top.leading.equalToSuperview()
-            $0.size.equalTo(.zero)
+            $0.size.equalTo(CGSize.zero)
         }
 
         seasonSectionView.snp.makeConstraints {
@@ -480,7 +480,7 @@ final class PerfumeDetailViewController: UIViewController {
         } else {
             ownedInfoCardView.snp.remakeConstraints {
                 $0.top.leading.equalToSuperview()
-                $0.size.equalTo(.zero)
+                $0.size.equalTo(CGSize.zero)
             }
             ownedInfoCollapsedHeightConstraint?.activate()
         }

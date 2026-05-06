@@ -195,8 +195,9 @@ final class CollectionRepository: CollectionRepositoryType {
 
             let task = Task {
                 do {
+                    let collectionID = perfume.collectionDocumentID
                     let likedPerfumes = try await self.firestoreService.fetchLikedPerfumes()
-                    if likedPerfumes.contains(where: { $0.id == perfume.id }) {
+                    if likedPerfumes.contains(where: { $0.id == collectionID }) {
                         try await self.firestoreService.saveLikedPerfume(perfume)
                         Self.invalidateLikedCache()
                         completable(.completed)
@@ -257,6 +258,18 @@ private extension CollectionRepository {
 
             let task = Task {
                 do {
+                    let collectionID = perfume.collectionDocumentID
+                    if try await self.firestoreService.hasCollectedPerfume(id: collectionID) {
+                        if let collection = try? await self.firestoreService.fetchCollection() {
+                            self.cacheStore.save(collection)
+                            Self.storeCollectionCache(collection)
+                        } else {
+                            Self.invalidateCollectionCache()
+                        }
+                        completable(.completed)
+                        return
+                    }
+
                     try self.usageLimiter.validateCollectionChange()
                     if let registrationInfo {
                         try await self.firestoreService.saveCollectedPerfume(perfume, registrationInfo: registrationInfo)
@@ -266,7 +279,7 @@ private extension CollectionRepository {
                     self.usageLimiter.recordCollectionChange()
 
                     let cachedPerfume = CollectedPerfume(
-                        id: perfume.collectionDocumentID,
+                        id: collectionID,
                         name: perfume.name,
                         brand: perfume.brand,
                         imageUrl: perfume.imageUrl,

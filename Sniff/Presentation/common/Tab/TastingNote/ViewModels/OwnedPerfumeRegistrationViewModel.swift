@@ -27,6 +27,7 @@ final class OwnedPerfumeRegistrationViewModel: ObservableObject {
     private let collectionRepository: CollectionRepositoryType
     private var ownedPerfumeIDs = Set<String>()
     private var searchTask: Task<Void, Never>?
+    private var activeSearchQuery: String?
     private var toastTask: Task<Void, Never>?
     let maxMemoLength = 100
 
@@ -74,6 +75,7 @@ final class OwnedPerfumeRegistrationViewModel: ObservableObject {
 
     func scheduleSearch() {
         searchTask?.cancel()
+        activeSearchQuery = nil
 
         guard selectedPerfume == nil else {
             searchResults = []
@@ -88,6 +90,8 @@ final class OwnedPerfumeRegistrationViewModel: ObservableObject {
             return
         }
 
+        activeSearchQuery = query
+        isSearching = true
         searchTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: 350_000_000)
             guard !Task.isCancelled else { return }
@@ -99,6 +103,8 @@ final class OwnedPerfumeRegistrationViewModel: ObservableObject {
         searchTask?.cancel()
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return }
+        activeSearchQuery = query
+        isSearching = true
         searchTask = Task { [weak self] in
             await self?.search(query: query)
         }
@@ -111,16 +117,22 @@ final class OwnedPerfumeRegistrationViewModel: ObservableObject {
             return
         }
 
+        searchTask?.cancel()
+        activeSearchQuery = nil
         selectedPerfume = perfume
         searchText = PerfumePresentationSupport.displayPerfumeName(perfume.name)
         searchResults = []
+        isSearching = false
         resetRegistrationDetails()
     }
 
     func clearSelectedPerfume() {
+        searchTask?.cancel()
+        activeSearchQuery = nil
         selectedPerfume = nil
         searchText = ""
         searchResults = []
+        isSearching = false
         resetRegistrationDetails()
     }
 
@@ -177,17 +189,21 @@ final class OwnedPerfumeRegistrationViewModel: ObservableObject {
     }
 
     private func search(query: String) async {
-        isSearching = true
-        defer { isSearching = false }
-
         do {
-            searchResults = try await perfumeCatalogRepository.search(query: query, limit: 12).async()
+            let results = try await perfumeCatalogRepository.search(query: query, limit: 12).async()
+            guard !Task.isCancelled, activeSearchQuery == query, selectedPerfume == nil else { return }
+            searchResults = results
         } catch {
+            guard !Task.isCancelled, activeSearchQuery == query else { return }
             errorMessage = AppStrings.ViewModelMessages.TastingNoteForm.serverError(
                 (error as NSError).code,
                 error.localizedDescription
             )
         }
+
+        guard activeSearchQuery == query else { return }
+        activeSearchQuery = nil
+        isSearching = false
     }
 
     private func showToast(_ message: String) {

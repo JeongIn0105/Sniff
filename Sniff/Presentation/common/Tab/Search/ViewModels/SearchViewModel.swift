@@ -212,6 +212,7 @@ final class SearchViewModel {
         let requestQuery = PerfumeKoreanTranslator.toEnglishQuery(query) ?? query
         isLoadingRelay.accept(true)
         perfumeCatalogRepository.search(query: requestQuery, limit: 200)
+            .observe(on: MainScheduler.instance)
             .subscribe(
                 onSuccess: { [weak self] perfumes in
                     guard let self else { return }

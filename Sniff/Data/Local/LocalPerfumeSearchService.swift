@@ -30,7 +30,7 @@ final class LocalPerfumeSearchService {
 
     /// 앱 시작 후 한 번만 호출 — Firestore 데이터를 비동기로 인덱싱
     func buildIndex(includesUserData: Bool = true) {
-        Task.detached(priority: .utility) { [weak self] in
+        Task(priority: .utility) { [weak self] in
             guard let self else { return }
             await self.loadIndex(includesUserData: includesUserData)
         }
@@ -211,7 +211,7 @@ final class LocalPerfumeSearchService {
             PerfumePresentationSupport.displayBrand(brand)
         ])
 
-        IndexedEntry(
+        return IndexedEntry(
             name: name,
             brand: brand,
             searchableNames: searchableNames,
