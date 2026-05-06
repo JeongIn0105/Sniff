@@ -4,7 +4,7 @@
 //
 
 import SwiftUI
-import CoreText
+import UIKit
 
 // MARK: - 회원탈퇴 확인 화면
 
@@ -16,6 +16,7 @@ struct WithdrawView: View {
 
     /// 탈퇴 최종 확인 Alert 표시 여부
     @State private var showConfirmAlert: Bool = false
+    @State private var showCompletedAlert: Bool = false
 
     init(viewModel: WithdrawViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -72,7 +73,11 @@ struct WithdrawView: View {
         }
         .onChange(of: viewModel.didWithdraw) { didWithdraw in
             guard didWithdraw else { return }
-            appStateManager.state = .login
+            showCompletedAlert = true
+        }
+        .onChange(of: viewModel.reauthenticationProvider) { provider in
+            guard let provider else { return }
+            handleReauthentication(provider)
         }
         // 탈퇴 최종 확인 Alert
         .alert(AppStrings.Profile.Withdraw.confirmTitle, isPresented: $showConfirmAlert) {
@@ -82,6 +87,13 @@ struct WithdrawView: View {
             Button(AppStrings.Profile.Withdraw.cancel, role: .cancel) { }
         } message: {
             Text(AppStrings.Profile.Withdraw.confirmMessage)
+        }
+        .alert(AppStrings.Profile.Withdraw.completedTitle, isPresented: $showCompletedAlert) {
+            Button(AppStrings.Profile.confirm) {
+                appStateManager.state = .login
+            }
+        } message: {
+            Text(AppStrings.Profile.Withdraw.completedMessage)
         }
         // 오류 Alert
         .alert(AppStrings.Profile.errorTitle, isPresented: Binding(
@@ -121,7 +133,12 @@ struct WithdrawView: View {
     // MARK: - 킁킁 로고
 
     private var sniffLogo: some View {
-        HahmletLogoText(text: AppStrings.Profile.Withdraw.appName)
+        Text(AppStrings.Profile.Withdraw.appName)
+            .font(.custom("Hahmlet-Bold", size: 24))
+            .tracking(2)
+            .foregroundColor(.black)
+            .lineLimit(1)
+            .fixedSize()
             .frame(width: 47, height: 37, alignment: .leading)
     }
 
@@ -203,67 +220,27 @@ struct WithdrawView: View {
         }
         .frame(width: 24, height: 24)
     }
-}
 
-private struct HahmletLogoText: UIViewRepresentable {
-
-    let text: String
-
-    func makeUIView(context: Context) -> UILabel {
-        let label = UILabel()
-        label.backgroundColor = .clear
-        label.numberOfLines = 1
-        label.lineBreakMode = .byClipping
-        label.setContentHuggingPriority(.required, for: .horizontal)
-        label.setContentCompressionResistancePriority(.required, for: .horizontal)
-        return label
+    private var keyWindow: UIWindow? {
+        let scenes = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+        return scenes
+            .flatMap(\.windows)
+            .first(where: \.isKeyWindow)
+            ?? scenes.flatMap(\.windows).first
     }
 
-    func updateUIView(_ label: UILabel, context: Context) {
-        HahmletFontLoader.registerIfNeeded()
-
-        let font = HahmletFontLoader.logoFont(size: 24)
-        label.attributedText = NSAttributedString(
-            string: text,
-            attributes: [
-                .font: font,
-                .kern: 2,
-                .foregroundColor: UIColor.black
-            ]
-        )
-    }
-}
-
-private enum HahmletFontLoader {
-
-    private static var didRegister = false
-
-    static func registerIfNeeded() {
-        guard !didRegister else { return }
-        didRegister = true
-
-        [
-            ("Hahmlet-Bold", "ttf"),
-            ("Hahmlet-Bold", "otf"),
-            ("Hahmlet", "ttf"),
-            ("Hahmlet", "otf"),
-            ("Hahmlet-VariableFont_wght", "ttf")
-        ].forEach { name, ext in
-            guard let url = Bundle.main.url(forResource: name, withExtension: ext) else { return }
-            CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
+    private func handleReauthentication(_ provider: WithdrawalReauthenticationProvider) {
+        switch provider {
+        case .apple:
+            guard let keyWindow else { return }
+            viewModel.reauthenticateWithApple(presentationAnchor: keyWindow)
+        case .google:
+            guard let keyWindow else { return }
+            viewModel.reauthenticateWithGoogle(presentingWindow: keyWindow)
+        case .unsupported:
+            viewModel.clearReauthenticationRequest()
         }
-    }
-
-    static func logoFont(size: CGFloat) -> UIFont {
-        if let font = UIFont(name: "Hahmlet-Bold", size: size) {
-            return font
-        }
-
-        if let font = UIFont(name: "Hahmlet", size: size) {
-            return font
-        }
-
-        return .systemFont(ofSize: size, weight: .bold)
     }
 }
 
@@ -271,8 +248,12 @@ private enum HahmletFontLoader {
     NavigationStack {
         WithdrawView(viewModel: WithdrawViewModel(
             nickname: "킁킁이",
-            authService: AuthService.shared,
-            coreDataStack: .shared
+            withdrawalService: WithdrawalService(
+                authService: AuthService.shared,
+                appleSignInHelper: AppleSignInHelper(),
+                googleSignInHelper: GoogleSignInHelper(),
+                coreDataStack: .shared
+            )
         ))
             .environmentObject(AppStateManager())
     }

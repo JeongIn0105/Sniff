@@ -55,6 +55,7 @@ private struct CachedCollectedPerfume: Codable {
     let usageStatus: String?
     let usageFrequency: String?
     let preferenceLevel: String?
+    let registrationEditCount: Int?
 
     nonisolated init(_ perfume: CollectedPerfume) {
         id = perfume.id
@@ -68,6 +69,7 @@ private struct CachedCollectedPerfume: Codable {
         usageStatus = perfume.usageStatus?.rawValue
         usageFrequency = perfume.usageFrequency?.rawValue
         preferenceLevel = perfume.preferenceLevel?.rawValue
+        registrationEditCount = perfume.registrationEditCount
     }
 
     nonisolated var model: CollectedPerfume {
@@ -85,7 +87,8 @@ private struct CachedCollectedPerfume: Codable {
             createdAt: createdAt,
             usageStatus: usageStatus.flatMap(CollectedPerfumeUsageStatus.init(rawValue:)),
             usageFrequency: usageFrequency.flatMap(CollectedPerfumeUsageFrequency.init(rawValue:)),
-            preferenceLevel: preferenceLevel.flatMap(CollectedPerfumePreferenceLevel.init(rawValue:))
+            preferenceLevel: preferenceLevel.flatMap(CollectedPerfumePreferenceLevel.init(rawValue:)),
+            registrationEditCount: registrationEditCount ?? 0
         )
     }
 }

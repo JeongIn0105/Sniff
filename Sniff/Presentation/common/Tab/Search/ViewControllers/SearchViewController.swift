@@ -13,54 +13,8 @@ import SnapKit
 import Then
 import RxSwift
 import RxCocoa
-import Kingfisher
 
 final class SearchViewController: UIViewController {
-
-    private enum SearchStyle {
-        static let neutral950 = UIColor(red: 0.13, green: 0.13, blue: 0.13, alpha: 1)
-        static let neutral400 = UIColor(red: 0.69, green: 0.69, blue: 0.69, alpha: 1)
-        static let searchBackground = UIColor(red: 0.96, green: 0.96, blue: 0.96, alpha: 1)
-        static let clearButtonEditingBackground = UIColor.black.withAlphaComponent(0.5)
-        static let clearButtonResultBackground = UIColor(red: 0.74, green: 0.74, blue: 0.74, alpha: 0.5)
-
-        static func pretendard(size: CGFloat, weight: UIFont.Weight) -> UIFont {
-            let preferredName: String
-            switch weight {
-            case .semibold:
-                preferredName = "Pretendard-SemiBold"
-            case .medium:
-                preferredName = "Pretendard-Medium"
-            case .bold, .heavy, .black:
-                preferredName = "Pretendard-Bold"
-            default:
-                preferredName = "Pretendard-Regular"
-            }
-
-            return UIFont(name: preferredName, size: size)
-                ?? UIFont(name: "Pretendard-Medium", size: size)
-                ?? UIFont(name: "Pretendard", size: size)
-                ?? .systemFont(ofSize: size, weight: weight)
-        }
-
-        static func searchIconImage(color: UIColor = .black) -> UIImage {
-            let format = UIGraphicsImageRendererFormat()
-            format.scale = UIScreen.main.scale
-
-            return UIGraphicsImageRenderer(size: CGSize(width: 24, height: 24), format: format).image { _ in
-                let path = UIBezierPath()
-                path.lineWidth = 3
-                path.lineCapStyle = .round
-                path.lineJoinStyle = .round
-
-                color.setStroke()
-                UIBezierPath(ovalIn: CGRect(x: 3, y: 3, width: 13.5, height: 13.5)).stroke()
-                path.move(to: CGPoint(x: 14.5, y: 14.5))
-                path.addLine(to: CGPoint(x: 21, y: 21))
-                path.stroke()
-            }.withRenderingMode(.alwaysOriginal)
-        }
-    }
 
         // MARK: - Properties
     private let viewModel: SearchViewModel
@@ -68,41 +22,41 @@ final class SearchViewController: UIViewController {
     private let tastingRecordRepository: TastingRecordRepositoryType
     private let localTastingNoteRepository: LocalTastingNoteRepository
     private let showsRecentOnAppear: Bool
-    private let mode: PerfumeSearchMode
+    let mode: PerfumeSearchMode
     private let disposeBag = DisposeBag()
 
-    private let searchTextRelay = BehaviorRelay<String>(value: "")
-    private let searchTriggerRelay = PublishRelay<String>()
+    let searchTextRelay = BehaviorRelay<String>(value: "")
+    let searchTriggerRelay = PublishRelay<String>()
     private let clearTriggerRelay = PublishRelay<Void>()
-    private let recentSearchTapRelay = PublishRelay<String>()
+    let recentSearchTapRelay = PublishRelay<String>()
     private let suggestionTapRelay = PublishRelay<SuggestionItem>()
-    private let deleteRecentSearchRelay = PublishRelay<String>()
+    let deleteRecentSearchRelay = PublishRelay<String>()
     private let clearAllRecentSearchesRelay = PublishRelay<Void>()
     private let filterChangedRelay = PublishRelay<SearchFilter>()
     private let sortChangedRelay = PublishRelay<SortOption>()
 
-    private var currentState: SearchState
+    var currentState: SearchState
     private var currentFilter: SearchFilter = SearchFilter()
     private var currentSort: SortOption = .recommended
-    private var brandResults: [Perfume] = []
+    var brandResults: [Perfume] = []
     private var allPerfumeResults: [Perfume] = []
-    private var filteredPerfumeResults: [Perfume] = []
+    var filteredPerfumeResults: [Perfume] = []
 
         // 테이블뷰 로컬 캐시 — ViewModel output을 받아 저장
-    private var recentSearches: [RecentSearch] = []
-    private var suggestions: [SuggestionItem] = []
+    var recentSearches: [RecentSearch] = []
+    var suggestions: [SuggestionItem] = []
     private var keyboardInset: CGFloat = 0
-    private var likedPerfumeIDs = Set<String>()
+    var likedPerfumeIDs = Set<String>()
     private var ownedPerfumeIDs = Set<String>()
-    private var tastingNoteKeys = Set<String>()
+    var tastingNoteKeys = Set<String>()
     private var hasHandledRecentOnAppear = false
     private var isRegisteringCollection = false
-    private var pendingRegisterSuggestion: (name: String, brand: String)?
+    var pendingRegisterSuggestion: (name: String, brand: String)?
     private weak var presentedTastingFormController: UIViewController?
 
     // MARK: - 자동저장 상태
     /// ViewModel에서 받아온 자동저장 활성화 여부 로컬 캐시
-    private var isAutoSaveEnabled = true
+    var isAutoSaveEnabled = true
     /// 키보드가 현재 화면에 올라와 있는지 여부
     private var isKeyboardVisible = false
     private var pendingAutoSaveEnabled = false
@@ -118,7 +72,7 @@ final class SearchViewController: UIViewController {
     }
 
         // 상단 검색바
-    private let searchBar = UISearchBar().then {
+    let searchBar = UISearchBar().then {
         $0.placeholder = AppStrings.UIKitScreens.Search.placeholder
         $0.searchBarStyle = .minimal
         $0.returnKeyType = .search
@@ -156,14 +110,6 @@ final class SearchViewController: UIViewController {
         btn.tintColor = .white
         return btn
     }()
-    private let landingGuideLabel = UILabel().then {
-        $0.font = .systemFont(ofSize: 14)
-        $0.textColor = .secondaryLabel
-        $0.numberOfLines = 0
-        $0.text = AppStrings.UIKitScreens.Search.landingGuideMessage
-        $0.isHidden = true
-    }
-
         // 결과 카운트 + 필터 버튼 + 정렬 버튼
     private let resultHeaderView = UIView().then {
         $0.isHidden = true
@@ -215,12 +161,13 @@ private let sortButton = UIButton(type: .system).then {
     private let brandEmptyLabel = UILabel().then {
         $0.font = .systemFont(ofSize: 14)
         $0.textColor = .secondaryLabel
+        $0.textAlignment = .center
         $0.numberOfLines = 0
         $0.isHidden = true
     }
 
         // 메인 테이블뷰 — 초기/연관 검색어
-    private lazy var tableView = UITableView().then {
+    lazy var tableView = UITableView().then {
         $0.register(RecentSearchCell.self, forCellReuseIdentifier: RecentSearchCell.identifier)
         $0.register(SuggestionCell.self, forCellReuseIdentifier: SuggestionCell.identifier)
         $0.register(SearchMessageCell.self, forCellReuseIdentifier: SearchMessageCell.identifier)
@@ -233,7 +180,7 @@ private let sortButton = UIButton(type: .system).then {
     }
 
         // 브랜드 가로 스크롤 (결과 화면)
-    private lazy var brandTableView = UITableView().then {
+    lazy var brandTableView = UITableView().then {
         $0.register(BrandResultCell.self, forCellReuseIdentifier: BrandResultCell.identifier)
         $0.separatorStyle = .none
         $0.rowHeight = 84
@@ -244,7 +191,7 @@ private let sortButton = UIButton(type: .system).then {
     }
 
         // 향수 그리드
-    private lazy var perfumeCollectionView: UICollectionView = {
+    lazy var perfumeCollectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
         let spacing: CGFloat = 16
         let itemWidth = (UIScreen.main.bounds.width - 48) / 2
@@ -351,7 +298,6 @@ private let sortButton = UIButton(type: .system).then {
         $0.layer.cornerCurve = .continuous
     }
 
-    private var resultHeaderTopToGuideConstraint: Constraint?
     private var resultHeaderTopToBrandConstraint: Constraint?
     private var resultHeaderTopToBrandEmptyConstraint: Constraint?
     private var searchBarLeadingToBackConstraint: Constraint?
@@ -432,7 +378,7 @@ private let sortButton = UIButton(type: .system).then {
     }
 }
 
-private extension SearchViewController {
+extension SearchViewController {
 
     // MARK: - UI Setup
 
@@ -549,7 +495,6 @@ private extension SearchViewController {
 
     func addSubviews() {
         [backButton, searchBar, resultHeaderView,
-         landingGuideLabel,
          brandSectionLabel, brandEmptyLabel, brandTableView,
          tableView, perfumeCollectionView, emptyView,
          autoSaveAlertOverlayView].forEach {
@@ -589,13 +534,7 @@ private extension SearchViewController {
             $0.height.equalTo(40)
         }
 
-        landingGuideLabel.snp.makeConstraints {
-            $0.top.equalTo(searchBar.snp.bottom).offset(10)
-            $0.leading.trailing.equalToSuperview().inset(20)
-        }
-
         resultHeaderView.snp.makeConstraints {
-            resultHeaderTopToGuideConstraint = $0.top.equalTo(landingGuideLabel.snp.bottom).offset(8).constraint
             resultHeaderTopToBrandConstraint = $0.top.equalTo(brandTableView.snp.bottom).offset(34).constraint
             resultHeaderTopToBrandEmptyConstraint = $0.top.equalTo(brandEmptyLabel.snp.bottom).offset(24).constraint
             $0.leading.trailing.equalToSuperview()
@@ -1092,7 +1031,6 @@ private extension SearchViewController {
         }
         tableView.isHidden = false
         resultHeaderView.isHidden = true
-        landingGuideLabel.isHidden = true
         brandSectionLabel.isHidden = true
         brandEmptyLabel.isHidden = true
         brandTableView.isHidden = true
@@ -1109,7 +1047,6 @@ private extension SearchViewController {
     func showSuggestingLayout() {
         tableView.isHidden = false
         resultHeaderView.isHidden = true
-        landingGuideLabel.isHidden = true
         brandSectionLabel.isHidden = true
         brandEmptyLabel.isHidden = true
         brandTableView.isHidden = true
@@ -1133,7 +1070,6 @@ private extension SearchViewController {
     func showResultLayout() {
         tableView.isHidden = true
         resultHeaderView.isHidden = false
-        landingGuideLabel.isHidden = true
         backButton.isHidden = false
         updateSearchBarLeadingConstraint()
         searchBar.showsCancelButton = false
@@ -1151,7 +1087,6 @@ private extension SearchViewController {
 
         tableView.isHidden = true
         resultHeaderView.isHidden = false
-        landingGuideLabel.isHidden = true
         brandSectionLabel.isHidden = false
         brandTableView.isHidden = true
         perfumeCollectionView.isHidden = true
@@ -1166,7 +1101,6 @@ private extension SearchViewController {
         brandTableView.snp.updateConstraints { $0.height.equalTo(0) }
         emptyView.configureLanding()
         resultHeaderTopToBrandConstraint?.deactivate()
-        resultHeaderTopToGuideConstraint?.deactivate()
         resultHeaderTopToBrandEmptyConstraint?.activate()
         tableView.tableFooterView = nil
         applyKeyboardInset()
@@ -1175,7 +1109,6 @@ private extension SearchViewController {
     func showRegisterEmptyLayout() {
         tableView.isHidden = true
         resultHeaderView.isHidden = true
-        landingGuideLabel.isHidden = true
         brandSectionLabel.isHidden = true
         brandTableView.isHidden = true
         brandEmptyLabel.isHidden = true
@@ -1231,21 +1164,8 @@ private extension SearchViewController {
             return
         }
 
-        guard mode != .register || hasRegistrationPerfumeNameCandidate(for: trimmedText) else {
-            showAppToast(message: "향수명으로 검색해 주세요")
-            searchBar.becomeFirstResponder()
-            return
-        }
-
         pendingRegisterSuggestion = nil
         searchTriggerRelay.accept(trimmedText)
-    }
-
-    func hasRegistrationPerfumeNameCandidate(for query: String) -> Bool {
-        suggestions.contains { item in
-            guard case let .perfume(name, _, _) = item else { return false }
-            return registrationNameScore(name: name, query: query) > 0
-        }
     }
 
     func registrationPerfumeNameResults(from perfumes: [Perfume]) -> [Perfume] {
@@ -1472,7 +1392,6 @@ private extension SearchViewController {
         brandEmptyLabel.isHidden = hasBrands
         perfumeCollectionView.isHidden = !hasPerfumes
         brandSectionLabel.attributedText = makeCountAttributed(AppStrings.UIKitScreens.Search.brandCount(brandResults.count))
-        resultHeaderTopToGuideConstraint?.deactivate()
         if hasBrands {
             resultHeaderTopToBrandEmptyConstraint?.deactivate()
             resultHeaderTopToBrandConstraint?.activate()
@@ -1515,7 +1434,7 @@ private extension SearchViewController {
     }
 }
 
-private extension SearchViewController {
+extension SearchViewController {
 
     // MARK: - Likes
 
@@ -1639,7 +1558,7 @@ private extension SearchViewController {
             .disposed(by: disposeBag)
     }
 
-    private func saveLikedPerfume(_ perfume: Perfume) {
+    func saveLikedPerfume(_ perfume: Perfume) {
         let collectionID = perfume.collectionDocumentID
         guard !likedPerfumeIDs.contains(collectionID) else { return }
 
@@ -1648,14 +1567,14 @@ private extension SearchViewController {
             .subscribe(onCompleted: { [weak self] in
                 self?.likedPerfumeIDs.insert(collectionID)
                 self?.reloadPerfumeResults()
-                NotificationCenter.default.post(name: .perfumeCollectionDidChange, object: nil)
+                NotificationCenter.default.postPerfumeCollectionDidChange(scope: .liked)
             }, onError: { [weak self] error in
                 self?.presentSaveFailure(error)
             })
             .disposed(by: disposeBag)
     }
 
-    private func deleteLikedPerfume(id: String) {
+    func deleteLikedPerfume(id: String) {
         guard likedPerfumeIDs.contains(id) else { return }
 
         collectionRepository.deleteLikedPerfume(id: id)
@@ -1663,14 +1582,14 @@ private extension SearchViewController {
             .subscribe(onCompleted: { [weak self] in
                 self?.likedPerfumeIDs.remove(id)
                 self?.reloadPerfumeResults()
-                NotificationCenter.default.post(name: .perfumeCollectionDidChange, object: nil)
+                NotificationCenter.default.postPerfumeCollectionDidChange(scope: .liked)
             }, onError: { [weak self] error in
                 self?.presentSaveFailure(error)
             })
             .disposed(by: disposeBag)
     }
 
-    private func registerCollectedPerfume(_ perfume: Perfume) {
+    func registerCollectedPerfume(_ perfume: Perfume) {
         guard mode == .register else { return }
         guard !isRegisteringCollection else { return }
         let collectionID = perfume.collectionDocumentID
@@ -1711,7 +1630,7 @@ private extension SearchViewController {
                 self.view.isUserInteractionEnabled = true
                 sourceViewController.view.isUserInteractionEnabled = true
                 self.ownedPerfumeIDs.insert(collectionID)
-                NotificationCenter.default.post(name: .perfumeCollectionDidChange, object: nil)
+                NotificationCenter.default.postPerfumeCollectionDidChange(scope: .owned)
                 self.navigationController?.popToViewController(self, animated: false)
                 self.presentCollectionRegisteredAlert(for: perfume)
             }, onError: { [weak self] error in
@@ -1759,7 +1678,7 @@ private extension SearchViewController {
     private func presentTastingForm(for perfume: Perfume) {
         let formView = TastingNoteSceneFactory.makeFormView(
             initialPerfume: perfume,
-            isOwnedPerfumeContext: ownedPerfumeIDs.contains(perfume.collectionDocumentID)
+            isOwnedPerfumeContext: true
         ) { [weak self] perfumeName in
             guard let self else { return }
             self.presentedTastingFormController?.dismiss(animated: true) {
@@ -1812,464 +1731,5 @@ private extension SearchViewController {
             searchBarLeadingToSuperviewConstraint?.activate()
         }
         view.layoutIfNeeded()
-    }
-}
-
-    // MARK: - UITableViewDataSource & Delegate
-
-extension SearchViewController: UITableViewDataSource, UITableViewDelegate {
-
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        if tableView == brandTableView {
-            return min(brandResults.count, 1)
-        }
-        switch currentState {
-            case .landing:
-                return 0
-            case .initial:
-                // 자동저장 꺼짐 → 안내 셀 1개만 표시
-                if !isAutoSaveEnabled { return 1 }
-                return recentSearches.isEmpty ? 1 : recentSearches.count
-            case .suggesting:
-                return suggestions.count
-            case .result:
-                return mode == .register ? filteredPerfumeResults.count : 0
-        }
-    }
-
-    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-            // 브랜드 테이블뷰
-        if tableView == brandTableView {
-            let cell = tableView.dequeueReusableCell(
-                withIdentifier: BrandResultCell.identifier,
-                for: indexPath
-            ) as! BrandResultCell
-            let brand = brandResults[indexPath.row]
-            cell.configure(with: brand)
-            return cell
-        }
-
-            // 초기 상태 — 최근 검색어
-        if case .initial = currentState {
-            if !isAutoSaveEnabled || recentSearches.isEmpty {
-                    // 자동저장 꺼짐 안내 or 빈 상태 안내
-                let cell = tableView.dequeueReusableCell(
-                    withIdentifier: SearchMessageCell.identifier,
-                    for: indexPath
-                ) as! SearchMessageCell
-                let message = !isAutoSaveEnabled
-                    ? "검색어 저장 기능이 꺼져 있습니다."
-                    : AppStrings.UIKitScreens.Search.noRecent
-                cell.configure(message: message, topInset: 40)
-                return cell
-            }
-            let cell = tableView.dequeueReusableCell(
-                withIdentifier: RecentSearchCell.identifier,
-                for: indexPath
-            ) as! RecentSearchCell
-            cell.configure(with: recentSearches[indexPath.row])
-
-                // 개별 삭제 버튼
-            cell.deleteButton.rx.tap
-                .subscribe(onNext: { [weak self] in
-                    guard let self else { return }
-                    let query = self.recentSearches[indexPath.row].query
-                    self.deleteRecentSearchRelay.accept(query)
-                })
-                .disposed(by: cell.disposeBag)
-
-            return cell
-        }
-
-            // 타이핑 중 — 연관 검색어 (썸네일 이미지 URL 포함)
-        if case .suggesting = currentState {
-            let cell = tableView.dequeueReusableCell(
-                withIdentifier: SuggestionCell.identifier,
-                for: indexPath
-            ) as! SuggestionCell
-            let item = suggestions[indexPath.row]
-            cell.configure(with: item, query: searchTextRelay.value, imageUrl: item.imageUrl)
-            return cell
-        }
-
-        if case .result = currentState, mode == .register {
-            let cell = tableView.dequeueReusableCell(
-                withIdentifier: PerfumeSearchResultCell.identifier,
-                for: indexPath
-            ) as! PerfumeSearchResultCell
-            cell.configure(with: filteredPerfumeResults[indexPath.row])
-            return cell
-        }
-
-        return UITableViewCell()
-    }
-
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        tableView.deselectRow(at: indexPath, animated: true)
-
-            // 브랜드 테이블뷰
-        if tableView == brandTableView {
-            let brand = brandResults[indexPath.row]
-            let query = PerfumePresentationSupport.displayBrand(brand.brand)
-            searchBar.text = query
-            searchTextRelay.accept(query)
-            updateSearchBarAccessory(for: query)
-            searchTriggerRelay.accept(query)
-            return
-        }
-
-            // 초기 상태 — 최근 검색어 탭 (자동저장 켜짐이고 검색어 있을 때만)
-        if case .initial = currentState, isAutoSaveEnabled, !recentSearches.isEmpty {
-            guard mode != .register else { return }
-            let query = recentSearches[indexPath.row].query
-            searchBar.text = query
-            searchTextRelay.accept(query)
-            updateSearchBarAccessory(for: query)
-            recentSearchTapRelay.accept(query)
-            return
-        }
-
-            // 타이핑 중 — 연관 검색어 탭
-        if case .suggesting = currentState {
-            let item = suggestions[indexPath.row]
-            let query = item.displayName
-            if mode == .register, case let .perfume(name, brand, _) = item {
-                pendingRegisterSuggestion = (name: name, brand: brand)
-            }
-            searchBar.text = query
-            searchTextRelay.accept(query)
-            updateSearchBarAccessory(for: query)
-            searchTriggerRelay.accept(query)
-            searchBar.resignFirstResponder()
-            return
-        }
-
-        if case .result = currentState, mode == .register {
-            registerCollectedPerfume(filteredPerfumeResults[indexPath.row])
-            return
-        }
-    }
-
-    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        guard tableView != brandTableView else { return 84 }
-
-        if case .result = currentState, mode == .register {
-            return 74
-        }
-
-        if case .initial = currentState, !isAutoSaveEnabled || recentSearches.isEmpty {
-            return 180
-        }
-
-        return UITableView.automaticDimension
-    }
-
-        // 빈 상태 또는 자동저장 꺼짐 안내 셀은 선택 비활성화
-    func tableView(_ tableView: UITableView, shouldHighlightRowAt indexPath: IndexPath) -> Bool {
-        if case .initial = currentState {
-            if !isAutoSaveEnabled || recentSearches.isEmpty {
-                return false
-            }
-        }
-        return true
-    }
-}
-
-    // MARK: - UICollectionViewDataSource & Delegate
-
-extension SearchViewController: UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
-
-    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        filteredPerfumeResults.count
-    }
-
-    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        let cell = collectionView.dequeueReusableCell(
-            withReuseIdentifier: PerfumeGridCell.identifier,
-            for: indexPath
-        ) as! PerfumeGridCell
-        let perfume = filteredPerfumeResults[indexPath.item]
-        let collectionID = perfume.collectionDocumentID
-        let hasTastingRecord = !tastingNoteKeys.isDisjoint(
-            with: PerfumePresentationSupport.recordMatchingKeys(
-                perfumeName: perfume.name,
-                brandName: perfume.brand
-            )
-        )
-        cell.configure(
-            with: perfume,
-            isLiked: likedPerfumeIDs.contains(collectionID),
-            hasTastingRecord: hasTastingRecord
-        )
-
-            // 찜하기 버튼
-        cell.wishlistButton.rx.tap
-            .subscribe(onNext: { [weak self] in
-                guard let self else { return }
-                if self.likedPerfumeIDs.contains(collectionID) {
-                    self.deleteLikedPerfume(id: collectionID)
-                } else {
-                    self.saveLikedPerfume(perfume)
-                }
-            })
-            .disposed(by: cell.disposeBag)
-
-        return cell
-    }
-
-    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        let perfume = filteredPerfumeResults[indexPath.item]
-        if mode == .register {
-            registerCollectedPerfume(perfume)
-            return
-        }
-
-        let detailVC = PerfumeDetailSceneFactory.makeViewController(perfume: perfume)
-        navigationController?.pushViewController(detailVC, animated: true)
-    }
-
-    func collectionView(
-        _ collectionView: UICollectionView,
-        layout collectionViewLayout: UICollectionViewLayout,
-        sizeForItemAt indexPath: IndexPath
-    ) -> CGSize {
-        let horizontalInset: CGFloat = 48
-        let spacing: CGFloat = 16
-        let width = floor((collectionView.bounds.width - horizontalInset - spacing) / 2)
-        return CGSize(width: width, height: width + 100)
-    }
-
-    func collectionView(
-        _ collectionView: UICollectionView,
-        layout collectionViewLayout: UICollectionViewLayout,
-        insetForSectionAt section: Int
-    ) -> UIEdgeInsets {
-        UIEdgeInsets(top: 18, left: 24, bottom: 110, right: 24)
-    }
-
-    func collectionView(
-        _ collectionView: UICollectionView,
-        layout collectionViewLayout: UICollectionViewLayout,
-        minimumLineSpacingForSectionAt section: Int
-    ) -> CGFloat {
-        20
-    }
-
-    func collectionView(
-        _ collectionView: UICollectionView,
-        layout collectionViewLayout: UICollectionViewLayout,
-        minimumInteritemSpacingForSectionAt section: Int
-    ) -> CGFloat {
-        16
-    }
-}
-
-private final class BrandResultCell: UITableViewCell {
-    static let identifier = "BrandResultCell"
-
-    private let thumbnailContainerView = UIView().then {
-        $0.backgroundColor = .systemBackground
-        $0.layer.cornerRadius = 14
-        $0.layer.cornerCurve = .continuous
-        $0.layer.borderWidth = 1
-        $0.layer.borderColor = UIColor(hex: "#E9E5DF").cgColor
-        $0.clipsToBounds = true
-    }
-
-    private let thumbnailImageView = UIImageView().then {
-        $0.contentMode = .scaleAspectFit
-        $0.clipsToBounds = true
-    }
-
-    private let brandNameLabel = UILabel().then {
-        $0.font = .systemFont(ofSize: 20, weight: .medium)
-        $0.textColor = .label
-        $0.numberOfLines = 1
-    }
-
-    private let brandEnglishLabel = UILabel().then {
-        $0.font = .systemFont(ofSize: 16, weight: .medium)
-        $0.textColor = .secondaryLabel
-        $0.numberOfLines = 1
-    }
-
-    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
-        super.init(style: style, reuseIdentifier: reuseIdentifier)
-        setup()
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError()
-    }
-
-    override func prepareForReuse() {
-        super.prepareForReuse()
-        thumbnailImageView.kf.cancelDownloadTask()
-        thumbnailImageView.image = nil
-    }
-
-    func configure(with perfume: Perfume) {
-        brandNameLabel.text = PerfumePresentationSupport.displayBrand(perfume.brand)
-        brandEnglishLabel.text = perfume.brand.uppercased()
-
-        if let imageUrl = perfume.imageUrl, let url = URL(string: imageUrl) {
-            thumbnailImageView.kf.setImage(with: url)
-        }
-    }
-
-    private func setup() {
-        selectionStyle = .none
-        backgroundColor = .systemBackground
-        contentView.backgroundColor = .systemBackground
-
-        [thumbnailContainerView, brandNameLabel, brandEnglishLabel].forEach {
-            contentView.addSubview($0)
-        }
-        thumbnailContainerView.addSubview(thumbnailImageView)
-
-        thumbnailContainerView.snp.makeConstraints {
-            $0.leading.equalToSuperview()
-            $0.centerY.equalToSuperview()
-            $0.size.equalTo(64)
-        }
-
-        thumbnailImageView.snp.makeConstraints {
-            $0.edges.equalToSuperview().inset(7)
-        }
-
-        brandNameLabel.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(10)
-            $0.leading.equalTo(thumbnailContainerView.snp.trailing).offset(16)
-            $0.trailing.equalToSuperview()
-        }
-
-        brandEnglishLabel.snp.makeConstraints {
-            $0.top.equalTo(brandNameLabel.snp.bottom).offset(8)
-            $0.leading.trailing.equalTo(brandNameLabel)
-            $0.bottom.lessThanOrEqualToSuperview().offset(-10)
-        }
-    }
-}
-
-private final class PerfumeSearchResultCell: UITableViewCell {
-    static let identifier = "PerfumeSearchResultCell"
-
-    private let thumbnailImageView = UIImageView().then {
-        $0.contentMode = .scaleAspectFill
-        $0.clipsToBounds = true
-        $0.layer.cornerRadius = 12
-        $0.layer.cornerCurve = .continuous
-        $0.layer.borderWidth = 1
-        $0.layer.borderColor = UIColor(red: 0.93, green: 0.93, blue: 0.93, alpha: 1).cgColor
-        $0.backgroundColor = .systemGray6
-    }
-
-    private let nameLabel = UILabel().then {
-        $0.font = .systemFont(ofSize: 16, weight: .medium)
-        $0.textColor = .label
-        $0.numberOfLines = 2
-        $0.lineBreakMode = .byWordWrapping
-    }
-
-    private let brandLabel = UILabel().then {
-        $0.font = .systemFont(ofSize: 16, weight: .medium)
-        $0.textColor = .secondaryLabel
-        $0.numberOfLines = 1
-    }
-
-    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
-        super.init(style: style, reuseIdentifier: reuseIdentifier)
-        setup()
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError()
-    }
-
-    override func prepareForReuse() {
-        super.prepareForReuse()
-        thumbnailImageView.kf.cancelDownloadTask()
-        thumbnailImageView.image = nil
-        nameLabel.text = nil
-        brandLabel.text = nil
-    }
-
-    func configure(with perfume: Perfume) {
-        nameLabel.text = PerfumePresentationSupport.displayPerfumeName(perfume.name)
-        brandLabel.text = PerfumePresentationSupport.displayBrand(perfume.brand)
-
-        if let imageUrl = perfume.imageUrl, let url = URL(string: imageUrl) {
-            thumbnailImageView.kf.setImage(with: url)
-        }
-    }
-
-    private func setup() {
-        selectionStyle = .none
-        backgroundColor = .systemBackground
-        contentView.backgroundColor = .systemBackground
-
-        [thumbnailImageView, nameLabel, brandLabel].forEach {
-            contentView.addSubview($0)
-        }
-
-        thumbnailImageView.snp.makeConstraints {
-            $0.leading.equalToSuperview().offset(16)
-            $0.centerY.equalToSuperview()
-            $0.top.greaterThanOrEqualToSuperview().offset(6)
-            $0.bottom.lessThanOrEqualToSuperview().offset(-6)
-            $0.size.equalTo(62)
-        }
-
-        nameLabel.snp.makeConstraints {
-            $0.leading.equalTo(thumbnailImageView.snp.trailing).offset(12)
-            $0.top.equalToSuperview().offset(6)
-            $0.trailing.equalToSuperview().offset(-16)
-        }
-
-        brandLabel.snp.makeConstraints {
-            $0.leading.equalTo(nameLabel)
-            $0.top.equalTo(nameLabel.snp.bottom).offset(2)
-            $0.trailing.lessThanOrEqualToSuperview().offset(-16)
-            $0.bottom.equalToSuperview().offset(-6)
-        }
-    }
-}
-
-private final class SearchMessageCell: UITableViewCell {
-    static let identifier = "SearchMessageCell"
-
-    private let messageLabel = UILabel().then {
-        $0.font = UIFont(name: "Pretendard-Medium", size: 16)
-            ?? UIFont(name: "Pretendard", size: 16)
-            ?? .systemFont(ofSize: 16, weight: .medium)
-        $0.textColor = UIColor(red: 0.69, green: 0.69, blue: 0.69, alpha: 1)
-        $0.textAlignment = .center
-        $0.numberOfLines = 1
-    }
-
-    private var topConstraint: Constraint?
-
-    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
-        super.init(style: style, reuseIdentifier: reuseIdentifier)
-        setup()
-    }
-
-    required init?(coder: NSCoder) { fatalError() }
-
-    func configure(message: String, topInset: CGFloat) {
-        messageLabel.text = message
-        topConstraint?.update(offset: topInset)
-    }
-
-    private func setup() {
-        selectionStyle = .none
-        backgroundColor = .systemBackground
-        contentView.backgroundColor = .systemBackground
-        contentView.addSubview(messageLabel)
-
-        messageLabel.snp.makeConstraints {
-            topConstraint = $0.top.equalToSuperview().offset(40).constraint
-            $0.leading.trailing.equalToSuperview().inset(16)
-        }
     }
 }

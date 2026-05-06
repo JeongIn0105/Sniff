@@ -59,6 +59,10 @@ final class LoginViewModel: ObservableObject {
                         self.handleError(error)
                     }
                 case .failure(let error):
+                    if let authError = error as? AuthError, authError == .canceled {
+                        self.isLoading = false
+                        return
+                    }
                     self.isLoading = false
                     self.errorMessage = error.localizedDescription
                     self.showError = true

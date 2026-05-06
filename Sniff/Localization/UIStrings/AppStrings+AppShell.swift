@@ -37,7 +37,7 @@ extension AppStrings {
 
         enum Intro {
             static let title = "당신의 향수 취향을\n킁킁과 함께 발견해가요"
-            static let subtitle = "보유하고 있는 향수, 관심있는 향수를 등록하고\n나만의 향수를 추천받아 보세요"
+            static let subtitle = "보유하고 있는 향수, 관심있는 향수를 등록하고\n나의 취향과 함께 나만의 향수를 추천받아 보세요"
             static let start = "킁킁 시작하기"
         }
     }

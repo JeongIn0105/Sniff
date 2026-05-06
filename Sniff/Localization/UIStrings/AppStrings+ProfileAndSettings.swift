@@ -54,6 +54,8 @@ extension AppStrings {
             static let confirmMessage = "탈퇴 시 모든 데이터가 영구적으로 삭제되며\n복구할 수 없습니다."
             static let confirmDestructive = "탈퇴"
             static let cancel = "취소"
+            static let completedTitle = "탈퇴가 완료되었습니다."
+            static let completedMessage = "확인을 누르면 앱이 자동 종료 됩니다."
 
             static func nickname(_ nickname: String) -> String {
                 "\(nickname)님"

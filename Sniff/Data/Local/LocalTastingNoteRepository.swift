@@ -134,8 +134,7 @@ final class LocalTastingNoteRepository {
             }
 
             for document in snapshot.documents {
-                guard var note = try? document.data(as: TastingNote.self) else { continue }
-                note.id = document.documentID
+                guard let note = try? document.data(as: TastingNote.self) else { continue }
                 let entity = LocalTastingNoteEntity(context: context)
                 entity.id = document.documentID
                 apply(note, to: entity)
@@ -298,6 +297,13 @@ final class LocalTastingNoteRepository {
         entity.memo = note.memo
         entity.perfumeImageURL = note.perfumeImageURL
         entity.usageContext = note.usageContext
+        entity.longevityExperience = note.longevityExperience
+        entity.sillageExperience = note.sillageExperience
+        entity.drydownChange = note.drydownChange
+        entity.skinChemistry = note.skinChemistry
+        entity.wearSituationsJSON = encodeStringArray(note.wearSituations)
+        entity.weatherContextsJSON = encodeStringArray(note.weatherContexts)
+        entity.applicationAreasJSON = encodeStringArray(note.applicationAreas)
         entity.createdAt = note.createdAt
         entity.updatedAt = note.updatedAt
     }
@@ -315,6 +321,13 @@ final class LocalTastingNoteRepository {
             memo: entity.memo,
             perfumeImageURL: entity.perfumeImageURL,
             usageContext: entity.usageContext,
+            longevityExperience: entity.longevityExperience,
+            sillageExperience: entity.sillageExperience,
+            drydownChange: entity.drydownChange,
+            skinChemistry: entity.skinChemistry,
+            wearSituations: decodeStringArray(entity.wearSituationsJSON),
+            weatherContexts: decodeStringArray(entity.weatherContextsJSON),
+            applicationAreas: decodeStringArray(entity.applicationAreasJSON),
             createdAt: entity.createdAt,
             updatedAt: entity.updatedAt
         )

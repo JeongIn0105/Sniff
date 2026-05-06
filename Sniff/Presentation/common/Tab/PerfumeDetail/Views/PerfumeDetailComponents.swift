@@ -169,6 +169,196 @@ final class UsageInfoView: UIView {
     }
 }
 
+final class OwnedPerfumeInfoCardView: UIView {
+    var onEditTapped: (() -> Void)?
+
+    private let titleLabel = UILabel().then {
+        $0.text = "내 보유 정보"
+        $0.font = .systemFont(ofSize: 18, weight: .bold)
+        $0.textColor = PerfumeDetailViewController.Palette.textPrimary
+    }
+
+    private let editButton = UIButton(type: .system).then {
+        var configuration = UIButton.Configuration.plain()
+        configuration.image = UIImage(systemName: "pencil")
+        configuration.imagePadding = 5
+        configuration.title = "수정"
+        configuration.baseForegroundColor = PerfumeDetailViewController.Palette.textSecondary
+        configuration.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 10, bottom: 6, trailing: 10)
+        configuration.background.strokeColor = UIColor(hex: "#DDDDDD")
+        configuration.background.strokeWidth = 1
+        configuration.background.cornerRadius = 8
+        $0.configuration = configuration
+        $0.titleLabel?.font = .systemFont(ofSize: 13, weight: .semibold)
+    }
+
+    private let editCountLabel = UILabel().then {
+        $0.font = .systemFont(ofSize: 12, weight: .semibold)
+        $0.textColor = PerfumeDetailViewController.Palette.textMuted
+        $0.textAlignment = .right
+    }
+
+    private let rowsStackView = UIStackView().then {
+        $0.axis = .vertical
+        $0.spacing = 10
+    }
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        backgroundColor = PerfumeDetailViewController.Palette.card
+        layer.cornerRadius = 18
+        layer.cornerCurve = .continuous
+        layer.borderWidth = 1.5
+        layer.borderColor = PerfumeDetailViewController.Palette.textPrimary.cgColor
+
+        [titleLabel, editCountLabel, editButton, rowsStackView].forEach { addSubview($0) }
+
+        titleLabel.snp.makeConstraints {
+            $0.top.leading.equalToSuperview().offset(20)
+        }
+
+        editButton.snp.makeConstraints {
+            $0.centerY.equalTo(titleLabel)
+            $0.trailing.equalToSuperview().inset(20)
+            $0.height.equalTo(34)
+        }
+
+        editCountLabel.snp.makeConstraints {
+            $0.centerY.equalTo(editButton)
+            $0.trailing.equalTo(editButton.snp.leading).offset(-8)
+            $0.leading.greaterThanOrEqualTo(titleLabel.snp.trailing).offset(8)
+        }
+
+        rowsStackView.snp.makeConstraints {
+            $0.top.equalTo(titleLabel.snp.bottom).offset(20)
+            $0.leading.trailing.equalToSuperview().inset(20)
+            $0.bottom.equalToSuperview().offset(-20)
+        }
+
+        editButton.addTarget(self, action: #selector(editTapped), for: .touchUpInside)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    func configure(with perfume: CollectedPerfume?) {
+        rowsStackView.arrangedSubviews.forEach {
+            rowsStackView.removeArrangedSubview($0)
+            $0.removeFromSuperview()
+        }
+
+        guard let perfume else {
+            editCountLabel.text = nil
+            editButton.isEnabled = false
+            editButton.alpha = 0.4
+            return
+        }
+
+        editCountLabel.text = "\(perfume.registrationEditCount)/\(CollectedPerfumeEditPolicy.maxRegistrationEditCount) 수정가능횟수"
+        editButton.isEnabled = perfume.canEditRegistrationInfo
+        editButton.alpha = perfume.canEditRegistrationInfo ? 1 : 0.4
+
+        rowsStackView.addArrangedSubview(makeChipRow(
+            title: "사용 상태",
+            value: perfume.usageStatus?.displayName ?? "-"
+        ))
+        rowsStackView.addArrangedSubview(makeChipRow(
+            title: "사용 빈도",
+            value: perfume.usageFrequency?.displayName ?? "-"
+        ))
+        rowsStackView.addArrangedSubview(makeChipRow(
+            title: "취향 강도",
+            value: perfume.preferenceLevel?.displayName ?? "-"
+        ))
+        rowsStackView.addArrangedSubview(makeMemoRow(memo: perfume.memo))
+    }
+
+    private func makeChipRow(title: String, value: String) -> UIView {
+        let row = UIStackView().then {
+            $0.axis = .horizontal
+            $0.alignment = .center
+            $0.spacing = 14
+        }
+
+        row.addArrangedSubview(makeTitleLabel(title))
+        row.addArrangedSubview(makeValueChip(value))
+        row.addArrangedSubview(UIView())
+        return row
+    }
+
+    private func makeMemoRow(memo: String?) -> UIView {
+        let row = UIStackView().then {
+            $0.axis = .horizontal
+            $0.alignment = .top
+            $0.spacing = 14
+        }
+
+        let trimmedMemo = memo?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let memoText = trimmedMemo.isEmpty ? "메모 없음" : trimmedMemo
+        let memoLabel = UILabel().then {
+            $0.text = memoText
+            $0.font = .italicSystemFont(ofSize: 14)
+            $0.textColor = PerfumeDetailViewController.Palette.textSecondary
+            $0.numberOfLines = 0
+        }
+
+        row.addArrangedSubview(makeTitleLabel("메모"))
+        row.addArrangedSubview(memoLabel)
+        return row
+    }
+
+    private func makeTitleLabel(_ title: String) -> UILabel {
+        UILabel().then {
+            $0.text = title
+            $0.font = .systemFont(ofSize: 15, weight: .semibold)
+            $0.textColor = PerfumeDetailViewController.Palette.textMuted
+            $0.setContentHuggingPriority(.required, for: .horizontal)
+            $0.snp.makeConstraints { $0.width.equalTo(72) }
+        }
+    }
+
+    private func makeValueChip(_ value: String) -> UIView {
+        let label = InsetLabel(contentInsets: UIEdgeInsets(top: 5, left: 14, bottom: 5, right: 14))
+        label.text = value
+        label.font = .systemFont(ofSize: 14, weight: .semibold)
+        label.textColor = UIColor(hex: "#8A6F55")
+        label.textAlignment = .center
+        label.backgroundColor = UIColor(hex: "#F1E8DF")
+        label.layer.cornerRadius = 8
+        label.layer.cornerCurve = .continuous
+        label.layer.borderWidth = 1
+        label.layer.borderColor = UIColor(hex: "#D8C5B4").cgColor
+        label.clipsToBounds = true
+        return label
+    }
+
+    @objc private func editTapped() {
+        onEditTapped?()
+    }
+}
+
+private final class InsetLabel: UILabel {
+    private let contentInsets: UIEdgeInsets
+
+    init(contentInsets: UIEdgeInsets) {
+        self.contentInsets = contentInsets
+        super.init(frame: .zero)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    override func drawText(in rect: CGRect) {
+        super.drawText(in: rect.inset(by: contentInsets))
+    }
+
+    override var intrinsicContentSize: CGSize {
+        let baseSize = super.intrinsicContentSize
+        return CGSize(
+            width: baseSize.width + contentInsets.left + contentInsets.right,
+            height: baseSize.height + contentInsets.top + contentInsets.bottom
+        )
+    }
+}
+
 private enum UsageInfoMapper {
     struct RatingInfo {
         let label: String
@@ -366,6 +556,13 @@ final class SeasonSelectionView: UIView {
         visibleTexts = Array(selectedSeasons.prefix(2)).map {
             displayMap[$0.lowercased()] ?? PerfumeKoreanTranslator.koreanSeason(for: $0)
         }
+        subviews.forEach { $0.removeFromSuperview() }
+        setNeedsLayout()
+        invalidateIntrinsicContentSize()
+    }
+
+    func configure(texts: [String]) {
+        visibleTexts = Array(texts.prefix(2))
         subviews.forEach { $0.removeFromSuperview() }
         setNeedsLayout()
         invalidateIntrinsicContentSize()

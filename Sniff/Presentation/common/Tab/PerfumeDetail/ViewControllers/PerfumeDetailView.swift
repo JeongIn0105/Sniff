@@ -32,12 +32,19 @@ final class PerfumeDetailViewController: UIViewController {
     private var currentPerfume: Perfume?
     private var likedPerfumeIDs = Set<String>()
     private var ownedPerfumeIDs = Set<String>()
+    private var ownedPerfumesByID = [String: CollectedPerfume]()
+    private var currentOwnedPerfume: CollectedPerfume?
     private var hasTastingRecord = false
     private weak var presentedTastingFormController: UIViewController?
     private weak var toastView: UIView?
     private weak var controlledTabBar: UITabBar?
     private var bottomBarCenterYConstraint: Constraint?
     private weak var bottomBarHostView: UIView?
+    private weak var presentedOwnedInfoEditController: UIViewController?
+    private var ownedInfoCollapsedHeightConstraint: Constraint?
+    private let collectionStateReloadInterval: TimeInterval = 20
+    private var collectionStateLoadedAt: Date?
+    private var isLoadingCollectionState = false
 
     private let addTastingRecordRelay = PublishRelay<Void>()
 
@@ -71,7 +78,9 @@ final class PerfumeDetailViewController: UIViewController {
     private let usageSectionView = SectionContainerView()
     private let accordsSectionView = SectionContainerView(title: AppStrings.UIKitScreens.PerfumeDetail.accords)
     private let notesSectionView = SectionContainerView(title: AppStrings.UIKitScreens.PerfumeDetail.notes)
+    private let ownedInfoSectionView = UIView()
     private let seasonSectionView = SectionContainerView(title: AppStrings.UIKitScreens.PerfumeDetail.season)
+    private let occasionSectionView = SectionContainerView(title: AppStrings.UIKitScreens.PerfumeDetail.occasion)
     private let bottomBarView = UIView().then {
         $0.backgroundColor = .clear
         $0.isOpaque = false
@@ -119,7 +128,9 @@ final class PerfumeDetailViewController: UIViewController {
     private let usageInfoView = UsageInfoView()
     private let accordListView = ScentFamilyListView()
     private let notesView = DetailNotesView()
+    private let ownedInfoCardView = OwnedPerfumeInfoCardView()
     private let seasonChipsView = SeasonSelectionView()
+    private let occasionChipsView = SeasonSelectionView()
 
     private let addTastingButton = UIButton(type: .system).then {
         $0.setTitle(AppStrings.UIKitScreens.PerfumeDetail.addTasting, for: .normal)
@@ -204,7 +215,9 @@ final class PerfumeDetailViewController: UIViewController {
             usageSectionView,
             accordsSectionView,
             notesSectionView,
-            seasonSectionView
+            ownedInfoSectionView,
+            seasonSectionView,
+            occasionSectionView
         ].forEach { contentView.addSubview($0) }
 
         topBarView.addSubview(backButton)
@@ -216,8 +229,13 @@ final class PerfumeDetailViewController: UIViewController {
         usageSectionView.embed(usageInfoView)
         accordsSectionView.embed(accordListView)
         notesSectionView.embed(notesView)
+        ownedInfoSectionView.addSubview(ownedInfoCardView)
         seasonSectionView.embed(seasonChipsView)
+        occasionSectionView.embed(occasionChipsView)
         bottomBarView.addSubview(addTastingButton)
+        ownedInfoCardView.onEditTapped = { [weak self] in
+            self?.presentOwnedInfoEditSheet()
+        }
 
         topBarView.snp.makeConstraints {
             $0.top.equalTo(view.safeAreaLayoutGuide)
@@ -305,8 +323,24 @@ final class PerfumeDetailViewController: UIViewController {
             $0.leading.trailing.equalToSuperview()
         }
 
-        seasonSectionView.snp.makeConstraints {
+        ownedInfoSectionView.snp.makeConstraints {
             $0.top.equalTo(usageSectionView.snp.bottom)
+            $0.leading.trailing.equalToSuperview()
+            ownedInfoCollapsedHeightConstraint = $0.height.equalTo(0).constraint
+        }
+
+        ownedInfoCardView.snp.makeConstraints {
+            $0.top.leading.equalToSuperview()
+            $0.size.equalTo(.zero)
+        }
+
+        seasonSectionView.snp.makeConstraints {
+            $0.top.equalTo(ownedInfoSectionView.snp.bottom)
+            $0.leading.trailing.equalToSuperview()
+        }
+
+        occasionSectionView.snp.makeConstraints {
+            $0.top.equalTo(seasonSectionView.snp.bottom)
             $0.leading.trailing.equalToSuperview()
             $0.bottom.equalToSuperview().offset(-40)
         }
@@ -320,6 +354,7 @@ final class PerfumeDetailViewController: UIViewController {
 
         backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
         likeButton.addTarget(self, action: #selector(likeButtonTapped), for: .touchUpInside)
+        updateOwnedInfoSection(with: nil)
     }
 
     private func bind() {
@@ -401,8 +436,10 @@ final class PerfumeDetailViewController: UIViewController {
         )
 
         seasonChipsView.configure(selectedSeasons: topSeasonNames(for: perfume))
+        occasionChipsView.configure(texts: topOccasionNames(for: perfume))
         let collectionID = perfume.collectionDocumentID
         updateLikeUI(isLiked: likedPerfumeIDs.contains(collectionID))
+        updateOwnedInfoSection(with: ownedPerfume(for: perfume))
         updateTastingButtonUI()
     }
 
@@ -426,6 +463,186 @@ final class PerfumeDetailViewController: UIViewController {
         }
     }
 
+    private func updateOwnedInfoSection(with ownedPerfume: CollectedPerfume?) {
+        let shouldShow = ownedPerfume != nil
+        currentOwnedPerfume = ownedPerfume
+        ownedInfoSectionView.isHidden = !shouldShow
+        ownedInfoCardView.isHidden = !shouldShow
+        ownedInfoCardView.configure(with: ownedPerfume)
+
+        if shouldShow {
+            ownedInfoCollapsedHeightConstraint?.deactivate()
+            ownedInfoCardView.snp.remakeConstraints {
+                $0.top.equalToSuperview().offset(24)
+                $0.leading.trailing.equalToSuperview().inset(20)
+                $0.bottom.equalToSuperview().offset(-24)
+            }
+        } else {
+            ownedInfoCardView.snp.remakeConstraints {
+                $0.top.leading.equalToSuperview()
+                $0.size.equalTo(.zero)
+            }
+            ownedInfoCollapsedHeightConstraint?.activate()
+        }
+    }
+
+    private func ownedPerfume(for perfume: Perfume) -> CollectedPerfume? {
+        if let item = ownedPerfumesByID[perfume.collectionDocumentID] {
+            return item
+        }
+
+        let targetKey = PerfumePresentationSupport.recordKey(
+            perfumeName: perfume.name,
+            brandName: perfume.brand
+        )
+        return ownedPerfumesByID.values.first {
+            PerfumePresentationSupport.recordKey(
+                perfumeName: $0.name,
+                brandName: $0.brand
+            ) == targetKey
+        }
+    }
+
+    private func presentOwnedInfoEditSheet() {
+        guard let ownedPerfume = currentOwnedPerfume else { return }
+        guard ownedPerfume.canEditRegistrationInfo else {
+            showToast(message: "보유 정보 수정 가능 횟수를 모두 사용했어요.")
+            return
+        }
+
+        let sheetView = OwnedPerfumeEditSheetView(
+            perfume: ownedPerfume,
+            onSave: { [weak self] info in
+                guard let self else { return }
+                self.saveOwnedInfo(info, sourceViewController: self.presentedOwnedInfoEditController)
+            },
+            onCancel: { [weak self] in
+                self?.presentedOwnedInfoEditController?.dismiss(animated: true)
+                self?.presentedOwnedInfoEditController = nil
+            },
+            onDelete: { [weak self] in
+                guard let self else { return }
+                self.deleteOwnedPerfume(sourceViewController: self.presentedOwnedInfoEditController)
+            }
+        )
+        let hostingController = UIHostingController(rootView: sheetView)
+        hostingController.modalPresentationStyle = .pageSheet
+        if let sheetPresentationController = hostingController.sheetPresentationController {
+            sheetPresentationController.detents = [.large()]
+            sheetPresentationController.prefersGrabberVisible = true
+            sheetPresentationController.preferredCornerRadius = 28
+        }
+        presentedOwnedInfoEditController = hostingController
+        present(hostingController, animated: true)
+    }
+
+    private func saveOwnedInfo(
+        _ registrationInfo: CollectedPerfumeRegistrationInfo,
+        sourceViewController: UIViewController?
+    ) {
+        guard let ownedPerfume = currentOwnedPerfume else { return }
+
+        collectionRepository
+            .updateCollectedPerfumeRegistration(id: ownedPerfume.id, registrationInfo: registrationInfo)
+            .observe(on: MainScheduler.instance)
+            .subscribe(
+                onCompleted: { [weak self, weak sourceViewController] in
+                    guard let self else { return }
+                    let updatedPerfume = self.updatedOwnedPerfume(
+                        ownedPerfume,
+                        registrationInfo: registrationInfo
+                    )
+                    self.ownedPerfumesByID[updatedPerfume.id] = updatedPerfume
+                    self.ownedPerfumeIDs.insert(updatedPerfume.id)
+                    self.updateOwnedInfoSection(with: updatedPerfume)
+                    self.notifyCollectionChanged(scope: .owned)
+                    sourceViewController?.dismiss(animated: true) {
+                        self.presentedOwnedInfoEditController = nil
+                        self.showToast(message: "보유 정보가 저장됐어요.")
+                    }
+                },
+                onError: { [weak sourceViewController] error in
+                    Self.presentEditMutationError(error, from: sourceViewController)
+                }
+            )
+            .disposed(by: disposeBag)
+    }
+
+    private func deleteOwnedPerfume(sourceViewController: UIViewController?) {
+        guard let ownedPerfume = currentOwnedPerfume else { return }
+
+        collectionRepository
+            .deleteCollectedPerfume(id: ownedPerfume.id)
+            .observe(on: MainScheduler.instance)
+            .subscribe(
+                onCompleted: { [weak self, weak sourceViewController] in
+                    guard let self else { return }
+                    self.ownedPerfumesByID.removeValue(forKey: ownedPerfume.id)
+                    self.ownedPerfumeIDs.remove(ownedPerfume.id)
+                    self.updateOwnedInfoSection(with: nil)
+                    self.notifyCollectionChanged(scope: .owned)
+                    sourceViewController?.dismiss(animated: true) {
+                        self.presentedOwnedInfoEditController = nil
+                        self.showToast(message: "보유 향수에서 해제됐어요.")
+                    }
+                },
+                onError: { [weak sourceViewController] error in
+                    Self.presentEditMutationError(error, from: sourceViewController)
+                }
+            )
+            .disposed(by: disposeBag)
+    }
+
+    private func updatedOwnedPerfume(
+        _ perfume: CollectedPerfume,
+        registrationInfo: CollectedPerfumeRegistrationInfo
+    ) -> CollectedPerfume {
+        CollectedPerfume(
+            id: perfume.id,
+            name: perfume.name,
+            brand: perfume.brand,
+            imageUrl: perfume.imageUrl,
+            mainAccords: perfume.mainAccords,
+            accordStrengths: perfume.accordStrengths,
+            memo: registrationInfo.memo,
+            createdAt: perfume.createdAt,
+            topNotes: perfume.topNotes,
+            middleNotes: perfume.middleNotes,
+            baseNotes: perfume.baseNotes,
+            generalNotes: perfume.generalNotes,
+            seasonRanking: perfume.seasonRanking,
+            concentration: perfume.concentration,
+            longevity: perfume.longevity,
+            sillage: perfume.sillage,
+            usageStatus: registrationInfo.usageStatus,
+            usageFrequency: registrationInfo.usageFrequency,
+            preferenceLevel: registrationInfo.preferenceLevel,
+            registrationEditCount: min(
+                perfume.registrationEditCount + 1,
+                CollectedPerfumeEditPolicy.maxRegistrationEditCount
+            )
+        )
+    }
+
+    private static func presentEditMutationError(
+        _ error: Error,
+        from sourceViewController: UIViewController?
+    ) {
+        let message: String
+        if let firestoreError = error as? FirestoreServiceError {
+            message = firestoreError.localizedDescription
+        } else {
+            message = "잠시 후 다시 시도해주세요."
+        }
+        let alert = UIAlertController(
+            title: AppStrings.UIKitScreens.error,
+            message: message,
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: AppStrings.UIKitScreens.confirm, style: .default))
+        sourceViewController?.present(alert, animated: true)
+    }
+
     private func topSeasonNames(for perfume: Perfume) -> [String] {
         let rankedSeasons = perfume.seasonRanking
             .sorted { lhs, rhs in
@@ -437,6 +654,40 @@ final class PerfumeDetailViewController: UIViewController {
 
         let seasons = rankedSeasons.isEmpty ? (perfume.season ?? []) : Array(rankedSeasons)
         return PerfumePresentationSupport.displaySeasons(seasons)
+    }
+
+    private func topOccasionNames(for perfume: Perfume) -> [String] {
+        let rankedOccasions = perfume.occasionRanking
+            .sorted { lhs, rhs in
+                if lhs.score != rhs.score { return lhs.score > rhs.score }
+                return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+            }
+            .prefix(2)
+            .map(\.name)
+
+        let occasions = rankedOccasions.isEmpty ? (perfume.situation ?? []) : Array(rankedOccasions)
+        return occasions.map(displayOccasion)
+    }
+
+    private func displayOccasion(_ occasion: String) -> String {
+        let normalized = occasion.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let displayMap: [String: String] = [
+            "daily": "데일리",
+            "day": "낮",
+            "night": "밤",
+            "date": "데이트",
+            "office": "출근",
+            "work": "출근",
+            "school": "학교",
+            "weekend": "주말",
+            "travel": "여행",
+            "casual": "캐주얼",
+            "formal": "포멀",
+            "party": "파티",
+            "sport": "운동",
+            "gym": "운동"
+        ]
+        return displayMap[normalized] ?? occasion
     }
 
     private func updateLoadingState(_ isLoading: Bool) {
@@ -634,6 +885,10 @@ final class PerfumeDetailViewController: UIViewController {
     }
 
     private func loadLikedPerfumes() {
+        guard shouldReloadCollectionState else { return }
+        isLoadingCollectionState = true
+        collectionStateLoadedAt = Date()
+
         collectionRepository.fetchLikedPerfumes()
             .observe(on: MainScheduler.instance)
             .subscribe(
@@ -643,9 +898,13 @@ final class PerfumeDetailViewController: UIViewController {
                     if let perfume = self.currentPerfume {
                         self.updateLikeUI(isLiked: self.likedPerfumeIDs.contains(perfume.collectionDocumentID))
                     }
+                    self.isLoadingCollectionState = false
                 },
-                onFailure: { error in
+                onFailure: { [weak self] error in
+                    self?.isLoadingCollectionState = false
+                    #if DEBUG
                     print("[PerfumeDetail] fetchLikedPerfumes failed: \(error)")
+                    #endif
                 }
             )
             .disposed(by: disposeBag)
@@ -656,12 +915,28 @@ final class PerfumeDetailViewController: UIViewController {
                 onSuccess: { [weak self] items in
                     guard let self else { return }
                     self.ownedPerfumeIDs = Set(items.map(\.id))
+                    self.ownedPerfumesByID = items.reduce(into: [String: CollectedPerfume]()) { result, item in
+                        result[item.id] = item
+                    }
+                    if let perfume = self.currentPerfume {
+                        self.updateOwnedInfoSection(with: self.ownedPerfume(for: perfume))
+                    }
+                    self.isLoadingCollectionState = false
                 },
-                onFailure: { error in
+                onFailure: { [weak self] error in
+                    self?.isLoadingCollectionState = false
+                    #if DEBUG
                     print("[PerfumeDetail] fetchCollection failed: \(error)")
+                    #endif
                 }
             )
             .disposed(by: disposeBag)
+    }
+
+    private var shouldReloadCollectionState: Bool {
+        guard !isLoadingCollectionState else { return false }
+        guard let collectionStateLoadedAt else { return true }
+        return Date().timeIntervalSince(collectionStateLoadedAt) > collectionStateReloadInterval
     }
 
     private func toggleLike() {
@@ -677,7 +952,7 @@ final class PerfumeDetailViewController: UIViewController {
                 .observe(on: MainScheduler.instance)
                 .subscribe(onCompleted: { [weak self] in
                     self?.likeButton.isEnabled = true
-                    self?.notifyCollectionChanged()
+                    self?.notifyCollectionChanged(scope: .liked)
                 }, onError: { [weak self] error in
                     self?.likeButton.isEnabled = true
                     self?.updateLikeState(for: collectionID, isLiked: wasLiked)
@@ -689,7 +964,7 @@ final class PerfumeDetailViewController: UIViewController {
                 .observe(on: MainScheduler.instance)
                 .subscribe(onCompleted: { [weak self] in
                     self?.likeButton.isEnabled = true
-                    self?.notifyCollectionChanged()
+                    self?.notifyCollectionChanged(scope: .liked)
                 }, onError: { [weak self] error in
                     self?.likeButton.isEnabled = true
                     self?.updateLikeState(for: collectionID, isLiked: wasLiked)
@@ -719,15 +994,15 @@ final class PerfumeDetailViewController: UIViewController {
             .observe(on: MainScheduler.instance)
             .subscribe(onSuccess: { [weak self] records in
                 guard let self else { return }
-                let key = PerfumePresentationSupport.recordKey(
+                let keys = PerfumePresentationSupport.recordMatchingKeys(
                     perfumeName: perfume.name,
                     brandName: perfume.brand
                 )
                 self.hasTastingRecord = records.contains {
-                    PerfumePresentationSupport.recordKey(
+                    !keys.isDisjoint(with: PerfumePresentationSupport.recordMatchingKeys(
                         perfumeName: $0.perfumeName,
                         brandName: $0.brandName
-                    ) == key
+                    ))
                 }
                 self.updateTastingButtonUI()
             }, onFailure: { _ in })
@@ -739,8 +1014,10 @@ final class PerfumeDetailViewController: UIViewController {
     }
 
     private func presentMutationError(_ error: Error) {
+        #if DEBUG
         print("[PerfumeDetail] mutation error: \(error)")
         print("[PerfumeDetail] mutation error (NSError): \((error as NSError).domain) code=\((error as NSError).code) userInfo=\((error as NSError).userInfo)")
+        #endif
         if let limitError = error as? CollectionUsageLimitError {
             showToast(message: limitError.localizedDescription)
         } else if error is FirestoreServiceError {
@@ -750,8 +1027,8 @@ final class PerfumeDetailViewController: UIViewController {
         }
     }
 
-    private func notifyCollectionChanged() {
-        NotificationCenter.default.post(name: .perfumeCollectionDidChange, object: nil)
+    private func notifyCollectionChanged(scope: PerfumeCollectionChangeScope) {
+        NotificationCenter.default.postPerfumeCollectionDidChange(scope: scope)
     }
 
     private func navigateToMyPage() {

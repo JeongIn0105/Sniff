@@ -86,7 +86,10 @@ extension AppleSignInHelper: ASAuthorizationControllerDelegate {
     func authorizationController(controller: ASAuthorizationController,
                                   didCompleteWithError error: Error) {
         if let authError = error as? ASAuthorizationError,
-           authError.code == .canceled { return }
+           authError.code == .canceled {
+            onCompletion?(.failure(AuthError.canceled))
+            return
+        }
         onCompletion?(.failure(error))
     }
 }
@@ -110,11 +113,14 @@ extension AppleSignInHelper: ASAuthorizationControllerPresentationContextProvidi
 }
 
 // MARK: - 커스텀 에러
-enum AuthError: LocalizedError {
+enum AuthError: LocalizedError, Equatable {
     case invalidCredential
+    case canceled
+
     var errorDescription: String? {
         switch self {
         case .invalidCredential: return AppStrings.AppShell.Login.invalidCredential
+        case .canceled: return nil
         }
     }
 }

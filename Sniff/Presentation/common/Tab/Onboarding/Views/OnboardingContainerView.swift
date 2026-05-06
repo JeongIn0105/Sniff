@@ -159,10 +159,10 @@ private struct OnboardingTagStepView: View {
             Button(action: onNext) {
                 Text(AppStrings.Onboarding.next)
                     .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(isActionEnabled ? .black : Color(hex: "#9EA6B5"))
+                    .foregroundStyle(isActionEnabled ? .white : Color(hex: "#9EA6B5"))
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
-                    .background(isActionEnabled ? Color(hex: "#F1E8DF") : Color(hex: "#E2E5EA"))
+                    .background(isActionEnabled ? Color(hex: "#242424") : Color(hex: "#E2E5EA"))
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
             .disabled(!isActionEnabled)
@@ -178,7 +178,7 @@ private struct OnboardingTagStepView: View {
     private var tagContent: some View {
         switch layout {
         case .flow:
-            FlowLayout(spacing: 10) {
+            FlowLayout(spacing: 12) {
                 ForEach(groups.flatMap(\.tags), id: \.self) { tag in
                     tagChip(tag)
                 }
@@ -193,7 +193,7 @@ private struct OnboardingTagStepView: View {
                                 .foregroundStyle(Color(hex: "#243044"))
                         }
 
-                        FlowLayout(spacing: 10) {
+                        FlowLayout(spacing: 12) {
                             ForEach(groups[index].tags, id: \.self) { tag in
                                 tagChip(tag)
                             }
@@ -202,11 +202,11 @@ private struct OnboardingTagStepView: View {
                 }
             }
         case .verticalList:
-            VStack(spacing: 14) {
+            VStack(spacing: 12) {
                 ForEach(groups.flatMap(\.tags), id: \.self) { tag in
                     tagChip(tag)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 78)
+                        .frame(height: 76)
                 }
             }
         case .twoColumnGrid:
@@ -220,7 +220,7 @@ private struct OnboardingTagStepView: View {
                 ForEach(groups.flatMap(\.tags), id: \.self) { tag in
                     tagChip(tag)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 72)
+                        .frame(height: 76)
                 }
             }
         }
@@ -235,18 +235,52 @@ private struct OnboardingTagStepView: View {
         return Button {
             onTagTap(tag)
         } label: {
-            Text(tag)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(disabled ? Color(hex: "#C5CAD2") : Color(hex: "#243044"))
-                .padding(.horizontal, layout.horizontalPadding)
-                .frame(height: layout.chipHeight)
-                .frame(maxWidth: layout.fillsWidth ? .infinity : nil)
-                .background(selected ? Color(hex: "#F1E8DF") : Color.white)
-                .overlay(
-                    Capsule()
-                        .stroke(disabled ? Color(hex: "#E6E9EE") : Color(hex: "#CBD1DA"), lineWidth: 1)
-                )
-                .clipShape(Capsule())
+            HStack(spacing: layout.iconSpacing) {
+                if layout.showsLeadingIcon {
+                    ZStack {
+                        Circle()
+                            .fill(selected ? Color.black : Color(hex: "#F4EDE6"))
+                            .frame(width: 28, height: 28)
+
+                        Image(systemName: selected ? "checkmark" : "plus")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(selected ? .white : Color(hex: "#8A6F55"))
+                    }
+                }
+
+                Text(tag)
+                    .font(.system(size: layout.fontSize, weight: .semibold))
+                    .foregroundStyle(disabled ? Color(hex: "#B8BEC8") : Color(hex: "#243044"))
+                    .lineLimit(layout.textLineLimit)
+                    .minimumScaleFactor(0.86)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: layout.fillsWidth ? .infinity : nil, alignment: .leading)
+
+                if layout.fillsWidth {
+                    Spacer(minLength: 0)
+                }
+            }
+            .padding(.horizontal, layout.horizontalPadding)
+            .frame(height: layout.chipHeight)
+            .frame(maxWidth: layout.fillsWidth ? .infinity : nil)
+            .background(
+                RoundedRectangle(cornerRadius: layout.cornerRadius, style: .continuous)
+                    .fill(selected ? Color(hex: "#F7EEE5") : Color.white)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: layout.cornerRadius, style: .continuous)
+                    .stroke(
+                        selected ? Color.black : (disabled ? Color(hex: "#E6E9EE") : Color(hex: "#E1E5EC")),
+                        lineWidth: selected ? 1.5 : 1
+                    )
+            )
+            .shadow(
+                color: selected ? Color.black.opacity(0.10) : Color.black.opacity(0.045),
+                radius: selected ? 12 : 8,
+                x: 0,
+                y: selected ? 7 : 4
+            )
+            .opacity(disabled ? 0.55 : 1)
         }
         .disabled(disabled)
         .buttonStyle(.plain)
@@ -262,9 +296,9 @@ private enum OnboardingTagLayout {
     var chipHeight: CGFloat {
         switch self {
         case .verticalList, .twoColumnGrid:
-            return 72
+            return 76
         case .flow, .groupedFlow:
-            return 44
+            return 48
         }
     }
 
@@ -284,6 +318,46 @@ private enum OnboardingTagLayout {
         case .flow, .groupedFlow:
             return false
         }
+    }
+
+    var cornerRadius: CGFloat {
+        switch self {
+        case .verticalList, .twoColumnGrid:
+            return 18
+        case .flow, .groupedFlow:
+            return 16
+        }
+    }
+
+    var fontSize: CGFloat {
+        switch self {
+        case .verticalList, .twoColumnGrid:
+            return 16
+        case .flow, .groupedFlow:
+            return 15
+        }
+    }
+
+    var textLineLimit: Int {
+        switch self {
+        case .verticalList, .twoColumnGrid:
+            return 2
+        case .flow, .groupedFlow:
+            return 1
+        }
+    }
+
+    var showsLeadingIcon: Bool {
+        switch self {
+        case .verticalList, .twoColumnGrid:
+            return true
+        case .flow, .groupedFlow:
+            return false
+        }
+    }
+
+    var iconSpacing: CGFloat {
+        showsLeadingIcon ? 12 : 0
     }
 }
 

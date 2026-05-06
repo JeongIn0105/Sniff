@@ -41,6 +41,11 @@ struct PerfumeScoreBreakdown {
     // MARK: - PerfumeScorer
 
 struct PerfumeScorer {
+    private enum ScorePolicy {
+        static let accordWeight = 0.8
+        static let noteWeight = 0.2
+        static let intensityBonusPoint = 4.0
+    }
 
     func score(
         perfume: Perfume,
@@ -76,7 +81,11 @@ struct PerfumeScorer {
             partialResult + profile.scentVector[pair.key, default: 0] * pair.value
         }
 
-        return min(1, accordScore + noteScore)
+        return min(
+            1,
+            accordScore * ScorePolicy.accordWeight
+            + noteScore * ScorePolicy.noteWeight
+        )
     }
 
     func breakdown(
@@ -129,7 +138,7 @@ struct PerfumeScorer {
         }
 
             // 노트 레이어는 보조 신호 — 20% 비중으로 합산
-        let noteBonus = noteRawScore * 0.2
+        let noteBonus = noteRawScore * ScorePolicy.noteWeight
 
             // MARK: 레이어 3 — 강도 보너스
 
@@ -142,7 +151,7 @@ struct PerfumeScorer {
                 .filter { woodyFamilySet.contains($0.family) }
                 .map { $0.weightedScore }
                 .reduce(0, +)
-            if woodyScore > 0 { intensityBonus += 0.1 * woodyScore }
+            if woodyScore > 0 { intensityBonus += ScorePolicy.intensityBonusPoint * woodyScore }
         }
 
         if profile.intensityLevel.contains("약") {
@@ -150,12 +159,16 @@ struct PerfumeScorer {
                 .filter { freshFamilySet.contains($0.family) }
                 .map { $0.weightedScore }
                 .reduce(0, +)
-            if freshScore > 0 { intensityBonus += 0.1 * freshScore }
+            if freshScore > 0 { intensityBonus += ScorePolicy.intensityBonusPoint * freshScore }
         }
 
             // MARK: 최종 합산
             // accord 80% + note 20% + 강도 보너스
-        let preferredScore = min(1, accordScore + noteRawScore)
+        let preferredScore = min(
+            1,
+            accordScore * ScorePolicy.accordWeight
+            + noteBonus
+        )
         let impressionScore = impressionScore(perfume: perfume, profile: profile)
         let seasonScore = seasonScore(perfume: perfume, profile: profile)
         let availabilityScore = min(1.0, Double(PerfumeKoreanTranslator.koreaBrandAvailabilityScore(for: perfume)) / 100.0)

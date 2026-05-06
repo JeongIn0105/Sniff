@@ -88,6 +88,14 @@ final class TastingNoteViewModel: ObservableObject {
 
     var hasSelectedNotes: Bool { !selectedNoteIDs.isEmpty }
 
+    var addButtonTitle: String {
+        opensOwnedUsageForm ? "사용 기록 작성" : "시향기 작성"
+    }
+
+    var opensOwnedUsageForm: Bool {
+        perfumeScope == nil && selectedFilter == .owned
+    }
+
     private var uid: String? { Auth.auth().currentUser?.uid }
  
     // MARK: - Private
@@ -328,9 +336,11 @@ final class TastingNoteViewModel: ObservableObject {
     private func primaryPerfumeKey(perfumeName: String, brandName: String) -> String {
         let normalizedBrand = brandName
             .trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "en_US_POSIX"))
             .lowercased()
         let normalizedPerfume = perfumeName
             .trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "en_US_POSIX"))
             .lowercased()
         return "\(normalizedBrand)|\(normalizedPerfume)"
     }

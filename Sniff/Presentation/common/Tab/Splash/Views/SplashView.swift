@@ -9,24 +9,25 @@ import SwiftUI
 
 struct SplashView: View {
     var body: some View {
-        ZStack {
-            // 배경: 전체 화면 검정
-            Color.black
-                .ignoresSafeArea()
+        GeometryReader { geometry in
+            ZStack {
+                Color.black
+                    .ignoresSafeArea()
 
-            // 앱 이름: 화면 중앙에 배치
-            Text(AppStrings.AppShell.Splash.title)
-                .font(
-                    Font.custom("Hahmlet", size: 28)
-                        .weight(.bold)
+                SniffLogoText(
+                    color: Color(red: 0.96, green: 0.91, blue: 0.87),
+                    size: 38
                 )
-                .kerning(2)
-                .multilineTextAlignment(.center)
-                .foregroundColor(Color(red: 0.95, green: 0.91, blue: 0.87))
+                .position(
+                    x: geometry.size.width / 2,
+                    y: geometry.size.height * 0.45
+                )
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.black)
+            .ignoresSafeArea()
+            .preferredColorScheme(.dark)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.black)
-        .ignoresSafeArea()
     }
 }
 

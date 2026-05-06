@@ -10,6 +10,7 @@ struct OwnedPerfumeListView: View {
 
     @StateObject private var viewModel: OwnedPerfumeListViewModel
     @Environment(\.dismiss) private var dismiss
+    @State private var editingPerfume: CollectedPerfume?
     private enum Layout {
         static let horizontalPadding: CGFloat = 16
         static let columnSpacing: CGFloat = 14
@@ -25,6 +26,10 @@ struct OwnedPerfumeListView: View {
         ZStack(alignment: .bottom) {
             VStack(spacing: 0) {
                 headerView
+                filterTabsView
+                    .padding(.bottom, 14)
+                listMetaView
+                    .padding(.bottom, 20)
 
                 if viewModel.isLoading && viewModel.perfumes.isEmpty {
                     Spacer()
@@ -64,6 +69,28 @@ struct OwnedPerfumeListView: View {
             Text(viewModel.errorMessage ?? "")
         }
         .animation(.easeInOut(duration: 0.2), value: viewModel.toastMessage)
+        .sheet(item: $editingPerfume) { perfume in
+            OwnedPerfumeEditSheetView(
+                perfume: perfume,
+                onSave: { info in
+                    Task {
+                        if await viewModel.updateOwnedPerfume(perfume, registrationInfo: info) {
+                            editingPerfume = nil
+                        }
+                    }
+                },
+                onCancel: {
+                    editingPerfume = nil
+                },
+                onDelete: {
+                    Task {
+                        if await viewModel.deleteOwnedPerfume(perfume) {
+                            editingPerfume = nil
+                        }
+                    }
+                }
+            )
+        }
     }
 
     // MARK: - 헤더
@@ -90,16 +117,9 @@ struct OwnedPerfumeListView: View {
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(.primary)
             } else {
-                HStack(spacing: 6) {
-                    Text(AppStrings.TastingNoteUI.OwnedList.title)
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(.primary)
-
-                    Text(AppStrings.TastingNoteUI.OwnedList.count(viewModel.perfumeCount))
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(Color(.systemGray2))
-
-                }
+                Text(AppStrings.TastingNoteUI.OwnedList.title)
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundColor(.primary)
             }
 
             Spacer()
@@ -120,6 +140,60 @@ struct OwnedPerfumeListView: View {
         .padding(.horizontal, 15)
         .padding(.top, 14)
         .padding(.bottom, 12)
+    }
+
+    private var filterTabsView: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(OwnedPerfumeListViewModel.UsageFilter.allCases, id: \.self) { filter in
+                    filterChip(filter)
+                }
+            }
+            .padding(.horizontal, Layout.horizontalPadding)
+        }
+    }
+
+    private func filterChip(_ filter: OwnedPerfumeListViewModel.UsageFilter) -> some View {
+        let isSelected = viewModel.selectedFilter == filter
+        return Button {
+            viewModel.selectedFilter = filter
+        } label: {
+            Text(filter.title)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundColor(isSelected ? .white : Color(.systemGray))
+                .padding(.horizontal, 18)
+                .frame(height: 40)
+                .background(isSelected ? Color.primary : Color(hex: "#F2F2F3"))
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var listMetaView: some View {
+        HStack {
+            Text(AppStrings.TastingNoteUI.OwnedList.count(viewModel.perfumeCount))
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(Color(.systemGray2))
+
+            Spacer()
+
+            Menu {
+                ForEach(OwnedPerfumeListViewModel.SortOrder.allCases, id: \.self) { sortOrder in
+                    Button(sortOrder.title) {
+                        viewModel.selectedSortOrder = sortOrder
+                    }
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Text(viewModel.selectedSortOrder.title)
+                        .font(.system(size: 16, weight: .semibold))
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 12, weight: .bold))
+                }
+                .foregroundColor(Color(.systemGray))
+            }
+        }
+        .padding(.horizontal, Layout.horizontalPadding)
     }
 
     // MARK: - 빈 상태
@@ -184,9 +258,14 @@ struct OwnedPerfumeListView: View {
                 showsHeartIcon: true,
                 hasTastingRecord: !viewModel.isEditMode && perfume.hasTastingRecord
             )
+            .overlay(alignment: .bottomLeading) {
+                statusBadge(perfume.usageStatus)
+                    .padding(.leading, 10)
+                    .padding(.bottom, 8)
+            }
 
             if viewModel.isEditMode {
-                selectionCheckbox(isSelected: viewModel.selectedPerfumeIDs.contains(perfume.id))
+                SelectionCheckbox(isSelected: viewModel.selectedPerfumeIDs.contains(perfume.id))
                     .padding(.top, Layout.selectionInset)
                     .padding(.leading, Layout.selectionInset)
             }
@@ -211,16 +290,54 @@ struct OwnedPerfumeListView: View {
                     showsHeartIcon: false,
                     hasTastingRecord: perfume.hasTastingRecord
                 )
+                .overlay(alignment: .bottomLeading) {
+                    statusBadge(perfume.usageStatus)
+                        .padding(.leading, 10)
+                        .padding(.bottom, 8)
+                }
             }
             .buttonStyle(.plain)
 
-            PerfumeCardHeartButton(isLiked: perfume.isLiked, style: .grid) {
-                Task { await viewModel.toggleLike(for: perfume.id) }
+            Button {
+                guard perfume.sourceCollectedPerfume.canEditRegistrationInfo else {
+                    viewModel.showEditLimitToast()
+                    return
+                }
+                editingPerfume = perfume.sourceCollectedPerfume
+            } label: {
+                Image(systemName: "pencil")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(Color(.systemGray2))
+                    .frame(width: 40, height: 40)
+                    .background(Color(.systemBackground))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .stroke(Color(.systemGray5), lineWidth: 1)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
-            .padding(.trailing, PerfumeCardStyle.grid.likeIconInset)
-            .padding(.bottom, PerfumeCardStyle.grid.likeIconInset + (PerfumeCardStyle.grid.textBlockHeight ?? 0) + PerfumeCardStyle.grid.contentTopSpacing)
+            .buttonStyle(.plain)
+            .opacity(perfume.sourceCollectedPerfume.canEditRegistrationInfo ? 1 : 0.45)
+            .padding(.trailing, 10)
+            .padding(.bottom, 8)
         }
         .frame(width: cardWidth, alignment: .topLeading)
+    }
+
+    private func statusBadge(_ status: CollectedPerfumeUsageStatus?) -> some View {
+        Text(status?.displayName ?? "-")
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundColor(Color(hex: "#8A6F55"))
+            .lineLimit(1)
+            .minimumScaleFactor(0.85)
+            .padding(.horizontal, 10)
+            .frame(height: 30)
+            .background(Color.sniffBeige)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(Color(hex: "#D8C5B4"), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
     private func toastView(_ message: String) -> some View {
@@ -243,22 +360,6 @@ struct OwnedPerfumeListView: View {
         .opacity(0.8)
     }
 
-    private func selectionCheckbox(isSelected: Bool) -> some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 4)
-                .fill(isSelected ? Color.black : Color.white)
-
-            RoundedRectangle(cornerRadius: 4)
-                .stroke(isSelected ? Color.black : Color(.systemGray), lineWidth: 1.5)
-
-            if isSelected {
-                Image(systemName: "checkmark")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.white)
-            }
-        }
-        .frame(width: 24, height: 24)
-    }
 }
 
 // MARK: - Preview

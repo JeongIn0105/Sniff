@@ -13,6 +13,18 @@ import GoogleSignIn
 
 // MARK: - AppDelegate
 
+private enum FirebaseBootstrap {
+    static func configureIfNeeded() {
+        if FirebaseApp.app() == nil {
+            FirebaseApp.configure()
+        }
+
+        if let clientID = FirebaseApp.app()?.options.clientID {
+            GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: clientID)
+        }
+    }
+}
+
 final class AppDelegate: NSObject, UIApplicationDelegate {
 
     /// 구글 로그인의 OAuth 리다이렉트 URL을 처리합니다.
@@ -40,16 +52,13 @@ enum AppState {
 @main
 struct SniffApp: App {
 
+    private let firebaseBootstrap: Void = FirebaseBootstrap.configureIfNeeded()
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var appStateManager = AppStateManager()
-    private let dependencyContainer = AppDependencyContainer.shared
+    private var dependencyContainer: AppDependencyContainer { AppDependencyContainer.shared }
 
     init() {
-        FirebaseApp.configure()
-        // Google Sign-In Client ID 설정
-        if let clientID = FirebaseApp.app()?.options.clientID {
-            GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: clientID)
-        }
+        _ = firebaseBootstrap
     }
 
     var body: some Scene {

@@ -205,16 +205,10 @@ struct LikedPerfumeListView: View {
                 .foregroundColor(Color(.systemGray3))
 
             ForEach(Array(displayAccords.enumerated()), id: \.offset) { index, accord in
-                HStack(spacing: 4) {
-                    Circle()
-                        .fill(Color(uiColor: ScentFamilyColor.color(for: accords[index])))
-                        .frame(width: 7, height: 7)
-
-                    Text(accord)
-                        .font(.system(size: 13, weight: .regular))
-                        .foregroundColor(Color(.systemGray))
-                        .lineLimit(1)
-                }
+                (Text("● ").foregroundColor(Color(uiColor: ScentFamilyColor.color(for: accords[index])))
+                    + Text(accord).foregroundColor(Color(.systemGray)))
+                    .font(.system(size: 13, weight: .regular))
+                    .lineLimit(1)
             }
 
             Spacer(minLength: 0)

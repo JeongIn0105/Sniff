@@ -25,10 +25,15 @@ enum SettingsSceneFactory {
     @MainActor
     static func makeWithdrawView(nickname: String) -> WithdrawView {
         let container = AppDependencyContainer.shared
+        let withdrawalService = WithdrawalService(
+            authService: container.authService,
+            appleSignInHelper: AppleSignInHelper(),
+            googleSignInHelper: GoogleSignInHelper(),
+            coreDataStack: container.coreDataStack
+        )
         let viewModel = WithdrawViewModel(
             nickname: nickname,
-            authService: container.authService,
-            coreDataStack: container.coreDataStack
+            withdrawalService: withdrawalService
         )
         return WithdrawView(viewModel: viewModel)
     }

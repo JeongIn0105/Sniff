@@ -32,6 +32,7 @@ final class HomeViewModel {
         let quickActions: Driver<[HomeQuickAction]>
         let recommendations: Driver<[HomePerfumeItem]>
         let popularRecommendations: Driver<[HomePerfumeItem]>
+        let recommendationEmptyState: Driver<HomeRecommendationEmptyState>
         let profile: Driver<HomeProfileItem?>
         let route: Signal<HomeRoute>
     }
@@ -178,6 +179,13 @@ final class HomeViewModel {
             }
             .asDriver(onErrorJustReturn: [])
 
+        let recommendationEmptyState = Observable
+            .combineLatest(sourceData, recommendationResult)
+            .map { source, result in
+                makeRecommendationEmptyState(source: source, result: result)
+            }
+            .asDriver(onErrorJustReturn: .loadFailed)
+
         input.perfumeRegisterTap
             .map { HomeRoute.perfumeRegister }
             .bind(to: routeRelay)
@@ -207,10 +215,36 @@ final class HomeViewModel {
             quickActions: quickActions,
             recommendations: recommendations,
             popularRecommendations: popularRecommendations,
+            recommendationEmptyState: recommendationEmptyState,
             profile: profile,
             route: routeRelay.asSignal()
         )
     }
+}
+
+struct HomeRecommendationEmptyState {
+    let systemImageName: String
+    let message: String
+
+    static let insufficientData = HomeRecommendationEmptyState(
+        systemImageName: "sparkles",
+        message: AppStrings.Home.emptyRecommend
+    )
+
+    static let loadFailed = HomeRecommendationEmptyState(
+        systemImageName: "exclamationmark.circle",
+        message: AppStrings.Home.emptyRecommendLoadFailed
+    )
+
+    static let ownedFiltered = HomeRecommendationEmptyState(
+        systemImageName: "checkmark.seal",
+        message: AppStrings.Home.emptyRecommendOwnedFiltered
+    )
+
+    static let preparing = HomeRecommendationEmptyState(
+        systemImageName: "wand.and.stars",
+        message: AppStrings.Home.emptyRecommendPreparing
+    )
 }
 
 private extension HomeViewModel {
@@ -272,6 +306,25 @@ private func mapToHomePerfumeItem(
             )
         )
     )
+}
+
+private func makeRecommendationEmptyState(
+    source: HomeFeedData?,
+    result: RecommendationResult?
+) -> HomeRecommendationEmptyState {
+    guard let source else { return .loadFailed }
+    guard let result else { return .loadFailed }
+    guard result.perfumes.isEmpty else { return .preparing }
+
+    if !source.collection.isEmpty {
+        return .ownedFiltered
+    }
+
+    if source.tastingRecords.isEmpty {
+        return .insufficientData
+    }
+
+    return .preparing
 }
 
 private func makeHomeAccordText(_ perfume: Perfume, profile: UserTasteProfile) -> String {

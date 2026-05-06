@@ -17,6 +17,13 @@ struct TastingRecord {
     let moodTags: [String]
     let memo: String?
     let revisitDesire: String?
+    let longevityExperience: String?
+    let sillageExperience: String?
+    let drydownChange: String?
+    let skinChemistry: String?
+    let wearSituations: [String]
+    let weatherContexts: [String]
+    let applicationAreas: [String]
     let createdAt: Date
     let updatedAt: Date
 }
@@ -32,6 +39,13 @@ extension TastingRecord {
         moodTags: [String],
         memo: String?,
         revisitDesire: String?,
+        longevityExperience: String? = nil,
+        sillageExperience: String? = nil,
+        drydownChange: String? = nil,
+        skinChemistry: String? = nil,
+        wearSituations: [String] = [],
+        weatherContexts: [String] = [],
+        applicationAreas: [String] = [],
         updatedAt: Date
     ) {
         self.init(
@@ -44,6 +58,13 @@ extension TastingRecord {
             moodTags: moodTags,
             memo: memo,
             revisitDesire: revisitDesire,
+            longevityExperience: longevityExperience,
+            sillageExperience: sillageExperience,
+            drydownChange: drydownChange,
+            skinChemistry: skinChemistry,
+            wearSituations: wearSituations,
+            weatherContexts: weatherContexts,
+            applicationAreas: applicationAreas,
             createdAt: updatedAt,
             updatedAt: updatedAt
         )
@@ -70,6 +91,13 @@ extension TastingRecord {
             moodTags: moodTags,
             memo: nil,
             revisitDesire: revisitDesire,
+            longevityExperience: nil,
+            sillageExperience: nil,
+            drydownChange: nil,
+            skinChemistry: nil,
+            wearSituations: [],
+            weatherContexts: [],
+            applicationAreas: [],
             createdAt: createdAt,
             updatedAt: updatedAt
         )
@@ -94,6 +122,13 @@ extension TastingRecord {
             moodTags: moodTags,
             memo: nil,
             revisitDesire: nil,
+            longevityExperience: nil,
+            sillageExperience: nil,
+            drydownChange: nil,
+            skinChemistry: nil,
+            wearSituations: [],
+            weatherContexts: [],
+            applicationAreas: [],
             createdAt: updatedAt,
             updatedAt: updatedAt
         )

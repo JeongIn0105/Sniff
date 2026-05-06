@@ -173,11 +173,12 @@ private extension Perfume {
             && !(middleNotes?.isEmpty ?? true)
             && !(baseNotes?.isEmpty ?? true)
         let hasSeasonInfo = !seasonRanking.isEmpty || !(season?.isEmpty ?? true)
+        let hasOccasionInfo = !occasionRanking.isEmpty || !(situation?.isEmpty ?? true)
         let hasUsageInfo = !(concentration?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
             && !(longevity?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
             && !(sillage?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
 
-        return !(hasCompleteNotes && hasSeasonInfo && hasUsageInfo)
+        return !(hasCompleteNotes && hasSeasonInfo && hasOccasionInfo && hasUsageInfo)
     }
 
     var canFetchRemoteDetail: Bool {

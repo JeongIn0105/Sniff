@@ -47,11 +47,10 @@ struct OnboardingTasteView: View {
 
                     LazyVGrid(
                         columns: [
-                            GridItem(.flexible(), spacing: 8),
-                            GridItem(.flexible(), spacing: 8),
-                            GridItem(.flexible(), spacing: 8)
+                            GridItem(.flexible(), spacing: 12),
+                            GridItem(.flexible(), spacing: 12)
                         ],
-                        spacing: 8
+                        spacing: 12
                     ) {
                         ForEach(currentTags, id: \.self) { tag in
                             TagButton(
@@ -99,7 +98,7 @@ struct OnboardingTasteView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
-                    .background(isActionEnabled ? Color.black : Color.gray.opacity(0.3))
+                    .background(isActionEnabled ? Color(hex: "#242424") : Color.gray.opacity(0.3))
                     .foregroundColor(.white)
                     .cornerRadius(14)
                 }

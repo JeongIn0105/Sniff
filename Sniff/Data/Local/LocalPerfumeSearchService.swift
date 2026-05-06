@@ -3,8 +3,7 @@
 //  Sniff
 //
 //  로컬 향수 검색 서비스
-//  Fragella 디스크 캐시 + Firestore 보유/LIKE 향수를 조합하여
-//  API 호출 없이 자동완성 후보를 반환합니다.
+//  Firestore 보유/LIKE 향수를 조합하여 자동완성 후보를 반환합니다.
 
 import Foundation
 
@@ -21,12 +20,6 @@ final class LocalPerfumeSearchService {
     // MARK: - 의존성
 
     private let firestoreService: FirestoreService
-    private let defaults = UserDefaults.standard
-
-    // MARK: - Disk cache 키
-
-    private let searchCacheKey = "sniff.fragella.searchResponses.v1"
-
     // MARK: - Init
 
     init(firestoreService: FirestoreService = .shared) {
@@ -35,7 +28,7 @@ final class LocalPerfumeSearchService {
 
     // MARK: - 인덱스 로드
 
-    /// 앱 시작 후 한 번만 호출 — 디스크 캐시 + Firestore 데이터를 비동기로 인덱싱
+    /// 앱 시작 후 한 번만 호출 — Firestore 데이터를 비동기로 인덱싱
     func buildIndex(includesUserData: Bool = true) {
         Task.detached(priority: .utility) { [weak self] in
             guard let self else { return }
@@ -94,16 +87,8 @@ final class LocalPerfumeSearchService {
         var entries: [IndexedEntry] = []
         var seenKeys = Set<String>()
 
-        // 1. Fragella 디스크 캐시에서 파싱
-        let fragellaPerfumes = loadFragellaCache()
-        for p in fragellaPerfumes {
-            let key = dedupeKey(name: p.name, brand: p.brand)
-            guard seenKeys.insert(key).inserted else { continue }
-            entries.append(makeIndexedEntry(name: p.name, brand: p.brand, imageUrl: p.imageUrl))
-        }
-
         if includesUserData {
-            // 2. Firestore 보유 향수
+            // 1. Firestore 보유 향수
             if let collection = try? await firestoreService.fetchCollection() {
                 for item in collection {
                     let key = dedupeKey(name: item.name, brand: item.brand)
@@ -112,7 +97,7 @@ final class LocalPerfumeSearchService {
                 }
             }
 
-            // 3. Firestore LIKE 향수 (LikedPerfume 모델은 imageURL — 대문자)
+            // 2. Firestore LIKE 향수 (LikedPerfume 모델은 imageURL — 대문자)
             if let liked = try? await firestoreService.fetchLikedPerfumes() {
                 for item in liked {
                     let key = dedupeKey(name: item.name, brand: item.brand)
@@ -122,27 +107,7 @@ final class LocalPerfumeSearchService {
             }
         }
 
-        await MainActor.run {
-            self.index = entries
-        }
-    }
-
-    private func loadFragellaCache() -> [Perfume] {
-        guard
-            let data = defaults.data(forKey: searchCacheKey),
-            let cacheDict = try? JSONDecoder().decode([String: DiskCacheEntryWrapper].self, from: data)
-        else { return [] }
-
-        let now = Date()
-        var perfumes: [Perfume] = []
-        for (_, entry) in cacheDict {
-            // 만료되지 않은 캐시만 사용
-            guard !entry.isExpired(referenceDate: now) else { continue }
-            if let parsed = try? FragellaResponseParser.parsePerfumeList(from: entry.data) {
-                perfumes.append(contentsOf: parsed)
-            }
-        }
-        return perfumes
+        replaceIndex(entries)
     }
 
     // MARK: - Private: 매칭 점수
@@ -155,18 +120,22 @@ final class LocalPerfumeSearchService {
     }
 
     private func brandMatchScore(entry: IndexedEntry, query: String) -> Int {
-        let brands = entry.searchableBrands.map(normalizeForSearch(_:))
-        if brands.contains(query) { return 1000 }
-        if brands.contains(where: { $0.contains(query) }) { return 800 }
-        if brands.contains(where: { isNearTypo($0, query) }) { return 650 }
+        if entry.normalizedSearchableBrands.contains(query) { return 1000 }
+        if entry.normalizedSearchableBrands.contains(where: { $0.contains(query) }) { return 800 }
+        if query.count >= 4,
+           entry.normalizedSearchableBrands.contains(where: { isNearTypo($0, query) }) {
+            return 650
+        }
         return 0
     }
 
     private func nameMatchScore(entry: IndexedEntry, query: String) -> Int {
-        let names = entry.searchableNames.map(normalizeForSearch(_:))
-        if names.contains(query) { return 900 }
-        if names.contains(where: { $0.contains(query) }) { return 700 }
-        if names.contains(where: { isNearTypo($0, query) }) { return 600 }
+        if entry.normalizedSearchableNames.contains(query) { return 900 }
+        if entry.normalizedSearchableNames.contains(where: { $0.contains(query) }) { return 700 }
+        if query.count >= 4,
+           entry.normalizedSearchableNames.contains(where: { isNearTypo($0, query) }) {
+            return 600
+        }
         return 0
     }
 
@@ -233,17 +202,22 @@ final class LocalPerfumeSearchService {
     }
 
     private func makeIndexedEntry(name: String, brand: String, imageUrl: String? = nil) -> IndexedEntry {
+        let searchableNames = uniqueSearchValues([
+            name,
+            PerfumePresentationSupport.displayPerfumeName(name)
+        ])
+        let searchableBrands = uniqueSearchValues([
+            brand,
+            PerfumePresentationSupport.displayBrand(brand)
+        ])
+
         IndexedEntry(
             name: name,
             brand: brand,
-            searchableNames: uniqueSearchValues([
-                name,
-                PerfumePresentationSupport.displayPerfumeName(name)
-            ]),
-            searchableBrands: uniqueSearchValues([
-                brand,
-                PerfumePresentationSupport.displayBrand(brand)
-            ]),
+            searchableNames: searchableNames,
+            searchableBrands: searchableBrands,
+            normalizedSearchableNames: searchableNames.map(normalizeForSearch(_:)),
+            normalizedSearchableBrands: searchableBrands.map(normalizeForSearch(_:)),
             imageUrl: imageUrl
         )
     }
@@ -255,6 +229,12 @@ final class LocalPerfumeSearchService {
             .filter { !$0.isEmpty }
             .filter { seen.insert(normalizeForSearch($0)).inserted }
     }
+
+    private func replaceIndex(_ entries: [IndexedEntry]) {
+        indexLock.lock()
+        index = entries
+        indexLock.unlock()
+    }
 }
 
 // MARK: - 내부 모델
@@ -264,21 +244,12 @@ private struct IndexedEntry {
     let brand: String
     let searchableNames: [String]
     let searchableBrands: [String]
+    let normalizedSearchableNames: [String]
+    let normalizedSearchableBrands: [String]
     /// 썸네일 이미지 URL (연관 검색어 셀 표시용)
     let imageUrl: String?
 
     var dedupeBrandKey: String {
         brand.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-    }
-}
-
-/// FragellaService 내부의 DiskCacheEntry와 동일한 구조
-/// (private 접근제어로 직접 접근 불가하여 별도 정의)
-private struct DiskCacheEntryWrapper: Codable {
-    let data: Data
-    let expiresAt: Date
-
-    func isExpired(referenceDate: Date) -> Bool {
-        referenceDate >= expiresAt
     }
 }

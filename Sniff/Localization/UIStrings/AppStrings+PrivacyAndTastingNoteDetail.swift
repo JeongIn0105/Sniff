@@ -10,7 +10,7 @@ import Foundation
 extension AppStrings {
     enum PrivacyPolicy {
         nonisolated static let title = "개인정보처리방침"
-        nonisolated static let updatedAt = "최종 업데이트: 2026년 4월"
+        nonisolated static let updatedAt = "최종 업데이트: 2026년 5월"
         nonisolated static let bullet = "•"
         nonisolated static let emailPrefix = "이메일:"
 
@@ -19,7 +19,7 @@ extension AppStrings {
                 title: "1. 수집하는 개인정보 항목",
                 body: "킁킁은 서비스 제공을 위해 다음과 같은 개인정보 및 서비스 이용 정보를 수집할 수 있습니다.",
                 bullets: [
-                    "이메일 주소 (Apple 로그인 시 제공될 수 있음)",
+                    "이메일 주소 (Apple 또는 Google 로그인 시 제공될 수 있음)",
                     "닉네임 (사용자 직접 설정)",
                     "향수 취향 데이터 (온보딩/앱 내 입력)",
                     "보유 향수, LIKE 향수, 시향 기록 등 사용자가 앱 내에서 직접 저장한 데이터",
@@ -41,7 +41,9 @@ extension AppStrings {
                 title: "3. 개인정보의 보유 및 이용 기간",
                 bullets: [
                     "원칙적으로 회원 탈퇴 시까지 개인정보를 보유 및 이용합니다.",
-                    "사용자가 탈퇴를 요청하면 관련 법령상 보관이 필요한 경우를 제외하고 지체 없이 삭제합니다.",
+                    "사용자가 탈퇴를 요청하면 관련 법령상 보관이 필요한 경우를 제외하고 Firebase Authentication 계정과 Cloud Firestore에 저장된 사용자 데이터를 지체 없이 삭제합니다.",
+                    "탈퇴 시 기기에 저장된 로컬 시향 기록도 함께 삭제합니다.",
+                    "탈퇴 후 재가입 제한을 목적으로 Apple 또는 Google 계정 식별자를 별도로 보관하지 않으며, 같은 계정으로 다시 가입할 수 있습니다.",
                     "법령에 따라 일정 기간 보관이 필요한 정보는 해당 기간 동안 별도로 보관 후 파기합니다."
                 ]
             ),
@@ -55,6 +57,7 @@ extension AppStrings {
                 body: "킁킁은 서비스 운영을 위해 다음 외부 서비스를 사용할 수 있습니다.",
                 bullets: [
                     "Apple 로그인(Sign in with Apple): 로그인 인증 처리",
+                    "Google 로그인(Google Sign-In): 로그인 인증 처리",
                     "Firebase Authentication: 사용자 인증 처리",
                     "Cloud Firestore: 사용자 데이터 저장 및 동기화",
                     "Google Gemini API: 향수 취향 분석 및 추천 생성 (입력한 취향 데이터가 Google 서버로 전송될 수 있음)",

@@ -5,7 +5,6 @@
 
 // MARK: - 보유/LIKE 향수 목록 공통 행 뷰
 import SwiftUI
-import Kingfisher
 
 struct PerfumeRowView: View {
 
@@ -17,29 +16,20 @@ struct PerfumeRowView: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            // 썸네일
-            ZStack {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color(.systemGray6))
-
-                if let urlString = imageURL,
-                   let url = URL(string: urlString) {
-                    KFImage(url)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                }
-            }
+            PerfumeCardArtworkView(
+                imageURL: imageURL,
+                perfumeName: name,
+                style: .listThumbnail
+            )
             .frame(width: 56, height: 56)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
 
             VStack(alignment: .leading, spacing: 4) {
-                // 향수명
                 Text(PerfumePresentationSupport.displayPerfumeName(name))
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(.primary)
                     .lineLimit(1)
 
-                // 브랜드 | 향 계열
                 HStack(spacing: 4) {
                     Text(PerfumePresentationSupport.displayBrand(brand))
                         .font(.system(size: 13))
@@ -50,19 +40,14 @@ struct PerfumeRowView: View {
                             .font(.system(size: 13))
                             .foregroundColor(Color(.systemGray4))
                         ForEach(PerfumePresentationSupport.displayAccords(Array(scentFamilies.prefix(2))), id: \.self) { family in
-                            HStack(spacing: 3) {
-                                Circle()
-                                    .frame(width: 4, height: 4)
-                                    .foregroundColor(family.accordColor)
-                                Text(family)
-                                    .font(.system(size: 13))
-                                    .foregroundColor(.secondary)
-                            }
+                            (Text("● ").foregroundColor(family.accordColor)
+                                + Text(family).foregroundColor(.secondary))
+                                .font(.system(size: 13))
+                                .lineLimit(1)
                         }
                     }
                 }
 
-                // 날짜
                 if let date {
                     Text(date.tastingNoteFormat)
                         .font(.system(size: 12))

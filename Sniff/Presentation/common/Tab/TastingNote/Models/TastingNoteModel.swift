@@ -7,7 +7,6 @@
 
 // MARK: - 데이터 모델
 import Foundation
-import FirebaseFirestore
 import SwiftUI
 
 // MARK: - 시향 기록 모델
@@ -20,8 +19,68 @@ enum TastingUsageContext: String, CaseIterable, Codable {
     nonisolated var displayName: String { rawValue }
 }
 
+enum TastingLongevityExperience: String, CaseIterable, Codable {
+    case underTwoHours = "2h 이하"
+    case twoToFourHours = "2~4h"
+    case fourToSixHours = "4~6h"
+    case overSixHours = "6h+"
+
+    nonisolated var displayName: String { rawValue }
+}
+
+enum TastingSillageExperience: String, CaseIterable, Codable {
+    case skinClose = "나만 맡음"
+    case oneMeter = "주변 1m"
+    case roomFilling = "방 전체"
+
+    nonisolated var displayName: String { rawValue }
+}
+
+enum TastingDrydownChange: String, CaseIterable, Codable {
+    case subtle = "거의 비슷함"
+    case moderate = "조금 달라짐"
+    case dramatic = "완전히 달라짐"
+
+    nonisolated var displayName: String { rawValue }
+}
+
+enum TastingSkinChemistry: String, CaseIterable, Codable {
+    case blooms = "더 살아남"
+    case neutral = "그대로"
+    case fades = "죽는 편"
+
+    nonisolated var displayName: String { rawValue }
+}
+
+enum TastingWearSituation: String, CaseIterable, Codable {
+    case daily = "데일리"
+    case date = "데이트"
+    case work = "출근"
+    case special = "특별한 날"
+
+    nonisolated var displayName: String { rawValue }
+}
+
+enum TastingWeatherContext: String, CaseIterable, Codable {
+    case hotHumid = "덥고 습한 날"
+    case dryWinter = "건조한 겨울"
+    case mild = "선선한 날"
+    case rainy = "비 오는 날"
+
+    nonisolated var displayName: String { rawValue }
+}
+
+enum TastingApplicationArea: String, CaseIterable, Codable {
+    case wrist = "손목"
+    case neck = "목"
+    case clothes = "옷"
+    case hair = "머리카락"
+
+    nonisolated var displayName: String { rawValue }
+}
+
 struct TastingNote: Identifiable, Codable {
-    @DocumentID var id: String?
+    var id: String?
     var perfumeName: String
     var brandName: String
     var mainAccords: [String]
@@ -32,6 +91,13 @@ struct TastingNote: Identifiable, Codable {
     var memo: String
     var perfumeImageURL: String?
     var usageContext: String?
+    var longevityExperience: String?
+    var sillageExperience: String?
+    var drydownChange: String?
+    var skinChemistry: String?
+    var wearSituations: [String]
+    var weatherContexts: [String]
+    var applicationAreas: [String]
     var createdAt: Date
     var updatedAt: Date
 
@@ -48,6 +114,13 @@ struct TastingNote: Identifiable, Codable {
         case perfumeImageURL
         case imageUrl
         case usageContext
+        case longevityExperience
+        case sillageExperience
+        case drydownChange
+        case skinChemistry
+        case wearSituations
+        case weatherContexts
+        case applicationAreas
         case createdAt
         case updatedAt
     }
@@ -64,6 +137,13 @@ struct TastingNote: Identifiable, Codable {
         memo: String,
         perfumeImageURL: String?,
         usageContext: String? = nil,
+        longevityExperience: String? = nil,
+        sillageExperience: String? = nil,
+        drydownChange: String? = nil,
+        skinChemistry: String? = nil,
+        wearSituations: [String] = [],
+        weatherContexts: [String] = [],
+        applicationAreas: [String] = [],
         createdAt: Date,
         updatedAt: Date
     ) {
@@ -78,6 +158,13 @@ struct TastingNote: Identifiable, Codable {
         self.memo = memo
         self.perfumeImageURL = perfumeImageURL
         self.usageContext = usageContext
+        self.longevityExperience = longevityExperience
+        self.sillageExperience = sillageExperience
+        self.drydownChange = drydownChange
+        self.skinChemistry = skinChemistry
+        self.wearSituations = wearSituations
+        self.weatherContexts = weatherContexts
+        self.applicationAreas = applicationAreas
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -97,13 +184,20 @@ struct TastingNote: Identifiable, Codable {
             try container.decodeIfPresent(String.self, forKey: .perfumeImageURL)
             ?? container.decodeIfPresent(String.self, forKey: .imageUrl)
         usageContext = try container.decodeIfPresent(String.self, forKey: .usageContext)
+        longevityExperience = try container.decodeIfPresent(String.self, forKey: .longevityExperience)
+        sillageExperience = try container.decodeIfPresent(String.self, forKey: .sillageExperience)
+        drydownChange = try container.decodeIfPresent(String.self, forKey: .drydownChange)
+        skinChemistry = try container.decodeIfPresent(String.self, forKey: .skinChemistry)
+        wearSituations = try container.decodeIfPresent([String].self, forKey: .wearSituations) ?? []
+        weatherContexts = try container.decodeIfPresent([String].self, forKey: .weatherContexts) ?? []
+        applicationAreas = try container.decodeIfPresent([String].self, forKey: .applicationAreas) ?? []
         createdAt = try container.decode(Date.self, forKey: .createdAt)
         updatedAt = try container.decode(Date.self, forKey: .updatedAt)
     }
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        // id는 @DocumentID로 관리되므로 Firestore 문서 데이터에 포함하지 않습니다.
+        // Firestore 문서 ID는 LocalTastingNoteRepository에서 직접 관리하므로 문서 데이터에는 포함하지 않습니다.
         // Firestore 보안 규칙의 hasOnly 검증 통과를 위해 id 필드를 제외합니다.
         try container.encode(perfumeName, forKey: .perfumeName)
         try container.encode(brandName, forKey: .brandName)
@@ -115,6 +209,19 @@ struct TastingNote: Identifiable, Codable {
         try container.encode(memo, forKey: .memo)
         try container.encodeIfPresent(perfumeImageURL, forKey: .perfumeImageURL)
         try container.encodeIfPresent(usageContext, forKey: .usageContext)
+        try container.encodeIfPresent(longevityExperience, forKey: .longevityExperience)
+        try container.encodeIfPresent(sillageExperience, forKey: .sillageExperience)
+        try container.encodeIfPresent(drydownChange, forKey: .drydownChange)
+        try container.encodeIfPresent(skinChemistry, forKey: .skinChemistry)
+        if !wearSituations.isEmpty {
+            try container.encode(wearSituations, forKey: .wearSituations)
+        }
+        if !weatherContexts.isEmpty {
+            try container.encode(weatherContexts, forKey: .weatherContexts)
+        }
+        if !applicationAreas.isEmpty {
+            try container.encode(applicationAreas, forKey: .applicationAreas)
+        }
         try container.encode(createdAt, forKey: .createdAt)
         try container.encode(updatedAt, forKey: .updatedAt)
     }
