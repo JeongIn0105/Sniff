@@ -16,38 +16,56 @@ struct TagButton: View {
 
     var body: some View {
         Button(action: action) {
-            ZStack(alignment: .topTrailing) {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(isSelected ? Color.sniffBeige : Color.white)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(
-                                isSelected ? Color.black : Color(.systemGray4),
-                                lineWidth: isSelected ? 2 : 1.5
-                            )
-                    )
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(isSelected ? Color.black : Color(hex: "#F1E8DF"))
+                        .frame(width: 30, height: 30)
+
+                    if let selectionOrder {
+                        Text("\(selectionOrder)")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(.white)
+                    } else {
+                        Image(systemName: isSelected ? "checkmark" : "plus")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(isSelected ? .white : Color(hex: "#8A6F55"))
+                    }
+                }
 
                 Text(title)
-                    .font(.system(size: 17, weight: .semibold))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .foregroundColor(
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(
                         isDisabled && !isSelected
-                        ? Color.gray.opacity(0.4)
-                        : Color.black
+                        ? Color(hex: "#B8BEC8")
+                        : Color(hex: "#1F2937")
                     )
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.86)
+                    .multilineTextAlignment(.leading)
 
-                if let selectionOrder {
-                    Text("\(selectionOrder)")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(.white)
-                        .frame(width: 24, height: 24)
-                        .background(Color.black)
-                        .clipShape(Circle())
-                        .padding(10)
-                }
+                Spacer(minLength: 0)
             }
-            .frame(maxWidth: .infinity)
-            .aspectRatio(1, contentMode: .fit)
+            .padding(.horizontal, 14)
+            .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(isSelected ? Color(hex: "#F7EEE5") : Color.white)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(
+                        isSelected ? Color.black : Color(hex: "#E4E7EC"),
+                        lineWidth: isSelected ? 1.5 : 1
+                    )
+            )
+            .shadow(
+                color: isSelected ? Color.black.opacity(0.10) : Color.black.opacity(0.045),
+                radius: isSelected ? 12 : 8,
+                x: 0,
+                y: isSelected ? 7 : 4
+            )
+            .opacity(isDisabled && !isSelected ? 0.55 : 1)
         }
         .disabled(isDisabled)
         .buttonStyle(.plain)

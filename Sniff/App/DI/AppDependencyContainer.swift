@@ -93,6 +93,14 @@ final class AppDependencyContainer {
     }
 
     @MainActor
+    func makeOwnedPerfumeRegistrationViewModel() -> OwnedPerfumeRegistrationViewModel {
+        OwnedPerfumeRegistrationViewModel(
+            perfumeCatalogRepository: makePerfumeCatalogRepository(),
+            collectionRepository: makeCollectionRepository()
+        )
+    }
+
+    @MainActor
     func makeLikedPerfumeListViewModel() -> LikedPerfumeListViewModel {
         LikedPerfumeListViewModel(
             firestoreService: firestoreService,
@@ -109,7 +117,7 @@ final class AppDependencyContainer {
     ) -> TastingNoteFormViewModel {
         TastingNoteFormViewModel(
             localRepository: localTastingNoteRepository,
-            localPerfumeSearchService: localPerfumeSearchService,
+            collectionRepository: makeCollectionRepository(),
             editingNote: editingNote,
             initialPerfume: initialPerfume,
             isOwnedPerfumeContext: isOwnedPerfumeContext

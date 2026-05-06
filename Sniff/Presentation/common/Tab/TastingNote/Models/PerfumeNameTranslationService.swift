@@ -8,51 +8,9 @@
 import Foundation
 
 // MARK: - 향수명 한국어 음역 서비스
-// 1차: 로컬 단어 사전 (네트워크 불필요, 즉시 반환)
-// 2차: Gemini API (사전에 없는 단어 보완, 백그라운드 캐시)
+// 로컬 단어 사전만 사용합니다. 시향기 입력 중에는 네트워크 호출 없이 즉시 변환되어야 합니다.
 
 enum PerfumeNameTranslationService {
-
-    // MARK: - 캐시
-
-    private static var cache: [String: String] = [:]
-
-    // MARK: - 번역 진입점
-
-    static func translate(names: [String]) async throws -> [String: String] {
-        var result: [String: String] = [:]
-
-        // 1단계: 로컬 사전으로 즉시 번역 (캐시 포함)
-        var needGemini: [String] = []
-        for name in names {
-            if let cached = cache[name] {
-                result[name] = cached
-            } else {
-                let local = localTransliterate(name)
-                cache[name] = local
-                result[name] = local
-                // 로컬 결과가 원문과 동일하면 Gemini로 보완 시도
-                if local == name { needGemini.append(name) }
-            }
-        }
-
-        // 2단계: Gemini로 미번역 항목 보완 (실패해도 무시)
-        if !needGemini.isEmpty {
-            if
-                let geminiKey = try? AppSecrets.geminiAPIKey(),
-                let geminiResult = try? await callGemini(names: needGemini, apiKey: geminiKey)
-            {
-                for (name, korean) in geminiResult where !korean.isEmpty {
-                    cache[name] = korean
-                    result[name] = korean
-                }
-            }
-        }
-
-        return result
-    }
-
-    // MARK: - 로컬 단어사전 번역
 
     nonisolated static func localTransliterate(_ name: String) -> String {
         // 특수문자(&, -) 기준으로 분리 후 각각 번역
@@ -118,7 +76,7 @@ enum PerfumeNameTranslationService {
         if lower.hasSuffix("s"), lower.count > 4, let base = wordDict[String(lower.dropLast())] { return base + "스" }
         // 4) 소문자 한 글자는 유지 (de, le, la, un 등)
         if word.count <= 2 { return word }
-        // 5) 폴백: 영문 그대로 (Gemini 보완 대상)
+        // 5) 폴백: 영문 그대로 유지
         return word
     }
 
@@ -341,75 +299,4 @@ enum PerfumeNameTranslationService {
         "extrait": "엑스트레", "forte": "포르테",
     ]
 
-    // MARK: - Gemini API 호출 (보완용)
-
-    private static func callGemini(names: [String], apiKey: String) async throws -> [String: String] {
-        let models = ["gemini-2.0-flash", "gemini-1.5-flash"]
-        for model in models {
-            if let result = try? await callGeminiModel(model: model, names: names, apiKey: apiKey),
-               !result.isEmpty { return result }
-        }
-        throw TranslationError.apiError
-    }
-
-    private static func callGeminiModel(model: String, names: [String], apiKey: String) async throws -> [String: String] {
-        let urlString = "https://generativelanguage.googleapis.com/v1beta/models/\(model):generateContent?key=\(apiKey)"
-        guard let url = URL(string: urlString) else { throw TranslationError.invalidURL }
-
-        let nameList = names.enumerated()
-            .map { "\($0.offset + 1). \($0.element)" }
-            .joined(separator: "\n")
-
-        let prompt = """
-        아래 향수 이름들을 한국어 발음 표기(음역)로 변환해줘.
-        반드시 입력과 동일한 순서로 JSON 문자열 배열만 응답해. 마크다운 없이 순수 JSON만.
-        예시: ["조 말론 버라이어티", "크리드 어벤투스"]
-
-        번역할 목록:
-        \(nameList)
-        """
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.timeoutInterval = 25
-        let body: [String: Any] = [
-            "contents": [["parts": [["text": prompt]]]],
-            "generationConfig": ["temperature": 0.1]
-        ]
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let http = response as? HTTPURLResponse,
-              (200..<300).contains(http.statusCode) else { throw TranslationError.apiError }
-
-        guard
-            let json       = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-            let candidates = json["candidates"] as? [[String: Any]],
-            let content    = candidates.first?["content"] as? [String: Any],
-            let parts      = content["parts"] as? [[String: Any]],
-            var text       = parts.first?["text"] as? String
-        else { throw TranslationError.parsingFailed }
-
-        if text.contains("```") {
-            text = text.replacingOccurrences(of: "```json", with: "")
-                .replacingOccurrences(of: "```", with: "")
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-        if let s = text.firstIndex(of: "["), let e = text.lastIndex(of: "]") {
-            text = String(text[s...e])
-        }
-        guard let arrayData = text.data(using: .utf8),
-              let koreanNames = try? JSONSerialization.jsonObject(with: arrayData) as? [String]
-        else { throw TranslationError.parsingFailed }
-
-        var result: [String: String] = [:]
-        for (i, name) in names.enumerated() where i < koreanNames.count {
-            let korean = koreanNames[i].trimmingCharacters(in: .whitespacesAndNewlines)
-            if !korean.isEmpty { result[name] = korean }
-        }
-        return result
-    }
-
-    enum TranslationError: Error { case invalidURL, apiError, parsingFailed }
 }

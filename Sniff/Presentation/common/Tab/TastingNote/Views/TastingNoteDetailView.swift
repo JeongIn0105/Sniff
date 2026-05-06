@@ -62,6 +62,20 @@ struct TastingNoteDetailView: View {
                             .padding(.bottom, 0)
                     }
 
+                    if hasWearPerformance {
+                        wearPerformanceSection
+                            .padding(.horizontal, 16)
+                            .padding(.top, 40)
+                            .padding(.bottom, 0)
+                    }
+
+                    if hasWearContext {
+                        wearContextSection
+                            .padding(.horizontal, 16)
+                            .padding(.top, 40)
+                            .padding(.bottom, 0)
+                    }
+
                     // 시향 메모 섹션 (구분선 없음, 40pt 상단 여백)
                     memoSection
                         .padding(.horizontal, 16)
@@ -117,7 +131,7 @@ struct TastingNoteDetailView: View {
     private var perfumeInfoSection: some View {
         VStack(alignment: .leading, spacing: 0) {
             // 섹션 레이블
-            Text("시향 향수")
+            Text(isUsageRecord ? "보유 향수" : "시향 향수")
                 .font(.custom("Pretendard", size: 17).weight(.semibold))
                 .foregroundColor(.primary)
 
@@ -197,7 +211,7 @@ struct TastingNoteDetailView: View {
         VStack(alignment: .leading, spacing: 12) {
             // 제목과 라벨 인라인 표시
             HStack(spacing: 6) {
-                Text("향 선호도")
+                Text(isUsageRecord ? "사용 만족도" : "향 선호도")
                     .font(.custom("Pretendard", size: 17).weight(.semibold))
                     .foregroundColor(.primary)
 
@@ -236,7 +250,7 @@ struct TastingNoteDetailView: View {
 
     private var moodTagSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("분위기&이미지")
+            Text(isUsageRecord ? "오늘 느낀 분위기" : "분위기&이미지")
                 .font(.custom("Pretendard", size: 17).weight(.semibold))
                 .foregroundColor(.primary)
 
@@ -284,11 +298,69 @@ struct TastingNoteDetailView: View {
         }
     }
 
+    private var wearPerformanceSection: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            Text("착용감")
+                .font(.custom("Pretendard", size: 17).weight(.semibold))
+                .foregroundColor(.primary)
+
+            detailValueRow(title: "지속력", value: currentNote.longevityExperience)
+            detailValueRow(title: "발향감", value: currentNote.sillageExperience)
+            detailValueRow(title: "드라이다운 변화", value: currentNote.drydownChange)
+            detailValueRow(title: "피부 궁합", value: currentNote.skinChemistry)
+        }
+    }
+
+    private var wearContextSection: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            Text("착용 컨텍스트")
+                .font(.custom("Pretendard", size: 17).weight(.semibold))
+                .foregroundColor(.primary)
+
+            detailChipRow(title: "착용 상황", values: currentNote.wearSituations)
+            detailChipRow(title: "계절 / 날씨", values: currentNote.weatherContexts)
+            detailChipRow(title: "착용 부위", values: currentNote.applicationAreas)
+        }
+    }
+
+    @ViewBuilder
+    private func detailValueRow(title: String, value: String?) -> some View {
+        if let value, !value.isEmpty {
+            detailChipRow(title: title, values: [value])
+        }
+    }
+
+    @ViewBuilder
+    private func detailChipRow(title: String, values: [String]) -> some View {
+        if !values.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(title)
+                    .font(.custom("Pretendard", size: 14).weight(.regular))
+                    .foregroundColor(.secondary)
+
+                ChipFlowLayout(spacing: 8) {
+                    ForEach(values, id: \.self) { value in
+                        Text(value)
+                            .font(.custom("Pretendard", size: 13).weight(.regular))
+                            .foregroundColor(Color(.label))
+                            .padding(.horizontal, 13)
+                            .padding(.vertical, 7)
+                            .background(Color(.systemBackground))
+                            .clipShape(Capsule())
+                            .overlay(
+                                Capsule().stroke(Color(.label), lineWidth: 1)
+                            )
+                    }
+                }
+            }
+        }
+    }
+
     // MARK: - 시향 메모 섹션 (와이어프레임: 글자 수 카운터 없음)
 
     private var memoSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("시향 메모")
+            Text(isUsageRecord ? "사용 메모" : "시향 메모")
                 .font(.custom("Pretendard", size: 17).weight(.semibold))
                 .foregroundColor(.primary)
 
@@ -298,5 +370,26 @@ struct TastingNoteDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .topLeading)
                 .lineSpacing(4)
         }
+    }
+
+    private var isUsageRecord: Bool {
+        currentNote.usageContext != nil
+        || hasWearPerformance
+        || hasWearContext
+    }
+
+    private var hasWearPerformance: Bool {
+        [
+            currentNote.longevityExperience,
+            currentNote.sillageExperience,
+            currentNote.drydownChange,
+            currentNote.skinChemistry
+        ].contains { !($0?.isEmpty ?? true) }
+    }
+
+    private var hasWearContext: Bool {
+        !currentNote.wearSituations.isEmpty
+        || !currentNote.weatherContexts.isEmpty
+        || !currentNote.applicationAreas.isEmpty
     }
 }

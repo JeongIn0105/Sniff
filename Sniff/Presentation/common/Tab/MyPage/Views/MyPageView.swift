@@ -25,7 +25,7 @@ struct MyPageView: View {
         static let profileTextSpacing: CGFloat = 6
         static let profileTasteTopSpacing: CGFloat = 8
         static let tasteIconSize: CGFloat = 18
-        static let cardSpacing: CGFloat = 6
+        static let cardSpacing: CGFloat = 9
         static let trailingPeekInset: CGFloat = PerfumeGridCardLayout.previewTrailingPeekInset
         static let likedSectionTopSpacing: CGFloat = 0
         static let bottomContentPadding: CGFloat = 68
@@ -349,20 +349,41 @@ struct MyPageView: View {
     }
 }
 
-private struct TasteProfileMiniIcon: UIViewRepresentable {
+private struct TasteProfileMiniIcon: View {
     let title: String
 
-    func makeUIView(context: Context) -> TasteProfileGradientIconView {
-        let view = TasteProfileGradientIconView()
-        view.layer.cornerRadius = 9
-        view.layer.cornerCurve = .continuous
-        view.clipsToBounds = true
-        return view
+    var body: some View {
+        RadialGradient(
+            gradient: Gradient(colors: colors),
+            center: UnitPoint(x: 0.5, y: 0.04),
+            startRadius: 0,
+            endRadius: 24
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
     }
 
-    func updateUIView(_ uiView: TasteProfileGradientIconView, context: Context) {
+    private var colors: [Color] {
+        if let preset = TasteProfileGradientIconView.profilePreset(forTitle: title) {
+            return preset.colors.map { Color(uiColor: $0) }
+        }
+
+        if let palette = FragranceProfileText.profileColorPalette(forTitle: title) {
+            return [
+                Color(hex: palette.accentHex),
+                Color(hex: palette.primaryHex),
+                Color(hex: palette.baseHex)
+            ]
+        }
+
         let families = FragranceProfileText.profileFamilies(forTitle: title) ?? []
-        uiView.configure(title: title, fallbackFamilies: families)
+        let top1 = families.first.map { ScentFamilyColor.color(for: $0).softened(amount: 0.30) }
+        let top2 = families.dropFirst().first.map { ScentFamilyColor.color(for: $0).softened(amount: 0.20) }
+
+        return [
+            Color(uiColor: top2 ?? top1 ?? UIColor(red: 1.0, green: 0.67, blue: 0.49, alpha: 1)),
+            Color(uiColor: top1 ?? UIColor(red: 0.95, green: 0.90, blue: 0.68, alpha: 1)),
+            Color(red: 0.95, green: 0.91, blue: 0.87)
+        ]
     }
 }
 

@@ -44,10 +44,10 @@ struct OnboardingNicknameView: View {
                     } label: {
                         Text(AppStrings.Nickname.confirm)
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(viewModel.canProceedFromNickname ? .black : Color(hex: "#9EA6B5"))
+                            .foregroundColor(viewModel.canProceedFromNickname ? .white : Color(hex: "#9EA6B5"))
                             .frame(maxWidth: .infinity)
                             .frame(height: 50)
-                            .background(viewModel.canProceedFromNickname ? Color(hex: "#F1E8DF") : Color(hex: "#E2E5EA"))
+                            .background(viewModel.canProceedFromNickname ? Color(hex: "#242424") : Color(hex: "#E2E5EA"))
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                     .disabled(!viewModel.canProceedFromNickname)

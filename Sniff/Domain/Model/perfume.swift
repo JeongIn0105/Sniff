@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum AccordStrength: String {
+enum AccordStrength: String, Codable {
     case dominant
     case prominent
     case moderate
@@ -42,12 +42,17 @@ enum AccordStrength: String {
     }
 }
 
-struct SeasonRankingEntry {
+struct SeasonRankingEntry: Codable {
     let name: String
     let score: Double
 }
 
-struct Perfume {
+struct OccasionRankingEntry: Codable {
+    let name: String
+    let score: Double
+}
+
+struct Perfume: Codable {
     let id: String
     let name: String
     let brand: String
@@ -68,6 +73,7 @@ struct Perfume {
     let popularity: Double?
     let releaseYear: Int?
     let situation: [String]?
+    let occasionRanking: [OccasionRankingEntry]
     let longevity: String?
     let sillage: String?
 
@@ -92,6 +98,7 @@ struct Perfume {
         popularity: Double? = nil,
         releaseYear: Int? = nil,
         situation: [String]?,
+        occasionRanking: [OccasionRankingEntry] = [],
         longevity: String?,
         sillage: String?
     ) {
@@ -120,6 +127,7 @@ struct Perfume {
         self.popularity = popularity
         self.releaseYear = releaseYear
         self.situation = situation
+        self.occasionRanking = occasionRanking
         self.longevity = longevity
         self.sillage = sillage
     }

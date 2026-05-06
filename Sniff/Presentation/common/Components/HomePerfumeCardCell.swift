@@ -6,7 +6,6 @@
 //
 
 import UIKit
-import Combine
 import SnapKit
 import Kingfisher
 import Then
@@ -272,27 +271,10 @@ final class HomePerfumeCardCell: UICollectionViewCell {
     fileprivate static func makeAccordView(_ text: String) -> UIView {
         let displayText = PerfumePresentationSupport.displayAccord(text)
 
-        let dotView = UIView()
-        dotView.backgroundColor = ScentFamilyColor.color(for: text)
-        dotView.layer.cornerRadius = 4
-
-        let label = UILabel()
-        label.text = displayText
-        // Figma: Pretendard, 12, medium, Color(0.52, 0.52, 0.52)
-        // Figma: Pretendard, 13pt, (0.52, 0.52, 0.52)
-        label.font = UIFont(name: "Pretendard-Medium", size: 13)
-            ?? .systemFont(ofSize: 13, weight: .medium)
-        label.textColor = UIColor(red: 0.52, green: 0.52, blue: 0.52, alpha: 1)
-
-        let stack = UIStackView(arrangedSubviews: [dotView, label])
-        stack.axis = .horizontal
-        stack.alignment = .center
-        stack.spacing = 4
-
-        dotView.snp.makeConstraints {
-            $0.size.equalTo(8).priority(.high)
-        }
-        return stack
+        return HomeAccordInlineView(
+            dotColor: ScentFamilyColor.color(for: text),
+            text: displayText
+        )
     }
 
     private func showImage() {
@@ -315,6 +297,52 @@ final class HomePerfumeCardCell: UICollectionViewCell {
         placeholderBottleView.isHidden = false
         placeholderCapView.isHidden = false
         placeholderMessageLabel.isHidden = false
+    }
+}
+
+private final class HomeAccordInlineView: UIView {
+    private let dotView = UIView()
+    private let label = UILabel()
+    private let dotSize: CGFloat = 8
+    private let spacing: CGFloat = 4
+
+    init(dotColor: UIColor, text: String) {
+        super.init(frame: .zero)
+        dotView.backgroundColor = dotColor
+        dotView.layer.cornerRadius = dotSize / 2
+        label.text = text
+        label.font = UIFont(name: "Pretendard-Medium", size: 13)
+            ?? .systemFont(ofSize: 13, weight: .medium)
+        label.textColor = UIColor(red: 0.52, green: 0.52, blue: 0.52, alpha: 1)
+        label.lineBreakMode = .byTruncatingTail
+
+        addSubview(dotView)
+        addSubview(label)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override var intrinsicContentSize: CGSize {
+        let labelSize = label.intrinsicContentSize
+        return CGSize(width: dotSize + spacing + labelSize.width, height: 18)
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        dotView.frame = CGRect(
+            x: 0,
+            y: (bounds.height - dotSize) / 2,
+            width: dotSize,
+            height: dotSize
+        )
+        label.frame = CGRect(
+            x: dotSize + spacing,
+            y: 0,
+            width: max(0, bounds.width - dotSize - spacing),
+            height: bounds.height
+        )
     }
 }
 
@@ -342,9 +370,7 @@ private final class HomeAccordWrapView: UIView {
         var y: CGFloat = 0
 
         for pill in accordViews {
-            let width = pill.systemLayoutSizeFitting(
-                CGSize(width: UIView.layoutFittingCompressedSize.width, height: pillHeight)
-            ).width
+            let width = pill.intrinsicContentSize.width
 
             if x + width > bounds.width && x > 0 {
                 x = 0
@@ -366,9 +392,7 @@ private final class HomeAccordWrapView: UIView {
         var y: CGFloat = 0
 
         for pill in accordViews {
-            let width = pill.systemLayoutSizeFitting(
-                CGSize(width: UIView.layoutFittingCompressedSize.width, height: pillHeight)
-            ).width
+            let width = pill.intrinsicContentSize.width
 
             if x + width > bounds.width && x > 0 {
                 x = 0

@@ -5,55 +5,16 @@
 //  Created by Codex on 2026.04.18.
 //
 
-import UIKit
-import SnapKit
 import RxSwift
-import RxCocoa
-import Then
+import SnapKit
+import SwiftUI
+import UIKit
 
 final class LikePerfumesViewController: UIViewController {
-
     private let collectionRepository: CollectionRepositoryType
     private let disposeBag = DisposeBag()
-    private var items: [LikedPerfume] = []
-
-    private let backButton = UIButton(type: .system).then {
-        $0.setImage(UIImage(systemName: "chevron.left"), for: .normal)
-        $0.tintColor = .label
-    }
-
-    private let titleLabel = UILabel().then {
-        $0.text = AppStrings.DomainDisplay.LikePerfumes.title
-        $0.font = .systemFont(ofSize: 24, weight: .bold)
-        $0.textColor = .label
-    }
-
-    private let countLabel = UILabel().then {
-        $0.font = .systemFont(ofSize: 14, weight: .medium)
-        $0.textColor = .secondaryLabel
-    }
-
-    private lazy var collectionView: UICollectionView = {
-        let layout = UICollectionViewFlowLayout()
-        let spacing: CGFloat = 16
-        let itemWidth = (UIScreen.main.bounds.width - spacing * 3) / 2
-        layout.itemSize = CGSize(width: itemWidth, height: itemWidth + 70)
-        layout.minimumLineSpacing = spacing
-        layout.minimumInteritemSpacing = spacing
-        layout.sectionInset = UIEdgeInsets(top: 16, left: spacing, bottom: 16, right: spacing)
-        let view = UICollectionView(frame: .zero, collectionViewLayout: layout)
-        view.backgroundColor = .systemBackground
-        view.register(PerfumeGridCell.self, forCellWithReuseIdentifier: PerfumeGridCell.identifier)
-        return view
-    }()
-
-    private let emptyLabel = UILabel().then {
-        $0.text = AppStrings.DomainDisplay.LikePerfumes.empty
-        $0.font = .systemFont(ofSize: 15)
-        $0.textColor = .secondaryLabel
-        $0.textAlignment = .center
-        $0.isHidden = true
-    }
+    private let state = LikePerfumesScreenState()
+    private var hostingController: UIHostingController<LikePerfumesScreenView>?
 
     init(collectionRepository: CollectionRepositoryType) {
         self.collectionRepository = collectionRepository
@@ -66,112 +27,197 @@ final class LikePerfumesViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .systemBackground
-        setupUI()
+        setupHostingView()
         loadItems()
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        backButton.isHidden = (navigationController?.viewControllers.count ?? 0) <= 1
+        state.showsBackButton = (navigationController?.viewControllers.count ?? 0) > 1
         loadItems()
     }
+}
 
-    private func setupUI() {
-        collectionView.delegate = self
-        collectionView.dataSource = self
+private extension LikePerfumesViewController {
+    func setupHostingView() {
+        view.backgroundColor = .systemBackground
 
-        [backButton, titleLabel, countLabel, collectionView, emptyLabel].forEach {
-            view.addSubview($0)
-        }
-
-        backButton.snp.makeConstraints {
-            $0.top.equalTo(view.safeAreaLayoutGuide).offset(12)
-            $0.leading.equalToSuperview().offset(16)
-            $0.size.equalTo(28)
-        }
-
-        titleLabel.snp.makeConstraints {
-            $0.centerY.equalTo(backButton)
-            $0.centerX.equalToSuperview()
-        }
-
-        countLabel.snp.makeConstraints {
-            $0.top.equalTo(titleLabel.snp.bottom).offset(12)
-            $0.leading.equalToSuperview().offset(20)
-        }
-
-        collectionView.snp.makeConstraints {
-            $0.top.equalTo(countLabel.snp.bottom).offset(8)
-            $0.leading.trailing.bottom.equalToSuperview()
-        }
-
-        emptyLabel.snp.makeConstraints {
-            $0.center.equalToSuperview()
-        }
-
-        backButton.rx.tap
-            .subscribe(onNext: { [weak self] in
+        let rootView = LikePerfumesScreenView(
+            state: state,
+            onBack: { [weak self] in
                 self?.navigationController?.popViewController(animated: true)
+            },
+            onPerfumeTap: { [weak self] perfume in
+                let detailViewController = PerfumeDetailSceneFactory.makeViewController(perfume: perfume)
+                self?.navigationController?.pushViewController(detailViewController, animated: true)
+            },
+            onLikeTap: { [weak self] item in
+                self?.deleteItem(id: item.id)
+            }
+        )
+
+        let hostingController = UIHostingController(rootView: rootView)
+        hostingController.view.backgroundColor = .systemBackground
+        addChild(hostingController)
+        view.addSubview(hostingController.view)
+        hostingController.view.snp.makeConstraints { $0.edges.equalToSuperview() }
+        hostingController.didMove(toParent: self)
+        self.hostingController = hostingController
+    }
+
+    func loadItems() {
+        state.isLoading = true
+        collectionRepository.fetchLikedPerfumes()
+            .observe(on: MainScheduler.instance)
+            .subscribe(onSuccess: { [weak self] items in
+                self?.state.items = items.sorted {
+                    ($0.likedAt ?? .distantPast) > ($1.likedAt ?? .distantPast)
+                }
+                self?.state.isLoading = false
+            }, onFailure: { [weak self] _ in
+                self?.state.items = []
+                self?.state.isLoading = false
             })
             .disposed(by: disposeBag)
     }
 
-    private func loadItems() {
-        collectionRepository.fetchLikedPerfumes()
+    func deleteItem(id: String) {
+        let previousItems = state.items
+        state.items = state.items.filter { $0.id != id }
+
+        collectionRepository.deleteLikedPerfume(id: id)
             .observe(on: MainScheduler.instance)
-            .subscribe(onSuccess: { [weak self] items in
-                self?.items = items.sorted {
-                    ($0.likedAt ?? .distantPast) > ($1.likedAt ?? .distantPast)
-                }
-                self?.countLabel.text = AppStrings.DomainDisplay.LikePerfumes.count(items.count)
-                self?.emptyLabel.isHidden = !items.isEmpty
-                self?.collectionView.reloadData()
-            }, onFailure: { [weak self] _ in
-                self?.items = []
-                self?.countLabel.text = AppStrings.DomainDisplay.LikePerfumes.count(0)
-                self?.emptyLabel.isHidden = false
-                self?.collectionView.reloadData()
+            .subscribe(onCompleted: {
+                NotificationCenter.default.postPerfumeCollectionDidChange(scope: .liked)
+            }, onError: { [weak self] _ in
+                self?.state.items = previousItems
             })
             .disposed(by: disposeBag)
     }
 }
 
-extension LikePerfumesViewController: UICollectionViewDataSource, UICollectionViewDelegate {
-    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        items.count
+private final class LikePerfumesScreenState: ObservableObject {
+    @Published var items: [LikedPerfume] = []
+    @Published var isLoading = false
+    @Published var showsBackButton = false
+}
+
+private struct LikePerfumesScreenView: View {
+    @ObservedObject var state: LikePerfumesScreenState
+    let onBack: () -> Void
+    let onPerfumeTap: (Perfume) -> Void
+    let onLikeTap: (LikedPerfume) -> Void
+
+    private let columns = [
+        GridItem(.flexible(), spacing: 16),
+        GridItem(.flexible(), spacing: 16)
+    ]
+
+    var body: some View {
+        VStack(spacing: 0) {
+            header
+
+            if state.isLoading && state.items.isEmpty {
+                Spacer()
+                ProgressView()
+                Spacer()
+            } else if state.items.isEmpty {
+                emptyState
+            } else {
+                perfumeGrid
+            }
+        }
+        .background(Color(.systemBackground).ignoresSafeArea())
     }
 
-    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        let cell = collectionView.dequeueReusableCell(
-            withReuseIdentifier: PerfumeGridCell.identifier,
-            for: indexPath
-        ) as! PerfumeGridCell
-        let item = items[indexPath.item]
-        cell.configure(with: item.toPerfume(), isLiked: true)
-        cell.wishlistButton.rx.tap
-            .subscribe(onNext: { [weak self] in
-                self?.deleteItem(id: item.id)
-            })
-            .disposed(by: cell.disposeBag)
-        return cell
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                if state.showsBackButton {
+                    Button(action: onBack) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundColor(.primary)
+                            .frame(width: 32, height: 32)
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                Text(AppStrings.DomainDisplay.LikePerfumes.title)
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(.primary)
+
+                Spacer(minLength: 0)
+            }
+
+            Text(AppStrings.DomainDisplay.LikePerfumes.count(state.items.count))
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(.secondary)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 12)
+        .padding(.bottom, 8)
     }
 
-    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        let perfume = items[indexPath.item].toPerfume()
-        let detailViewController = PerfumeDetailSceneFactory.makeViewController(perfume: perfume)
-        navigationController?.pushViewController(detailViewController, animated: true)
+    private var perfumeGrid: some View {
+        ScrollView(showsIndicators: false) {
+            LazyVGrid(columns: columns, alignment: .center, spacing: 30) {
+                ForEach(state.items) { item in
+                    perfumeCard(item)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 32)
+        }
     }
 
-    private func deleteItem(id: String) {
-        collectionRepository.deleteLikedPerfume(id: id)
-            .observe(on: MainScheduler.instance)
-            .subscribe(onCompleted: { [weak self] in
-                self?.items.removeAll { $0.id == id }
-                self?.countLabel.text = AppStrings.DomainDisplay.LikePerfumes.count(self?.items.count ?? 0)
-                self?.emptyLabel.isHidden = !(self?.items.isEmpty ?? true)
-                self?.collectionView.reloadData()
-            }, onError: { _ in })
-            .disposed(by: disposeBag)
+    private var emptyState: some View {
+        VStack(spacing: 12) {
+            Spacer()
+
+            Image(systemName: "heart")
+                .font(.system(size: 28, weight: .regular))
+                .foregroundColor(Color(.systemGray3))
+
+            Text(AppStrings.DomainDisplay.LikePerfumes.empty)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, 24)
+    }
+
+    private func perfumeCard(_ item: LikedPerfume) -> some View {
+        ZStack(alignment: .bottomTrailing) {
+            Button {
+                onPerfumeTap(item.toPerfume())
+            } label: {
+                PerfumeGridCardView(
+                    imageURL: item.imageURL,
+                    brand: item.brand,
+                    name: item.name,
+                    accords: PerfumePresentationSupport.previewAccords(
+                        mainAccords: item.mainAccords,
+                        fallback: item.scentFamilies
+                    ),
+                    isLiked: true,
+                    style: .grid,
+                    showsHeartIcon: false
+                )
+            }
+            .buttonStyle(.plain)
+
+            PerfumeCardHeartButton(
+                isLiked: true,
+                style: .grid,
+                action: { onLikeTap(item) }
+            )
+            .padding(.trailing, PerfumeCardStyle.grid.likeIconInset)
+            .padding(.bottom, PerfumeCardStyle.grid.likeIconInset + (PerfumeCardStyle.grid.textBlockHeight ?? 0) + PerfumeCardStyle.grid.contentTopSpacing)
+        }
     }
 }

@@ -6,6 +6,8 @@
 //
 
 import Foundation
+import SwiftUI
+import UIKit
 
 enum SearchSceneFactory {
 
@@ -41,6 +43,17 @@ enum SearchSceneFactory {
             localTastingNoteRepository: dependencyContainer.localTastingNoteRepository,
             showsRecentOnAppear: showsRecentOnAppear,
             mode: mode
+        )
+    }
+
+    @MainActor
+    static func makeOwnedPerfumeRegistrationViewController(
+        dependencyContainer: AppDependencyContainer = .shared
+    ) -> UIViewController {
+        UIHostingController(
+            rootView: OwnedPerfumeRegistrationView(
+                viewModel: dependencyContainer.makeOwnedPerfumeRegistrationViewModel()
+            )
         )
     }
 }

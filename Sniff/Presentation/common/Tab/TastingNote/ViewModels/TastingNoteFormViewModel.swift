@@ -7,34 +7,7 @@
 
 // MARK: - 등록 로직
 import Foundation
-import FirebaseAuth
 import Combine
-import FirebaseFirestore
-
-struct TastingPerfumeMatchCandidate: Identifiable, Equatable {
-    let brandName: String
-    let perfumeName: String?
-    let imageURL: String?
-
-    var id: String {
-        "\(brandName.lowercased())|\((perfumeName ?? "").lowercased())"
-    }
-
-    var title: String {
-        if let perfumeName, !perfumeName.isEmpty {
-            return PerfumePresentationSupport.displayPerfumeName(perfumeName)
-        }
-        return PerfumePresentationSupport.displayBrand(brandName)
-    }
-
-    var subtitle: String {
-        if perfumeName == nil {
-            let displayBrand = PerfumePresentationSupport.displayBrand(brandName)
-            return displayBrand == brandName ? "브랜드 후보" : "\(brandName) 브랜드 후보"
-        }
-        return PerfumePresentationSupport.displayBrand(brandName)
-    }
-}
 
 @MainActor
 final class TastingNoteFormViewModel: ObservableObject {
@@ -52,51 +25,105 @@ final class TastingNoteFormViewModel: ObservableObject {
     @Published var selectedMoodTags: Set<String> = []
     @Published var revisitDesire: String? = nil   // 다시 쓰고 싶은지 (단일 선택, 선택 안 해도 저장 가능)
     @Published var usageContext: String? = nil
+    @Published var longevityExperience: String? = nil
+    @Published var sillageExperience: String? = nil
+    @Published var drydownChange: String? = nil
+    @Published var skinChemistry: String? = nil
+    @Published var selectedWearSituations: Set<String> = []
+    @Published var selectedWeatherContexts: Set<String> = []
+    @Published var selectedApplicationAreas: Set<String> = []
     @Published var memo: String = ""
+    @Published private(set) var ownedPerfumes: [CollectedPerfume] = []
+    @Published private(set) var selectedOwnedPerfumeID: String?
+    @Published private(set) var isLoadingOwnedPerfumes: Bool = false
 
     // MARK: - Published (상태)
 
     @Published private(set) var isSaving: Bool = false
     @Published private(set) var saveSuccess: Bool = false
     @Published private(set) var savedPerfumeName: String = ""
-    @Published private(set) var perfumeMatchCandidates: [TastingPerfumeMatchCandidate] = []
     @Published var errorMessage: String?
 
     // MARK: - Public
 
     var allMoodTags: [String] { kMoodTagList }
     var allUsageContexts: [String] { TastingUsageContext.allCases.map(\.displayName) }
+    var allLongevityExperiences: [String] { TastingLongevityExperience.allCases.map(\.displayName) }
+    var allSillageExperiences: [String] { TastingSillageExperience.allCases.map(\.displayName) }
+    var allDrydownChanges: [String] { TastingDrydownChange.allCases.map(\.displayName) }
+    var allSkinChemistries: [String] { TastingSkinChemistry.allCases.map(\.displayName) }
+    var allWearSituations: [String] { TastingWearSituation.allCases.map(\.displayName) }
+    var allWeatherContexts: [String] { TastingWeatherContext.allCases.map(\.displayName) }
+    var allApplicationAreas: [String] { TastingApplicationArea.allCases.map(\.displayName) }
 
     private var editingNote: TastingNote?
     private let localRepository: LocalTastingNoteRepository
-    private let localPerfumeSearchService: LocalPerfumeSearchService
+    private let collectionRepository: CollectionRepositoryType?
+    private let initialPerfume: Perfume?
     private let isOwnedPerfumeContext: Bool
     var isEditMode: Bool { editingNote != nil }
-    var navigationTitle: String { isEditMode ? AppStrings.TastingNoteUI.List.edit : AppStrings.TastingNoteUI.List.add }
+    var usesOwnedPerfumeWritingMode: Bool {
+        isOwnedPerfumeContext
+        || usageContext != nil
+        || longevityExperience != nil
+        || sillageExperience != nil
+        || drydownChange != nil
+        || skinChemistry != nil
+        || !selectedWearSituations.isEmpty
+        || !selectedWeatherContexts.isEmpty
+        || !selectedApplicationAreas.isEmpty
+    }
+    var navigationTitle: String {
+        if usesOwnedPerfumeWritingMode {
+            return isEditMode ? "사용 기록 수정" : "사용 기록 작성"
+        }
+        return isEditMode ? AppStrings.TastingNoteUI.List.edit : AppStrings.TastingNoteUI.List.add
+    }
     var shouldShowUsageContext: Bool { isOwnedPerfumeContext || usageContext != nil }
+    var isPerfumeIdentityEditable: Bool { !usesOwnedPerfumeWritingMode }
+    var perfumeSectionTitle: String { usesOwnedPerfumeWritingMode ? "보유 향수" : "시향 향수" }
+    var perfumeNameFieldTitle: String { usesOwnedPerfumeWritingMode ? "향수" : "향수 명" }
+    var perfumeNamePlaceholder: String {
+        usesOwnedPerfumeWritingMode ? "보유 향수 정보가 표시돼요" : "향수 명을 입력하세요"
+    }
+    var shouldShowOwnedPerfumePicker: Bool {
+        isOwnedPerfumeContext && !isEditMode && initialPerfume == nil
+    }
+    var ownedPerfumePickerHint: String {
+        ownedPerfumes.isEmpty
+            ? "등록된 보유 향수가 없어요"
+            : "사용 기록을 남길 보유 향수를 선택해주세요"
+    }
+    var brandFieldTitle: String { "브랜드" }
+    var brandPlaceholder: String {
+        usesOwnedPerfumeWritingMode ? "보유 브랜드 정보가 표시돼요" : "향수 브랜드를 입력하세요"
+    }
+    var ratingSectionTitle: String { usesOwnedPerfumeWritingMode ? "사용 만족도" : "향 선호도" }
+    var ratingHintText: String {
+        usesOwnedPerfumeWritingMode
+            ? "*오늘 사용감과 만족도를 터치하여 입력해주세요"
+            : "*향수의 선호도 점수를 터치하여 입력해주세요"
+    }
+    var moodSectionTitle: String { usesOwnedPerfumeWritingMode ? "오늘 느낀 분위기" : "분위기&이미지" }
+    var usageContextTitle: String { "사용 맥락" }
+    var memoSectionTitle: String { usesOwnedPerfumeWritingMode ? "사용 메모" : "시향 메모" }
+    var memoPlaceholder: String {
+        usesOwnedPerfumeWritingMode
+            ? "오늘 뿌렸을 때의 잔향, 지속력, 주변 반응, 다시 쓰고 싶은 상황을 기록해주세요"
+            : AppStrings.TastingNoteFormUI.memoPlaceholder
+    }
+    var memoHelperText: String {
+        usesOwnedPerfumeWritingMode
+            ? "선택 입력 · 실제 사용감은 추천 취향에 더 강하게 반영돼요"
+            : "선택 입력 · 최대 \(maxMemoCount)자까지 작성할 수 있어요"
+    }
+    var saveButtonTitle: String { usesOwnedPerfumeWritingMode ? "기록 완료" : AppStrings.TastingNoteFormUI.save }
 
     var canSave: Bool {
         isPerfumeNameValid &&
         isBrandNameValid &&
         isRatingValid &&
-        isMoodTagsValid &&
-        isMemoValid
-    }
-
-    var saveRequirementMessage: String? {
-        if !isPerfumeNameValid || !isBrandNameValid {
-            return "향수 명과 브랜드를 입력해주세요"
-        }
-        if !isRatingValid {
-            return "향 선호도 점수를 선택해주세요"
-        }
-        if !isMoodTagsValid {
-            return "분위기&이미지를 1개 이상 선택해주세요"
-        }
-        if !isMemoValid {
-            return "시향 메모를 10자 이상 입력해주세요"
-        }
-        return nil
+        isMoodTagsValid
     }
 
     var memoCount: Int { memo.count }
@@ -118,69 +145,36 @@ final class TastingNoteFormViewModel: ObservableObject {
         !selectedMoodTags.isEmpty
     }
 
-    var isMemoValid: Bool {
-        let trimmedMemo = memo.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmedMemo.count >= Self.minMemoCount,
-              trimmedMemo.count <= Self.maxMemoCount else {
-            return false
-        }
-
-        var containsLetter = false
-
-        for scalar in trimmedMemo.unicodeScalars {
-            if Self.isKoreanScalar(scalar) || Self.isEnglishScalar(scalar) {
-                containsLetter = true
-                continue
-            }
-
-            if Self.isNumberScalar(scalar) ||
-                Self.allowedWhitespaceScalars.contains(scalar) ||
-                Self.allowedPunctuationScalars.contains(scalar) {
-                continue
-            }
-
-            return false
-        }
-
-        return containsLetter
-    }
-
     // MARK: - Private
 
-    private static let minMemoCount = 10
     private static let maxMemoCount = 2000
-    private static let allowedWhitespaceScalars = CharacterSet.whitespacesAndNewlines
-    private static let allowedPunctuationScalars = CharacterSet(charactersIn: ".,!?~")
-    private static let manualBrandCorrections: [String: String] = [
-        "조말롱": "Jo Malone London",
-        "조말론": "Jo Malone London",
-        "딥티그": "Diptyque",
-        "딥티크": "Diptyque",
-        "그리드": "Creed",
-        "크리드": "Creed"
-    ]
 
     private var perfumeImageURL: String?
-    private var isApplyingMatchCandidate = false
 
     // MARK: - Init
 
     init(
         localRepository: LocalTastingNoteRepository,
-        localPerfumeSearchService: LocalPerfumeSearchService = LocalPerfumeSearchService(),
+        collectionRepository: CollectionRepositoryType? = nil,
         editingNote: TastingNote? = nil,
         initialPerfume: Perfume? = nil,
         isOwnedPerfumeContext: Bool = false
     ) {
         self.localRepository = localRepository
-        self.localPerfumeSearchService = localPerfumeSearchService
+        self.collectionRepository = collectionRepository
         self.editingNote = editingNote
+        self.initialPerfume = initialPerfume
         self.isOwnedPerfumeContext = isOwnedPerfumeContext
-        self.localPerfumeSearchService.buildIndex(includesUserData: false)
         if let editingNote {
             loadEditingNote(editingNote)
         } else if let initialPerfume {
             preloadPerfume(initialPerfume)
+            if isOwnedPerfumeContext {
+                usageContext = TastingUsageContext.today.displayName
+            }
+        } else if isOwnedPerfumeContext {
+            usageContext = TastingUsageContext.today.displayName
+            Task { await loadOwnedPerfumesForSelection() }
         }
     }
 
@@ -198,6 +192,13 @@ final class TastingNoteFormViewModel: ObservableObject {
         })
         revisitDesire = note.revisitDesire
         usageContext = note.usageContext
+        longevityExperience = note.longevityExperience
+        sillageExperience = note.sillageExperience
+        drydownChange = note.drydownChange
+        skinChemistry = note.skinChemistry
+        selectedWearSituations = Set(note.wearSituations)
+        selectedWeatherContexts = Set(note.weatherContexts)
+        selectedApplicationAreas = Set(note.applicationAreas)
         memo = note.memo
         perfumeImageURL = note.perfumeImageURL
     }
@@ -208,6 +209,35 @@ final class TastingNoteFormViewModel: ObservableObject {
         mainAccords = PerfumeKoreanTranslator.koreanAccords(for: perfume.mainAccords)
         concentration = perfume.concentration ?? ""
         perfumeImageURL = perfume.imageUrl
+    }
+
+    func loadOwnedPerfumesForSelection() async {
+        guard shouldShowOwnedPerfumePicker, initialPerfume == nil else { return }
+        guard let collectionRepository else { return }
+        isLoadingOwnedPerfumes = true
+        defer { isLoadingOwnedPerfumes = false }
+
+        do {
+            let perfumes = try await collectionRepository.fetchCollection().async()
+            ownedPerfumes = perfumes.sorted { lhs, rhs in
+                let lhsName = PerfumePresentationSupport.displayPerfumeName(lhs.name)
+                let rhsName = PerfumePresentationSupport.displayPerfumeName(rhs.name)
+                return lhsName.localizedCaseInsensitiveCompare(rhsName) == .orderedAscending
+            }
+            if selectedOwnedPerfumeID == nil, ownedPerfumes.count == 1, let perfume = ownedPerfumes.first {
+                selectOwnedPerfume(perfume)
+            }
+        } catch {
+            errorMessage = "보유 향수 목록을 불러오지 못했어요."
+        }
+    }
+
+    func selectOwnedPerfume(_ perfume: CollectedPerfume) {
+        selectedOwnedPerfumeID = perfume.id
+        preloadPerfume(perfume.toPerfume())
+        if usageContext == nil {
+            usageContext = TastingUsageContext.today.displayName
+        }
     }
 
     // MARK: - 태그 토글
@@ -229,49 +259,32 @@ final class TastingNoteFormViewModel: ObservableObject {
         usageContext = (usageContext == context) ? nil : context
     }
 
-    func refreshPerfumeMatchCandidates() {
-        guard !isApplyingMatchCandidate else { return }
-
-        let perfumeQuery = perfumeName.trimmingCharacters(in: .whitespacesAndNewlines)
-        let brandQuery = brandName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !perfumeQuery.isEmpty || !brandQuery.isEmpty else {
-            perfumeMatchCandidates = []
-            return
-        }
-
-        var candidates: [TastingPerfumeMatchCandidate] = []
-        let queries = [
-            [brandQuery, perfumeQuery].filter { !$0.isEmpty }.joined(separator: " "),
-            perfumeQuery,
-            brandQuery
-        ]
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { $0.count >= 2 }
-
-        for query in queries {
-            let suggestions = localPerfumeSearchService.suggestions(for: query)
-            candidates.append(contentsOf: suggestions.compactMap(makeCandidate(from:)))
-        }
-        candidates.append(contentsOf: brandCorrectionCandidates(for: brandQuery))
-        if perfumeQuery.count >= 2, brandQuery.isEmpty {
-            candidates.append(contentsOf: brandCorrectionCandidates(for: perfumeQuery))
-        }
-
-        perfumeMatchCandidates = uniqueCandidates(candidates)
-            .filter { !isSameCurrentInput($0) }
-            .prefix(3)
-            .map { $0 }
+    func toggleLongevityExperience(_ value: String) {
+        longevityExperience = (longevityExperience == value) ? nil : value
     }
 
-    func applyMatchCandidate(_ candidate: TastingPerfumeMatchCandidate) {
-        isApplyingMatchCandidate = true
-        brandName = PerfumePresentationSupport.displayBrand(candidate.brandName)
-        if let perfumeName = candidate.perfumeName {
-            self.perfumeName = PerfumePresentationSupport.displayPerfumeName(perfumeName)
-        }
-        perfumeImageURL = candidate.imageURL
-        perfumeMatchCandidates = []
-        isApplyingMatchCandidate = false
+    func toggleSillageExperience(_ value: String) {
+        sillageExperience = (sillageExperience == value) ? nil : value
+    }
+
+    func toggleDrydownChange(_ value: String) {
+        drydownChange = (drydownChange == value) ? nil : value
+    }
+
+    func toggleSkinChemistry(_ value: String) {
+        skinChemistry = (skinChemistry == value) ? nil : value
+    }
+
+    func toggleWearSituation(_ value: String) {
+        toggle(value, in: &selectedWearSituations)
+    }
+
+    func toggleWeatherContext(_ value: String) {
+        toggle(value, in: &selectedWeatherContexts)
+    }
+
+    func toggleApplicationArea(_ value: String) {
+        toggle(value, in: &selectedApplicationAreas)
     }
 
     // MARK: - 초기화
@@ -283,16 +296,29 @@ final class TastingNoteFormViewModel: ObservableObject {
         if let editingNote {
             loadEditingNote(editingNote)
         } else {
-            perfumeName = ""
-            brandName = ""
-            mainAccords = []
-            concentration = ""
-            perfumeImageURL = nil
-            perfumeMatchCandidates = []
+            if let initialPerfume {
+                preloadPerfume(initialPerfume)
+            } else if let selectedOwnedPerfumeID,
+                      let selectedPerfume = ownedPerfumes.first(where: { $0.id == selectedOwnedPerfumeID }) {
+                selectOwnedPerfume(selectedPerfume)
+            } else {
+                perfumeName = ""
+                brandName = ""
+                mainAccords = []
+                concentration = ""
+                perfumeImageURL = nil
+            }
             rating = 0
             selectedMoodTags = []
             revisitDesire = nil
-            usageContext = nil
+            usageContext = isOwnedPerfumeContext ? TastingUsageContext.today.displayName : nil
+            longevityExperience = nil
+            sillageExperience = nil
+            drydownChange = nil
+            skinChemistry = nil
+            selectedWearSituations = []
+            selectedWeatherContexts = []
+            selectedApplicationAreas = []
             memo = ""
         }
     }
@@ -301,10 +327,7 @@ final class TastingNoteFormViewModel: ObservableObject {
 
     func save() async {
         guard !isSaving else { return }
-        guard canSave else {
-            errorMessage = saveRequirementMessage
-            return
-        }
+        guard canSave else { return }
         isSaving = true
         errorMessage = nil
 
@@ -321,6 +344,13 @@ final class TastingNoteFormViewModel: ObservableObject {
             memo: memo.trimmingCharacters(in: .whitespacesAndNewlines),
             perfumeImageURL: perfumeImageURL,
             usageContext: shouldShowUsageContext ? usageContext : nil,
+            longevityExperience: usesOwnedPerfumeWritingMode ? longevityExperience : nil,
+            sillageExperience: usesOwnedPerfumeWritingMode ? sillageExperience : nil,
+            drydownChange: usesOwnedPerfumeWritingMode ? drydownChange : nil,
+            skinChemistry: usesOwnedPerfumeWritingMode ? skinChemistry : nil,
+            wearSituations: usesOwnedPerfumeWritingMode ? orderedValues(selectedWearSituations, in: allWearSituations) : [],
+            weatherContexts: usesOwnedPerfumeWritingMode ? orderedValues(selectedWeatherContexts, in: allWeatherContexts) : [],
+            applicationAreas: usesOwnedPerfumeWritingMode ? orderedValues(selectedApplicationAreas, in: allApplicationAreas) : [],
             createdAt: editingNote?.createdAt ?? now,
             updatedAt: now
         )
@@ -336,130 +366,23 @@ final class TastingNoteFormViewModel: ObservableObject {
     }
 
     private func orderedMoodTags(from tags: Set<String>) -> [String] {
-        tags.sorted {
-            let li = allMoodTags.firstIndex(of: $0) ?? Int.max
-            let ri = allMoodTags.firstIndex(of: $1) ?? Int.max
+        orderedValues(tags, in: allMoodTags)
+    }
+
+    private func orderedValues(_ values: Set<String>, in source: [String]) -> [String] {
+        values.sorted {
+            let li = source.firstIndex(of: $0) ?? Int.max
+            let ri = source.firstIndex(of: $1) ?? Int.max
             return li < ri
         }
     }
 
-    private func makeCandidate(from suggestion: SuggestionItem) -> TastingPerfumeMatchCandidate? {
-        switch suggestion {
-        case let .brand(name, imageUrl):
-            return TastingPerfumeMatchCandidate(
-                brandName: name,
-                perfumeName: nil,
-                imageURL: imageUrl
-            )
-        case let .perfume(name, brand, imageUrl):
-            return TastingPerfumeMatchCandidate(
-                brandName: brand,
-                perfumeName: name,
-                imageURL: imageUrl
-            )
+    private func toggle(_ value: String, in set: inout Set<String>) {
+        if set.contains(value) {
+            set.remove(value)
+        } else {
+            set.insert(value)
         }
     }
 
-    private func brandCorrectionCandidates(for query: String) -> [TastingPerfumeMatchCandidate] {
-        let normalizedQuery = normalizeForCandidateMatch(query)
-        guard normalizedQuery.count >= 2 else { return [] }
-
-        var candidates: [TastingPerfumeMatchCandidate] = []
-        if let corrected = Self.manualBrandCorrections[normalizedQuery] {
-            candidates.append(TastingPerfumeMatchCandidate(brandName: corrected, perfumeName: nil, imageURL: nil))
-        }
-
-        let dictionaryCandidates = PerfumeKoreanTranslator.koreanToBrand.map { pair in
-            (korean: pair.key, english: pair.value, score: brandCandidateScore(query: normalizedQuery, candidate: pair.key))
-        }
-            .filter { $0.score > 0 }
-            .sorted { lhs, rhs in
-                if lhs.score != rhs.score { return lhs.score > rhs.score }
-                return lhs.korean.localizedCaseInsensitiveCompare(rhs.korean) == .orderedAscending
-            }
-            .prefix(2)
-            .map { TastingPerfumeMatchCandidate(brandName: $0.english, perfumeName: nil, imageURL: nil) }
-
-        candidates.append(contentsOf: dictionaryCandidates)
-        return candidates
-    }
-
-    private func brandCandidateScore(query: String, candidate: String) -> Int {
-        let normalizedCandidate = normalizeForCandidateMatch(candidate)
-        if normalizedCandidate == query { return 1_000 }
-        if normalizedCandidate.contains(query) || query.contains(normalizedCandidate) { return 800 }
-        if isNearTypo(normalizedCandidate, query) { return 650 }
-        return 0
-    }
-
-    private func uniqueCandidates(_ candidates: [TastingPerfumeMatchCandidate]) -> [TastingPerfumeMatchCandidate] {
-        var seen = Set<String>()
-        return candidates.filter { seen.insert($0.id).inserted }
-    }
-
-    private func isSameCurrentInput(_ candidate: TastingPerfumeMatchCandidate) -> Bool {
-        let currentBrand = normalizeForCandidateMatch(brandName)
-        let candidateBrand = normalizeForCandidateMatch(PerfumePresentationSupport.displayBrand(candidate.brandName))
-        let currentPerfume = normalizeForCandidateMatch(perfumeName)
-        let candidatePerfume = normalizeForCandidateMatch(
-            candidate.perfumeName.map(PerfumePresentationSupport.displayPerfumeName) ?? ""
-        )
-
-        if candidate.perfumeName == nil {
-            return !currentBrand.isEmpty && currentBrand == candidateBrand
-        }
-        return !currentBrand.isEmpty
-            && !currentPerfume.isEmpty
-            && currentBrand == candidateBrand
-            && currentPerfume == candidatePerfume
-    }
-
-    private func normalizeForCandidateMatch(_ value: String) -> String {
-        value
-            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
-            .lowercased()
-            .components(separatedBy: CharacterSet.alphanumerics.inverted)
-            .joined()
-    }
-
-    private func isNearTypo(_ lhs: String, _ rhs: String) -> Bool {
-        guard lhs.count >= 2, rhs.count >= 2 else { return false }
-        guard abs(lhs.count - rhs.count) <= 1 else { return false }
-        return editDistance(lhs, rhs, maxDistance: 1) <= 1
-    }
-
-    private func editDistance(_ lhs: String, _ rhs: String, maxDistance: Int) -> Int {
-        let lhs = Array(lhs)
-        let rhs = Array(rhs)
-        if abs(lhs.count - rhs.count) > maxDistance { return maxDistance + 1 }
-        if lhs.isEmpty { return rhs.count }
-        if rhs.isEmpty { return lhs.count }
-
-        var previous = Array(0...rhs.count)
-        for i in 1...lhs.count {
-            var current = [i] + Array(repeating: 0, count: rhs.count)
-            var rowMinimum = current[0]
-            for j in 1...rhs.count {
-                let cost = lhs[i - 1] == rhs[j - 1] ? 0 : 1
-                current[j] = min(previous[j] + 1, current[j - 1] + 1, previous[j - 1] + cost)
-                rowMinimum = min(rowMinimum, current[j])
-            }
-            if rowMinimum > maxDistance { return maxDistance + 1 }
-            previous = current
-        }
-        return previous[rhs.count]
-    }
-
-    private static func isKoreanScalar(_ scalar: UnicodeScalar) -> Bool {
-        (0xAC00...0xD7A3).contains(Int(scalar.value))
-    }
-
-    private static func isEnglishScalar(_ scalar: UnicodeScalar) -> Bool {
-        (0x41...0x5A).contains(Int(scalar.value)) ||
-        (0x61...0x7A).contains(Int(scalar.value))
-    }
-
-    private static func isNumberScalar(_ scalar: UnicodeScalar) -> Bool {
-        (0x30...0x39).contains(Int(scalar.value))
-    }
 }

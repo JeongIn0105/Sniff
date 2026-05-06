@@ -7,7 +7,6 @@
 
 // MARK: - 등록 / 수정 화면
 import SwiftUI
-import Kingfisher
 
 struct TastingNoteFormView: View {
 
@@ -53,6 +52,18 @@ struct TastingNoteFormView: View {
                             .padding(.bottom, 0)
                     }
 
+                    if vm.usesOwnedPerfumeWritingMode {
+                        wearPerformanceSection
+                            .padding(.horizontal, 20)
+                            .padding(.top, 36)
+                            .padding(.bottom, 0)
+
+                        wearContextSection
+                            .padding(.horizontal, 20)
+                            .padding(.top, 36)
+                            .padding(.bottom, 0)
+                    }
+
                     memoSection
                         .padding(.horizontal, 20)
                         .padding(.top, 42)
@@ -69,12 +80,6 @@ struct TastingNoteFormView: View {
         .toolbar(.hidden, for: .navigationBar)
         .onChange(of: vm.saveSuccess) { success in
             if success { onSaveSuccess(vm.savedPerfumeName); dismiss() }
-        }
-        .onChange(of: vm.perfumeName) { _ in
-            vm.refreshPerfumeMatchCandidates()
-        }
-        .onChange(of: vm.brandName) { _ in
-            vm.refreshPerfumeMatchCandidates()
         }
         .alert(AppStrings.TastingNoteFormUI.errorTitle, isPresented: Binding(
             get: { vm.errorMessage != nil },
@@ -114,72 +119,110 @@ struct TastingNoteFormView: View {
 
     private var perfumeInputSection: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("시향 향수")
+            Text(vm.perfumeSectionTitle)
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundColor(.primary)
 
-            clearableTextField(
-                title: "향수 명",
-                placeholder: "향수 명을 입력하세요",
-                text: $vm.perfumeName
-            )
-            .padding(.top, 16)
+            if vm.shouldShowOwnedPerfumePicker {
+                ownedPerfumePickerSection
+                    .padding(.top, 16)
+            }
 
             clearableTextField(
-                title: "브랜드",
-                placeholder: "향수 브랜드를 입력하세요",
-                text: $vm.brandName
+                title: vm.perfumeNameFieldTitle,
+                placeholder: vm.perfumeNamePlaceholder,
+                text: $vm.perfumeName,
+                isEnabled: vm.isPerfumeIdentityEditable
+            )
+            .padding(.top, vm.shouldShowOwnedPerfumePicker ? 24 : 16)
+
+            clearableTextField(
+                title: vm.brandFieldTitle,
+                placeholder: vm.brandPlaceholder,
+                text: $vm.brandName,
+                isEnabled: vm.isPerfumeIdentityEditable
             )
             .padding(.top, 24)
+        }
+    }
 
-            if !vm.perfumeMatchCandidates.isEmpty {
-                perfumeMatchCandidateSection
-                    .padding(.top, 14)
+    private var ownedPerfumePickerSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("사용할 보유 향수")
+                .font(.custom("Pretendard", size: 14).weight(.regular))
+                .foregroundColor(.primary)
+
+            if vm.isLoadingOwnedPerfumes {
+                HStack(spacing: 8) {
+                    ProgressView()
+                    Text("보유 향수를 불러오는 중")
+                        .font(.custom("Pretendard", size: 14).weight(.regular))
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 14)
+                .frame(height: 54)
+                .background(Color(.systemGray6))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+            } else if vm.ownedPerfumes.isEmpty {
+                Text(vm.ownedPerfumePickerHint)
+                    .font(.custom("Pretendard", size: 14).weight(.regular))
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 14)
+                    .frame(height: 54)
+                    .background(Color(.systemGray6))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+            } else {
+                VStack(spacing: 8) {
+                    ForEach(vm.ownedPerfumes) { perfume in
+                        ownedPerfumeSelectionRow(perfume)
+                    }
+                }
+            }
+
+            if !vm.ownedPerfumes.isEmpty {
+                Text(vm.ownedPerfumePickerHint)
+                    .font(.custom("Pretendard", size: 13).weight(.regular))
+                    .foregroundColor(Color(.systemGray2))
             }
         }
     }
 
-    private var perfumeMatchCandidateSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("혹시 이 향수인가요?")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(.secondary)
+    private func ownedPerfumeSelectionRow(_ perfume: CollectedPerfume) -> some View {
+        let isSelected = vm.selectedOwnedPerfumeID == perfume.id
+        return Button {
+            vm.selectOwnedPerfume(perfume)
+        } label: {
+            HStack(spacing: 10) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(PerfumePresentationSupport.displayPerfumeName(perfume.name))
+                        .font(.custom("Pretendard", size: 15).weight(.semibold))
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
 
-            VStack(spacing: 8) {
-                ForEach(vm.perfumeMatchCandidates) { candidate in
-                    Button {
-                        vm.applyMatchCandidate(candidate)
-                    } label: {
-                        HStack(spacing: 12) {
-                            PerfumeMatchCandidateThumbnail(imageURL: candidate.imageURL)
-
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(candidate.title)
-                                    .font(.system(size: 15, weight: .semibold))
-                                    .foregroundColor(.primary)
-                                    .lineLimit(1)
-
-                                Text(candidate.subtitle)
-                                    .font(.system(size: 13, weight: .medium))
-                                    .foregroundColor(.secondary)
-                                    .lineLimit(1)
-                            }
-
-                            Spacer()
-
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(Color(.systemGray3))
-                        }
-                        .padding(.horizontal, 12)
-                        .frame(height: 58)
-                        .background(Color(.systemGray6))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                    }
-                    .buttonStyle(.plain)
+                    Text(PerfumePresentationSupport.displayBrand(perfume.brand))
+                        .font(.custom("Pretendard", size: 13).weight(.regular))
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
                 }
+
+                Spacer(minLength: 8)
+
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundColor(isSelected ? .black : Color(.systemGray3))
             }
+            .padding(.horizontal, 14)
+            .frame(height: 58)
+            .background(isSelected ? Color(red: 0.96, green: 0.94, blue: 0.90) : Color(.systemBackground))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(isSelected ? Color(red: 0.86, green: 0.84, blue: 0.80) : Color(.systemGray4), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 10))
         }
+        .buttonStyle(.plain)
     }
 
     private var formSectionDivider: some View {
@@ -194,7 +237,8 @@ struct TastingNoteFormView: View {
     private func clearableTextField(
         title: String,
         placeholder: String,
-        text: Binding<String>
+        text: Binding<String>,
+        isEnabled: Bool = true
     ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
@@ -204,6 +248,8 @@ struct TastingNoteFormView: View {
             HStack(spacing: 0) {
                 TextField(placeholder, text: text)
                     .font(.custom("Pretendard", size: 18).weight(.regular))
+                    .foregroundColor(isEnabled ? .primary : .secondary)
+                    .disabled(!isEnabled)
                     .submitLabel(.next)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
@@ -212,7 +258,7 @@ struct TastingNoteFormView: View {
                     .padding(.trailing, text.wrappedValue.isEmpty ? 18 : 10)
 
                 // 입력 값이 있을 때만 X 버튼 표시
-                if !text.wrappedValue.isEmpty {
+                if isEnabled && !text.wrappedValue.isEmpty {
                     Button {
                         text.wrappedValue = ""
                     } label: {
@@ -225,7 +271,7 @@ struct TastingNoteFormView: View {
                 }
             }
             .frame(height: 56)
-            .background(Color(.systemBackground))
+            .background(isEnabled ? Color(.systemBackground) : Color(.systemGray6))
             .overlay(
                 RoundedRectangle(cornerRadius: 10)
                     .stroke(Color(red: 0.86, green: 0.86, blue: 0.86), lineWidth: 1)
@@ -237,7 +283,7 @@ struct TastingNoteFormView: View {
 
     private var ratingSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("향 선호도")
+            Text(vm.ratingSectionTitle)
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundColor(.primary)
 
@@ -262,7 +308,7 @@ struct TastingNoteFormView: View {
 
             // 0점: 입력 안내 힌트 / 그 외: 선택 라벨
             if vm.rating == 0 {
-                Text("*향수의 선호도 점수를 터치하여 입력해주세요")
+                Text(vm.ratingHintText)
                     .font(.custom("Pretendard", size: 15).weight(.medium))
                     .foregroundColor(Color(red: 0.72, green: 0.72, blue: 0.72))
             } else {
@@ -309,7 +355,7 @@ struct TastingNoteFormView: View {
 
     private var moodTagSection: some View {
         VStack(alignment: .leading, spacing: 11) {
-            Text("분위기&이미지")
+            Text(vm.moodSectionTitle)
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundColor(.primary)
 
@@ -333,21 +379,132 @@ struct TastingNoteFormView: View {
 
     private var usageContextSection: some View {
         VStack(alignment: .leading, spacing: 11) {
-            Text("사용 맥락")
+            Text(vm.usageContextTitle)
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundColor(.primary)
 
-            HStack(spacing: 7) {
+            chipFlow {
                 ForEach(vm.allUsageContexts, id: \.self) { context in
-                    MoodChip(
-                        title: context,
-                        isSelected: vm.usageContext == context
-                    ) {
+                    MoodChip(title: context, isSelected: vm.usageContext == context) {
                         vm.toggleUsageContext(context)
                     }
                 }
-                Spacer()
             }
+        }
+    }
+
+    private var wearPerformanceSection: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            Text("착용감")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundColor(.primary)
+
+            singleChoiceSection(
+                title: "지속력",
+                options: vm.allLongevityExperiences,
+                selection: vm.longevityExperience,
+                action: vm.toggleLongevityExperience
+            )
+
+            singleChoiceSection(
+                title: "발향감",
+                options: vm.allSillageExperiences,
+                selection: vm.sillageExperience,
+                action: vm.toggleSillageExperience
+            )
+
+            singleChoiceSection(
+                title: "드라이다운 변화",
+                options: vm.allDrydownChanges,
+                selection: vm.drydownChange,
+                action: vm.toggleDrydownChange
+            )
+
+            singleChoiceSection(
+                title: "피부 궁합",
+                options: vm.allSkinChemistries,
+                selection: vm.skinChemistry,
+                action: vm.toggleSkinChemistry
+            )
+        }
+    }
+
+    private var wearContextSection: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            Text("착용 컨텍스트")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundColor(.primary)
+
+            multiChoiceSection(
+                title: "착용 상황",
+                options: vm.allWearSituations,
+                selections: vm.selectedWearSituations,
+                action: vm.toggleWearSituation
+            )
+
+            multiChoiceSection(
+                title: "계절 / 날씨",
+                options: vm.allWeatherContexts,
+                selections: vm.selectedWeatherContexts,
+                action: vm.toggleWeatherContext
+            )
+
+            multiChoiceSection(
+                title: "착용 부위",
+                options: vm.allApplicationAreas,
+                selections: vm.selectedApplicationAreas,
+                action: vm.toggleApplicationArea
+            )
+        }
+    }
+
+    private func singleChoiceSection(
+        title: String,
+        options: [String],
+        selection: String?,
+        action: @escaping (String) -> Void
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 9) {
+            Text(title)
+                .font(.custom("Pretendard", size: 14).weight(.regular))
+                .foregroundColor(.primary)
+
+            chipFlow {
+                ForEach(options, id: \.self) { option in
+                    MoodChip(title: option, isSelected: selection == option) {
+                        action(option)
+                    }
+                }
+            }
+        }
+    }
+
+    private func multiChoiceSection(
+        title: String,
+        options: [String],
+        selections: Set<String>,
+        action: @escaping (String) -> Void
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 9) {
+            Text(title)
+                .font(.custom("Pretendard", size: 14).weight(.regular))
+                .foregroundColor(.primary)
+
+            chipFlow {
+                ForEach(options, id: \.self) { option in
+                    MoodChip(title: option, isSelected: selections.contains(option)) {
+                        action(option)
+                    }
+                }
+            }
+        }
+    }
+
+    private func chipFlow<Content: View>(
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        ChipFlowLayout(spacing: 8) {
+            content()
         }
     }
 
@@ -355,14 +512,14 @@ struct TastingNoteFormView: View {
 
     private var memoSection: some View {
         VStack(alignment: .leading, spacing: 11) {
-            Text("시향 메모")
+            Text(vm.memoSectionTitle)
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundColor(.primary)
 
             ZStack(alignment: .bottomTrailing) {
                 ZStack(alignment: .topLeading) {
                     if vm.memo.isEmpty {
-                        Text(AppStrings.TastingNoteFormUI.memoPlaceholder)
+                        Text(vm.memoPlaceholder)
                             .font(.custom("Pretendard", size: 15).weight(.regular))
                             .foregroundColor(Color(.placeholderText))
                             .padding(.top, 18)
@@ -383,7 +540,7 @@ struct TastingNoteFormView: View {
 
                 Text("\(vm.memoCount)/\(vm.maxMemoCount)")
                     .font(.custom("Pretendard", size: 12).weight(.regular))
-                    .foregroundColor(vm.memoCount < 10 ? Color(.systemGray3) : .secondary)
+                    .foregroundColor(.secondary)
                     .padding(.trailing, 12)
                     .padding(.bottom, 10)
             }
@@ -392,20 +549,17 @@ struct TastingNoteFormView: View {
                 RoundedRectangle(cornerRadius: 10)
                     .stroke(Color(.systemGray4), lineWidth: 1)
             )
+
+            Text(vm.memoHelperText)
+                .font(.custom("Pretendard", size: 13).weight(.regular))
+                .foregroundColor(Color(.systemGray2))
         }
     }
 
     // MARK: - 하단 버튼 바
 
     private var bottomBar: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if let message = vm.saveRequirementMessage {
-                Text(message)
-                    .font(.custom("Pretendard", size: 13).weight(.medium))
-                    .foregroundColor(Color(.systemGray2))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-
+        VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 12) {
                 // 초기화 버튼
                 Button { vm.reset() } label: {
@@ -424,7 +578,7 @@ struct TastingNoteFormView: View {
                         if vm.isSaving {
                             ProgressView().tint(.white)
                         } else {
-                            Text(AppStrings.TastingNoteFormUI.save)
+                            Text(vm.saveButtonTitle)
                                 .font(.custom("Pretendard", size: 16).weight(.semibold))
                                 .foregroundColor(.white)
                         }
@@ -448,33 +602,6 @@ struct TastingNoteFormView: View {
                         .frame(height: 0.5)
                 }
                 .ignoresSafeArea(edges: .bottom)
-        )
-    }
-}
-
-private struct PerfumeMatchCandidateThumbnail: View {
-    let imageURL: String?
-
-    var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color(.systemBackground))
-
-            if let imageURL, let url = URL(string: imageURL) {
-                KFImage(url)
-                    .resizable()
-                    .scaledToFit()
-                    .padding(5)
-            } else {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(Color(.systemGray3))
-            }
-        }
-        .frame(width: 42, height: 42)
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(Color(.systemGray5), lineWidth: 1)
         )
     }
 }

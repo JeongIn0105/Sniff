@@ -46,7 +46,7 @@ extension AppStrings {
             }
 
             static let subtitle = "나만의 향수를 찾아볼게요"
-            static let cta = "홈으로 이동"
+            static let cta = "나에게 맞는 향수보기"
             static let reanalyze = "재분석"
             static let reanalyzed = "재분석 완료"
             static let footnote = "*보유 향수와 시향기록이 쌓이면 향 계열, 추천 향수, 배경 색상이 함께 업데이트될 수 있습니다."

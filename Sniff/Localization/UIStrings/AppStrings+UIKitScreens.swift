@@ -20,10 +20,8 @@ extension AppStrings {
             static let best = "베스트"
             static let recommendations = "추천 향수"
             static let guide = "오늘의 추천 향수는 취향 프로필에 따라 추천이 업데이트됩니다.\n취향 프로필은 보유 향수, 시향 기록에 따라 변경될 수 있습니다."
-            static let routePerfumeRegister = "향수 등록 화면으로 연결할 수 있어요."
             static let routeTastingNote = "시향기 작성 화면으로 연결할 수 있어요."
             static let routeTasteReport = "취향 리포트 화면으로 연결할 수 있어요."
-            static let sampleCard = "현재 카드는 샘플 데이터예요."
             static let likeSavedClose = "닫기"
             static let likeSavedOpen = "LIKE 향수 보기"
 
@@ -48,7 +46,6 @@ extension AppStrings {
             static let likeSaveFailed = "LIKE 향수 저장에 실패했어요."
             static let landingBrandMessage = "브랜드 검색 결과가 없어요."
             static let landingPerfumeMessage = "향수 검색 결과가 없어요."
-            static let landingGuideMessage = "검색어를 입력하면 관련 브랜드 결과를 보여드려요."
 
             static func brandCount(_ count: Int) -> String {
                 "브랜드 \(count)개"
@@ -72,6 +69,7 @@ extension AppStrings {
             static let accords = "향 계열"
             static let notes = "노트"
             static let season = "계절"
+            static let occasion = "상황"
             static let longevity = "지속력"
             static let sillage = "확산력"
             static let topNotes = "탑"

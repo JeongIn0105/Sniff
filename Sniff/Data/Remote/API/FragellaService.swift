@@ -18,7 +18,6 @@ final class FragellaService {
     private let diskCacheTTL: TimeInterval = 604_800
     private let defaults = UserDefaults.standard
     private let cacheLock = NSLock()
-    private var searchCache: [String: CacheEntry<[Perfume]>] = [:]
     private var detailCache: [String: CacheEntry<Perfume>] = [:]
 
     func search(query: String, limit: Int = 100) -> Single<[Perfume]> {
@@ -80,12 +79,7 @@ final class FragellaService {
             return []
         }
 
-        let cacheKey = makeSearchCacheKey(query: query, limit: limit)
-
-        if let cached = cachedSearch(for: cacheKey) {
-            log("CACHE HIT search query=\"\(query)\" limit=\(limit) count=\(cached.count)")
-            return cached
-        }
+        clearSearchCache()
 
         log("REQUEST search query=\"\(query)\" limit=\(limit)")
 
@@ -103,7 +97,6 @@ final class FragellaService {
         }
 
         let perfumes = try FragellaResponseParser.parsePerfumeList(from: data)
-        storeSearch(perfumes, responseData: data, for: cacheKey)
         log("RESPONSE search query=\"\(query)\" limit=\(limit) count=\(perfumes.count)")
         return perfumes
     }
@@ -138,33 +131,6 @@ final class FragellaService {
         try AppSecrets.fragellaAPIKey()
     }
 
-    private func makeSearchCacheKey(query: String, limit: Int) -> String {
-        "\(query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())::\(limit)"
-    }
-
-    private func cachedSearch(for key: String) -> [Perfume]? {
-        cacheLock.lock()
-        if let entry = searchCache[key], !entry.isExpired(referenceDate: Date()) {
-            let value = entry.value
-            cacheLock.unlock()
-            return value
-        }
-        searchCache[key] = nil
-        cacheLock.unlock()
-
-        guard let data = cachedDiskResponse(for: key, storageKey: DiskCacheKey.searchResponses),
-              let perfumes = try? FragellaResponseParser.parsePerfumeList(from: data)
-        else {
-            removeDiskResponse(for: key, storageKey: DiskCacheKey.searchResponses)
-            return nil
-        }
-
-        cacheLock.lock()
-        searchCache[key] = CacheEntry(value: perfumes, expiresAt: Date().addingTimeInterval(cacheTTL))
-        cacheLock.unlock()
-        return perfumes
-    }
-
     private func cachedDetail(for key: String) -> Perfume? {
         cacheLock.lock()
         if let entry = detailCache[key], !entry.isExpired(referenceDate: Date()) {
@@ -188,11 +154,8 @@ final class FragellaService {
         return perfume
     }
 
-    private func storeSearch(_ perfumes: [Perfume], responseData: Data, for key: String) {
-        cacheLock.lock()
-        searchCache[key] = CacheEntry(value: perfumes, expiresAt: Date().addingTimeInterval(cacheTTL))
-        cacheLock.unlock()
-        storeDiskResponse(responseData, for: key, storageKey: DiskCacheKey.searchResponses)
+    private func clearSearchCache() {
+        defaults.removeObject(forKey: DiskCacheKey.searchResponses)
     }
 
     private func storeDetail(_ perfume: Perfume, responseData: Data, for key: String) {
@@ -242,7 +205,7 @@ final class FragellaService {
 
     private func log(_ message: String) {
         #if DEBUG
-        print("[FragellaService] \(message)")
+        _ = message
         #endif
     }
 }

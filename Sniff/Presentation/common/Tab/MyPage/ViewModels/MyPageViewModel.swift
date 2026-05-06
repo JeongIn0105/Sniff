@@ -94,20 +94,23 @@ final class MyPageViewModel: ObservableObject {
 
         do {
             profileInfo = try await fetchProfileInfo()
+            let localTastingNotes = loadLocalTastingNotes()
 
             async let collectionFetch = fetchCollectionResult()
             async let likedFetch = fetchLikedPerfumesResult()
-            async let tastingKeyFetch = fetchTastingKeys()
-            async let tastingImageURLFetch = fetchTastingImageURLs()
             async let tasteAnalysisFetch = fetchTasteAnalysisResult()
             async let tastingRecordsFetch = fetchTastingRecordsResult()
 
             let collectionResult = await collectionFetch
             let likedResult = await likedFetch
-            let tastingKeys = await tastingKeyFetch
-            let tastingImageURLs = await tastingImageURLFetch
             let tasteAnalysisResult = await tasteAnalysisFetch
             let tastingRecordsResult = await tastingRecordsFetch
+            let tastingRecords = tastingRecordsResult.tastingRecords
+            let tastingKeys = makeTastingKeys(
+                localNotes: localTastingNotes,
+                tastingRecords: tastingRecords
+            )
+            let tastingImageURLs = makeTastingImageURLs(localNotes: localTastingNotes)
 
             updateTasteProfile(
                 tasteAnalysisResult: tasteAnalysisResult,
@@ -539,56 +542,44 @@ private extension MyPageViewModel {
             .lowercased()
     }
 
-    func fetchTastingKeys() async -> Set<String> {
+    func loadLocalTastingNotes() -> [TastingNote] {
+        (try? localTastingNoteRepository.loadNotes()) ?? []
+    }
+
+    func makeTastingKeys(
+        localNotes: [TastingNote],
+        tastingRecords: [TastingRecord]
+    ) -> Set<String> {
         var keys = Set<String>()
 
-        do {
-            let localNotes = try localTastingNoteRepository.loadNotes()
-            keys.formUnion(localNotes.flatMap {
-                PerfumePresentationSupport.recordMatchingKeys(
-                    perfumeName: $0.perfumeName,
-                    brandName: $0.brandName
-                )
-            })
-        } catch {
-            // 로컬 시향 기록 로딩 실패 시 원격 기록으로 보완한다.
-        }
-
-        do {
-            let records = try await tastingRepository.fetchTastingRecords().async()
-
-            keys.formUnion(
-                records.flatMap { record in
-                    PerfumePresentationSupport.recordMatchingKeys(
-                        perfumeName: record.perfumeName,
-                        brandName: record.brandName
-                    )
-                }
+        keys.formUnion(localNotes.flatMap {
+            PerfumePresentationSupport.recordMatchingKeys(
+                perfumeName: $0.perfumeName,
+                brandName: $0.brandName
             )
-        } catch {
-            return keys
-        }
+        })
+        keys.formUnion(tastingRecords.flatMap {
+            PerfumePresentationSupport.recordMatchingKeys(
+                perfumeName: $0.perfumeName,
+                brandName: $0.brandName
+            )
+        })
 
         return keys
     }
 
-    func fetchTastingImageURLs() async -> [String: String] {
-        do {
-            let localNotes = try localTastingNoteRepository.loadNotes()
-            return localNotes.reduce(into: [String: String]()) { result, note in
-                guard let imageURL = note.perfumeImageURL?.trimmingCharacters(in: .whitespacesAndNewlines),
-                      !imageURL.isEmpty
-                else { return }
+    func makeTastingImageURLs(localNotes: [TastingNote]) -> [String: String] {
+        localNotes.reduce(into: [String: String]()) { result, note in
+            guard let imageURL = note.perfumeImageURL?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !imageURL.isEmpty
+            else { return }
 
-                PerfumePresentationSupport.recordMatchingKeys(
-                    perfumeName: note.perfumeName,
-                    brandName: note.brandName
-                ).forEach { key in
-                    result[key] = result[key] ?? imageURL
-                }
+            PerfumePresentationSupport.recordMatchingKeys(
+                perfumeName: note.perfumeName,
+                brandName: note.brandName
+            ).forEach { key in
+                result[key] = result[key] ?? imageURL
             }
-        } catch {
-            return [:]
         }
     }
 

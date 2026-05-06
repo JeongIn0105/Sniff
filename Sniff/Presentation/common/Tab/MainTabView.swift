@@ -14,6 +14,36 @@ extension Notification.Name {
     static let tasteProfileDidChange = Notification.Name("sniff.tasteProfileDidChange")
 }
 
+enum PerfumeCollectionChangeScope: String {
+    case owned
+    case liked
+
+    static let userInfoKey = "scope"
+}
+
+extension Notification {
+    var perfumeCollectionChangeScope: PerfumeCollectionChangeScope? {
+        guard let rawValue = userInfo?[PerfumeCollectionChangeScope.userInfoKey] as? String else {
+            return nil
+        }
+        return PerfumeCollectionChangeScope(rawValue: rawValue)
+    }
+
+    var shouldRefreshHomeRecommendations: Bool {
+        perfumeCollectionChangeScope != .liked
+    }
+}
+
+extension NotificationCenter {
+    func postPerfumeCollectionDidChange(scope: PerfumeCollectionChangeScope) {
+        post(
+            name: .perfumeCollectionDidChange,
+            object: nil,
+            userInfo: [PerfumeCollectionChangeScope.userInfoKey: scope.rawValue]
+        )
+    }
+}
+
 enum MainTabSelection: Int, Hashable {
     case home = 0
     case search = 1

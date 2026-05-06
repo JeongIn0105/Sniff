@@ -5,152 +5,77 @@
 //  Created by t2025-m0239 on 2026.04.17.
 //
 
-import UIKit
-import SnapKit
-import Then
 import RxSwift
+import SnapKit
+import SwiftUI
+import UIKit
 
 final class TasteProfileViewController: UIViewController {
 
-    // MARK: - Typography
-
-    private enum Typography {
-        static func pretendard(size: CGFloat, weight: UIFont.Weight) -> UIFont {
-            let name: String
-            switch weight {
-            case .semibold: name = "Pretendard-SemiBold"
-            case .medium:   name = "Pretendard-Medium"
-            case .bold, .heavy, .black: name = "Pretendard-Bold"
-            default:        name = "Pretendard-Regular"
-            }
-            return UIFont(name: name, size: size)
-                ?? UIFont(name: "Pretendard-Medium", size: size)
-                ?? .systemFont(ofSize: size, weight: weight)
-        }
-    }
-
-    // MARK: - Family 한국어 변환
-
     static func koreanFamilyName(_ family: String) -> String {
         switch family {
-        case "Soft Floral":   return "소프트 플로럴"
-        case "Floral":        return "플로럴"
-        case "Floral Amber":  return "플로럴 앰버"
-        case "Soft Amber":    return "소프트 앰버"
-        case "Amber":         return "앰버"
-        case "Woody Amber":   return "우디 앰버"
-        case "Woods":         return "우디"
-        case "Mossy Woods":   return "모시 우즈"
-        case "Dry Woods":     return "드라이 우즈"
-        case "Citrus":        return "시트러스"
-        case "Fruity":        return "프루티"
-        case "Green":         return "그린"
-        case "Water":         return "워터"
-        case "Aromatic":      return "아로마틱"
-        default:              return family
+        case "Soft Floral": return "소프트 플로럴"
+        case "Floral": return "플로럴"
+        case "Floral Amber": return "플로럴 앰버"
+        case "Soft Amber": return "소프트 앰버"
+        case "Amber": return "앰버"
+        case "Woody Amber": return "우디 앰버"
+        case "Woods": return "우디"
+        case "Mossy Woods": return "모시 우즈"
+        case "Dry Woods": return "드라이 우즈"
+        case "Citrus": return "시트러스"
+        case "Fruity": return "프루티"
+        case "Green": return "그린"
+        case "Water": return "워터"
+        case "Aromatic": return "아로마틱"
+        default: return family
         }
     }
 
-    // MARK: - Properties
-
-    private let profileItem: HomeViewModel.HomeProfileItem
-    private let userTasteRepository: UserTasteRepositoryType
-    private let disposeBag = DisposeBag()
-
-    // MARK: - UI
-
-    private let scrollView = UIScrollView()
-    private let contentView = UIView()
-
-    private let backButton = UIButton(type: .system).then {
-        $0.setImage(UIImage(systemName: "chevron.left"), for: .normal)
-        $0.tintColor = .label
-    }
-
-    private let titleLabel = UILabel().then {
-        $0.text = AppStrings.Home.tasteProfileTitle
-        $0.font = .systemFont(ofSize: 20, weight: .semibold)
-        $0.textColor = .label
-    }
-
-    private let infoButton = UIButton(type: .system).then {
-        $0.setImage(UIImage(systemName: "exclamationmark.circle"), for: .normal)
-        $0.tintColor = .secondaryLabel
-    }
-
-    private let cardView = TasteProfileCardView()
-
-    private let helperContainerView = UIView().then {
-        $0.backgroundColor = UIColor(red: 0.98, green: 0.97, blue: 0.96, alpha: 1)
-        $0.layer.cornerRadius = 14
-        $0.layer.cornerCurve = .continuous
-    }
-
-    private let helperIconView = UIImageView(image: UIImage(systemName: "exclamationmark.circle")).then {
-        $0.tintColor = UIColor(red: 0.87, green: 0.87, blue: 0.87, alpha: 1)
-        $0.contentMode = .scaleAspectFit
-        $0.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 20, weight: .regular)
-    }
-
-    private let helperLabel = UILabel().then {
-        $0.text = "향수를 등록하거나 시향 기록을 남기면 취향이 더 선명해져요"
-        $0.font = .systemFont(ofSize: 12, weight: .semibold)
-        $0.textColor = UIColor(red: 0.60, green: 0.60, blue: 0.60, alpha: 1)
-        $0.numberOfLines = 0
-    }
-
-    private let historyTitleLabel = UILabel().then {
-        $0.text = "취향 프로필 히스토리"
-        $0.font = UIFont(name: "Pretendard-SemiBold", size: 18)
-            ?? UIFont(name: "Pretendard-Bold", size: 18)
-            ?? .systemFont(ofSize: 18, weight: .semibold)
-        $0.textColor = UIColor(red: 0.13, green: 0.13, blue: 0.13, alpha: 1)
-    }
-
-    private let historyContainerView = UIView().then {
-        $0.backgroundColor = .systemBackground
-        $0.layer.cornerRadius = 16
-        $0.layer.cornerCurve = .continuous
-    }
-
-    private let historyStackView = UIStackView().then {
-        $0.axis = .vertical
-        $0.spacing = 0
-    }
-
-    // 현재 적용 중인 히스토리 entry ID (가장 최신)
-    private var currentEntryId: String?
-    private var historyEntries: [TasteProfileHistoryEntry] = []
-    private var isHistoryExpanded = false
-    private let collapsedHistoryCount = 2
-    private let maxVisibleHistoryCount = 5
-
-    // MARK: - Init
+    private let viewModel: TasteProfileScreenViewModel
+    private var hostingController: UIHostingController<TasteProfileScreenView>?
 
     init(profileItem: HomeViewModel.HomeProfileItem, userTasteRepository: UserTasteRepositoryType) {
-        self.profileItem = profileItem
-        self.userTasteRepository = userTasteRepository
+        viewModel = TasteProfileScreenViewModel(
+            profileItem: profileItem,
+            userTasteRepository: userTasteRepository
+        )
         super.init(nibName: nil, bundle: nil)
     }
 
     required init?(coder: NSCoder) { fatalError() }
 
-    // MARK: - Lifecycle
-
     override func viewDidLoad() {
         super.viewDidLoad()
-        setupUI()
-        configureContent()
-        recordAndFetchHistory()
+        setupHostingView()
+        viewModel.recordAndFetchHistory()
+    }
+}
+
+private extension TasteProfileViewController {
+    func setupHostingView() {
+        view.backgroundColor = .systemBackground
+
+        let rootView = TasteProfileScreenView(
+            viewModel: viewModel,
+            onBack: { [weak self] in
+                self?.navigationController?.popViewController(animated: true)
+            },
+            onInfo: { [weak self] in
+                self?.presentColorInfo()
+            }
+        )
+        let hostingController = UIHostingController(rootView: rootView)
+        hostingController.view.backgroundColor = .systemBackground
+
+        addChild(hostingController)
+        view.addSubview(hostingController.view)
+        hostingController.view.snp.makeConstraints { $0.edges.equalToSuperview() }
+        hostingController.didMove(toParent: self)
+        self.hostingController = hostingController
     }
 
-    // MARK: - Actions
-
-    @objc private func popViewController() {
-        navigationController?.popViewController(animated: true)
-    }
-
-    @objc private func presentColorInfo() {
+    func presentColorInfo() {
         let infoVC = TasteProfileColorInfoViewController()
         if let sheet = infoVC.sheetPresentationController {
             sheet.detents = [.large()]
@@ -161,101 +86,60 @@ final class TasteProfileViewController: UIViewController {
     }
 }
 
-// MARK: - Setup
+private final class TasteProfileScreenViewModel: ObservableObject {
+    let profileItem: HomeViewModel.HomeProfileItem
+    @Published private(set) var historyEntries: [TasteProfileHistoryEntry] = []
+    @Published var isHistoryExpanded = false
 
-private extension TasteProfileViewController {
+    private let userTasteRepository: UserTasteRepositoryType
+    private let disposeBag = DisposeBag()
+    private let collapsedHistoryCount = 2
+    private let maxVisibleHistoryCount = 5
 
-    func setupUI() {
-        view.backgroundColor = .systemBackground
-
-        view.addSubview(scrollView)
-        scrollView.addSubview(contentView)
-
-        [backButton, titleLabel, infoButton, cardView,
-         helperContainerView, historyTitleLabel, historyContainerView
-        ].forEach { contentView.addSubview($0) }
-        [helperIconView, helperLabel].forEach { helperContainerView.addSubview($0) }
-        historyContainerView.addSubview(historyStackView)
-
-        backButton.addTarget(self, action: #selector(popViewController), for: .touchUpInside)
-        infoButton.addTarget(self, action: #selector(presentColorInfo), for: .touchUpInside)
-
-        scrollView.snp.makeConstraints { $0.edges.equalTo(view.safeAreaLayoutGuide) }
-        contentView.snp.makeConstraints {
-            $0.edges.equalToSuperview()
-            $0.width.equalTo(scrollView)
-        }
-
-        backButton.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(8)
-            $0.leading.equalToSuperview().offset(16)
-            $0.size.equalTo(28)
-        }
-
-        titleLabel.snp.makeConstraints {
-            $0.centerY.equalTo(backButton)
-            $0.leading.equalTo(backButton.snp.trailing).offset(8)
-        }
-
-        infoButton.snp.makeConstraints {
-            $0.centerY.equalTo(titleLabel)
-            $0.leading.equalTo(titleLabel.snp.trailing).offset(6)
-            $0.size.equalTo(20)
-        }
-
-        cardView.snp.makeConstraints {
-            $0.top.equalTo(backButton.snp.bottom).offset(24)
-            $0.leading.trailing.equalToSuperview().inset(20)
-            $0.height.greaterThanOrEqualTo(448)
-        }
-
-        helperContainerView.snp.makeConstraints {
-            $0.top.equalTo(cardView.snp.bottom).offset(16)
-            $0.leading.trailing.equalToSuperview().inset(20)
-        }
-
-        helperIconView.snp.makeConstraints {
-            $0.top.leading.equalToSuperview().inset(12)
-            $0.size.equalTo(20)
-        }
-
-        helperLabel.snp.makeConstraints {
-            $0.top.bottom.equalToSuperview().inset(12)
-            $0.leading.equalTo(helperIconView.snp.trailing).offset(4)
-            $0.trailing.equalToSuperview().inset(12)
-        }
-
-        historyTitleLabel.snp.makeConstraints {
-            $0.top.equalTo(helperContainerView.snp.bottom).offset(28)
-            $0.leading.equalToSuperview().offset(16)
-        }
-
-        historyContainerView.snp.makeConstraints {
-            $0.top.equalTo(historyTitleLabel.snp.bottom).offset(12)
-            $0.leading.trailing.equalToSuperview().inset(16)
-            $0.bottom.equalToSuperview().inset(32)
-        }
-
-        historyStackView.snp.makeConstraints {
-            $0.top.bottom.equalToSuperview().inset(12)
-            $0.leading.trailing.equalToSuperview()
-        }
-
-        historyTitleLabel.isHidden = true
-        historyContainerView.isHidden = true
+    var currentEntryId: String? {
+        historyEntries.first?.id
     }
 
-    func configureContent() {
-        cardView.configure(
-            with: profileItem.profile,
+    var visibleHistoryEntries: [TasteProfileHistoryEntry] {
+        isHistoryExpanded
+            ? historyEntries
+            : Array(historyEntries.prefix(collapsedHistoryCount))
+    }
+
+    var canToggleHistory: Bool {
+        historyEntries.count > collapsedHistoryCount
+    }
+
+    init(
+        profileItem: HomeViewModel.HomeProfileItem,
+        userTasteRepository: UserTasteRepositoryType
+    ) {
+        self.profileItem = profileItem
+        self.userTasteRepository = userTasteRepository
+    }
+
+    func recordAndFetchHistory() {
+        userTasteRepository.recordTasteProfileHistoryIfNeeded(
+            profile: profileItem.profile,
             collectionCount: profileItem.collectionCount,
             tastingCount: profileItem.tastingCount
         )
-        helperLabel.text = helperText(for: profileItem.profile)
+        .observe(on: MainScheduler.instance)
+        .subscribe(onSuccess: { [weak self] entries in
+            guard let self else { return }
+            if entries.isEmpty {
+                self.fetchHistory()
+            } else {
+                self.applyHistory(entries)
+            }
+        }, onFailure: { [weak self] _ in
+            self?.fetchHistory()
+        })
+        .disposed(by: disposeBag)
     }
 
-    func helperText(for profile: UserTasteProfile) -> String {
-        switch profile.stage {
+    func helperText() -> String {
+        switch profileItem.profile.stage {
         case .onboardingOnly:
             return AppStrings.DomainDisplay.TasteProfile.needsCollectionOrRecord
         case .onboardingCollection:
@@ -265,193 +149,388 @@ private extension TasteProfileViewController {
         }
     }
 
-    // MARK: - History
+    func analysisText() -> String {
+        let profile = profileItem.profile
+        let summary = profile.analysisSummary.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !summary.isEmpty { return summary }
 
-    /// 현재 프로필을 Firestore에 기록한 뒤 히스토리 목록을 가져와 표시
-    func recordAndFetchHistory() {
-        // 1차: 현재 프로필 기록 + 히스토리 반환
-        userTasteRepository.recordTasteProfileHistoryIfNeeded(
-            profile: profileItem.profile,
-            collectionCount: profileItem.collectionCount,
-            tastingCount: profileItem.tastingCount
-        )
-        .observe(on: MainScheduler.instance)
-        .subscribe(onSuccess: { [weak self] entries in
-            guard let self else { return }
-            if !entries.isEmpty {
-                self.populateHistory(entries: entries)
-            } else {
-                // 기록은 됐지만 빈 배열 → 직접 fetch
-                self.fallbackFetchHistory()
-            }
-        }, onFailure: { [weak self] error in
-            print("[TasteProfile] 히스토리 기록 실패, fetch 시도:", error)
-            self?.fallbackFetchHistory()
-        })
-        .disposed(by: disposeBag)
+        let parts = [
+            profileItem.tastingCount > 0 ? AppStrings.DomainDisplay.TasteProfile.tastingCount(profileItem.tastingCount) : nil,
+            profileItem.collectionCount > 0 ? AppStrings.DomainDisplay.TasteProfile.collectionCount(profileItem.collectionCount) : nil
+        ]
+        .compactMap { $0 }
+        .joined(separator: ", ")
+
+        if !parts.isEmpty {
+            return "\(parts)을 기반으로 취향을 정리했어요."
+        }
+
+        let safeStartingPoint = profile.safeStartingPoint.trimmingCharacters(in: .whitespacesAndNewlines)
+        return safeStartingPoint.isEmpty
+            ? AppStrings.DomainDisplay.TasteProfile.needsCollectionOrRecord
+            : safeStartingPoint
     }
 
-    /// recordTasteProfileHistoryIfNeeded 실패 시 단순 fetch fallback
-    func fallbackFetchHistory() {
+    func majorFamilyRatios() -> [(family: String, ratio: Double)] {
+        Self.majorFamilyRatios(from: profileItem.profile.scentVector)
+    }
+
+    func toggleHistory() {
+        isHistoryExpanded.toggle()
+    }
+
+    private func fetchHistory() {
         userTasteRepository.fetchTasteProfileHistory()
             .observe(on: MainScheduler.instance)
             .subscribe(onSuccess: { [weak self] entries in
-                guard let self, !entries.isEmpty else { return }
-                self.populateHistory(entries: entries)
-            }, onFailure: { error in
-                print("[TasteProfile] 히스토리 fetch도 실패:", error)
-            })
+                self?.applyHistory(entries)
+            }, onFailure: { _ in })
             .disposed(by: disposeBag)
     }
 
-    func populateHistory(entries: [TasteProfileHistoryEntry]) {
-        historyTitleLabel.isHidden = false
-        historyContainerView.isHidden = false
-
-        // 최신순 정렬
+    private func applyHistory(_ entries: [TasteProfileHistoryEntry]) {
         let sorted = entries.sorted {
             ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast)
         }
-        currentEntryId = sorted.first?.id
         historyEntries = Array(sorted.prefix(maxVisibleHistoryCount))
         isHistoryExpanded = false
-
-        renderHistoryRows()
     }
 
-    func renderHistoryRows() {
-        let visibleEntries = isHistoryExpanded
-            ? historyEntries
-            : Array(historyEntries.prefix(collapsedHistoryCount))
+    private static func majorFamilyRatios(from scentVector: [String: Double]) -> [(family: String, ratio: Double)] {
+        let grouped = scentVector.reduce(into: [String: Double]()) { result, pair in
+            guard let majorFamily = majorFamily(for: pair.key) else { return }
+            result[majorFamily, default: 0] += pair.value
+        }
 
-        // 기존 뷰 초기화
-        historyStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        return ["플로럴", "앰버", "우디", "프레쉬"].map { family in
+            (family: family, ratio: grouped[family, default: 0])
+        }
+    }
 
-        visibleEntries.enumerated().forEach { index, entry in
-            let isCurrent = entry.id == currentEntryId
-            let row = makeHistoryRow(entry: entry, isCurrent: isCurrent)
-            historyStackView.addArrangedSubview(row)
+    private static func majorFamily(for family: String) -> String? {
+        switch family {
+        case "Floral", "Soft Floral", "Floral Amber":
+            return "플로럴"
+        case "Soft Amber", "Amber", "Woody Amber":
+            return "앰버"
+        case "Woods", "Mossy Woods", "Dry Woods":
+            return "우디"
+        case "Citrus", "Fruity", "Green", "Water", "Aromatic":
+            return "프레쉬"
+        default:
+            return nil
+        }
+    }
+}
 
-            // 구분선 (마지막 항목 제외)
-            if index < visibleEntries.count - 1 {
-                historyStackView.addArrangedSubview(makeHistoryDivider())
+private struct TasteProfileScreenView: View {
+    @ObservedObject var viewModel: TasteProfileScreenViewModel
+    let onBack: () -> Void
+    let onInfo: () -> Void
+
+    var body: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 0) {
+                header
+                    .padding(.top, 8)
+
+                TasteProfileSummaryCard(viewModel: viewModel)
+                    .padding(.top, 24)
+
+                helperView
+                    .padding(.top, 16)
+
+                historySection
+                    .padding(.top, 28)
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 32)
+        }
+        .background(Color(.systemBackground))
+    }
+
+    private var header: some View {
+        HStack(spacing: 8) {
+            Button(action: onBack) {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundColor(.primary)
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(.plain)
+
+            Text(AppStrings.Home.tasteProfileTitle)
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundColor(.primary)
+
+            Button(action: onInfo) {
+                Image(systemName: "exclamationmark.circle")
+                    .font(.system(size: 18, weight: .regular))
+                    .foregroundColor(Color(.secondaryLabel))
+                    .frame(width: 24, height: 24)
+            }
+            .buttonStyle(.plain)
+
+            Spacer(minLength: 0)
+        }
+    }
+
+    private var helperView: some View {
+        HStack(alignment: .top, spacing: 4) {
+            Image(systemName: "exclamationmark.circle")
+                .font(.system(size: 20, weight: .regular))
+                .foregroundColor(Color(red: 0.87, green: 0.87, blue: 0.87))
+                .frame(width: 20, height: 20)
+
+            Text(viewModel.helperText())
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(Color(red: 0.60, green: 0.60, blue: 0.60))
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .background(Color(red: 0.98, green: 0.97, blue: 0.96))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    @ViewBuilder
+    private var historySection: some View {
+        if !viewModel.historyEntries.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("취향 프로필 히스토리")
+                    .font(.custom("Pretendard-SemiBold", size: 18))
+                    .foregroundColor(Color(red: 0.13, green: 0.13, blue: 0.13))
+
+                VStack(spacing: 0) {
+                    ForEach(Array(viewModel.visibleHistoryEntries.enumerated()), id: \.element.id) { index, entry in
+                        TasteProfileHistoryRow(
+                            entry: entry,
+                            isCurrent: entry.id == viewModel.currentEntryId
+                        )
+
+                        if index < viewModel.visibleHistoryEntries.count - 1 {
+                            Divider()
+                        }
+                    }
+
+                    if viewModel.canToggleHistory {
+                        if !viewModel.visibleHistoryEntries.isEmpty {
+                            Divider()
+                        }
+                        Button(action: viewModel.toggleHistory) {
+                            HStack(spacing: 6) {
+                                Text(viewModel.isHistoryExpanded ? "접기" : "더보기")
+                                Image(systemName: viewModel.isHistoryExpanded ? "chevron.up" : "chevron.down")
+                            }
+                            .font(.custom("Pretendard-Medium", size: 14))
+                            .foregroundColor(Color(red: 0.39, green: 0.39, blue: 0.39))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.vertical, 12)
+                .background(Color(.systemBackground))
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
         }
+    }
+}
 
-        if historyEntries.count > collapsedHistoryCount {
-            if !visibleEntries.isEmpty {
-                historyStackView.addArrangedSubview(makeHistoryDivider())
+private struct TasteProfileSummaryCard: View {
+    @ObservedObject var viewModel: TasteProfileScreenViewModel
+
+    private var profile: UserTasteProfile { viewModel.profileItem.profile }
+    private var highlightedFamilies: Set<String> {
+        Set(
+            viewModel.majorFamilyRatios()
+                .sorted {
+                    if $0.ratio != $1.ratio { return $0.ratio > $1.ratio }
+                    return $0.family < $1.family
+                }
+                .prefix(2)
+                .filter { $0.ratio > 0 }
+                .map(\.family)
+        )
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 16) {
+                TasteProfileGradientIcon(
+                    title: profile.displayTitle,
+                    fallbackFamilies: Array(profile.displayFamilies.prefix(3))
+                )
+                .frame(width: 36, height: 36)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(profile.displayTitle)
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(.black)
+                        .lineLimit(1)
+
+                    Text(profile.displayMajorSummary)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(Color(red: 0.30, green: 0.30, blue: 0.30))
+                        .lineLimit(1)
+                }
             }
-            historyStackView.addArrangedSubview(makeHistoryToggleRow())
+
+            VStack(spacing: 20) {
+                ForEach(viewModel.majorFamilyRatios(), id: \.family) { item in
+                    TasteProfileRatioRow(
+                        family: item.family,
+                        ratio: item.ratio,
+                        isHighlighted: highlightedFamilies.contains(item.family)
+                    )
+                }
+            }
+            .padding(.top, 28)
+
+            Text(viewModel.analysisText())
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(Color(red: 0.39, green: 0.39, blue: 0.39))
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 28)
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(.systemBackground))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(Color(.separator).opacity(0.2), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+}
+
+private struct TasteProfileRatioRow: View {
+    let family: String
+    let ratio: Double
+    let isHighlighted: Bool
+
+    var body: some View {
+        VStack(spacing: 12) {
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(Color(uiColor: ScentFamilyColor.barColor(for: family)))
+                    .frame(width: 9, height: 9)
+
+                Text(family)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(Color(red: 0.30, green: 0.30, blue: 0.30))
+
+                Spacer(minLength: 12)
+
+                Text("\(Int((ratio * 100).rounded()))%")
+                    .font(.system(size: 14, weight: .semibold, design: .monospaced))
+                    .foregroundColor(isHighlighted ? Color(red: 0.13, green: 0.13, blue: 0.13) : Color(red: 0.60, green: 0.60, blue: 0.60))
+                    .frame(width: 43, alignment: .trailing)
+            }
+
+            GeometryReader { proxy in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 4, style: .continuous)
+                        .fill(Color(red: 0.93, green: 0.93, blue: 0.95))
+
+                    RoundedRectangle(cornerRadius: 4, style: .continuous)
+                        .fill(Color(uiColor: ScentFamilyColor.barColor(for: family)))
+                        .frame(width: proxy.size.width * max(ratio, 0.02))
+                }
+            }
+            .frame(height: 8)
+            .padding(.leading, 17)
+            .padding(.trailing, 55)
         }
     }
+}
 
-    func makeHistoryDivider() -> UIView {
-        let divider = UIView()
-        divider.backgroundColor = UIColor(red: 0.93, green: 0.93, blue: 0.93, alpha: 1)
-        divider.snp.makeConstraints { $0.height.equalTo(1) }
-        return divider
+private struct TasteProfileHistoryRow: View {
+    let entry: TasteProfileHistoryEntry
+    let isCurrent: Bool
+
+    var body: some View {
+        HStack(spacing: 12) {
+            TasteProfileGradientIcon(title: entry.title, fallbackFamilies: entry.families)
+                .frame(width: 44, height: 44)
+                .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(entry.title)
+                    .font(.custom("Pretendard-Medium", size: 16))
+                    .foregroundColor(Color(red: 0.13, green: 0.13, blue: 0.13))
+                    .lineLimit(1)
+
+                Text(subtitle)
+                    .font(.custom("Pretendard-Medium", size: 12))
+                    .foregroundColor(Color(red: 0.52, green: 0.52, blue: 0.52))
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 8)
+
+            if isCurrent {
+                Text("적용중")
+                    .font(.custom("Pretendard-Medium", size: 13))
+                    .foregroundColor(Color(red: 0.52, green: 0.50, blue: 0.48))
+                    .padding(.horizontal, 8)
+                    .frame(height: 24)
+                    .background(Color(red: 0.96, green: 0.93, blue: 0.89))
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            }
+        }
+        .padding(.horizontal, 4)
+        .padding(.vertical, 14)
     }
 
-    func makeHistoryRow(entry: TasteProfileHistoryEntry, isCurrent: Bool) -> UIView {
-        let container = UIView()
-        container.backgroundColor = .systemBackground
+    private var subtitle: String {
+        let families = entry.families.prefix(2)
+            .map(TasteProfileViewController.koreanFamilyName(_:))
+            .joined(separator: " · ")
+        return families.isEmpty ? "" : "\(families) 중심"
+    }
+}
 
-        // 그라데이션 썸네일 (56pt, cornerRadius 14)
-        let iconView = TasteProfileGradientIconView()
-        iconView.configure(title: entry.title, fallbackFamilies: entry.families)
-        iconView.layer.cornerRadius = 11
-        iconView.layer.cornerCurve = .continuous
-        iconView.clipsToBounds = true
+private struct TasteProfileGradientIcon: View {
+    let title: String
+    let fallbackFamilies: [String]
 
-        // 취향명
-        let nameLabel = UILabel().then {
-            $0.text = entry.title
-            $0.font = UIFont(name: "Pretendard-Medium", size: 16) ?? .systemFont(ofSize: 16, weight: .medium)
-            $0.textColor = UIColor(red: 0.13, green: 0.13, blue: 0.13, alpha: 1)
-            $0.numberOfLines = 1
-        }
-
-        // 중심 계열 (영어 family명 → 한국어 변환)
-        let koreanFamilies = entry.families.prefix(2).map { TasteProfileViewController.koreanFamilyName($0) }
-        let familiesText = koreanFamilies.joined(separator: " · ")
-        let subtitleLabel = UILabel().then {
-            $0.text = familiesText.isEmpty ? "" : familiesText + " 중심"
-            $0.font = UIFont(name: "Pretendard-Medium", size: 12) ?? .systemFont(ofSize: 12, weight: .medium)
-            $0.textColor = UIColor(red: 0.52, green: 0.52, blue: 0.52, alpha: 1)
-            $0.numberOfLines = 1
-        }
-
-        // 적용중 뱃지 (Gardenia/300 배경, Gardenia/800 텍스트, H:24, radius:8, 좌우 8pt 패딩)
-        let badgeContainerView = UIView().then {
-            $0.backgroundColor = UIColor(red: 0.96, green: 0.93, blue: 0.89, alpha: 1) // Gardenia/300
-            $0.layer.cornerRadius = 8
-            $0.layer.cornerCurve = .continuous
-            $0.clipsToBounds = true
-            $0.isHidden = !isCurrent
-        }
-        let badgeInnerLabel = UILabel().then {
-            $0.text = "적용중"
-            $0.font = UIFont(name: "Pretendard-Medium", size: 13) ?? .systemFont(ofSize: 13, weight: .medium)
-            $0.textColor = UIColor(red: 0.52, green: 0.50, blue: 0.48, alpha: 1)
-        }
-        badgeContainerView.addSubview(badgeInnerLabel)
-        badgeInnerLabel.snp.makeConstraints {
-            $0.top.bottom.equalToSuperview()
-            $0.leading.trailing.equalToSuperview().inset(8)
-        }
-
-        [iconView, nameLabel, subtitleLabel, badgeContainerView].forEach { container.addSubview($0) }
-
-        iconView.snp.makeConstraints {
-            $0.leading.equalToSuperview().offset(4)
-            $0.centerY.equalToSuperview()
-            $0.size.equalTo(44)
-        }
-
-        badgeContainerView.snp.makeConstraints {
-            $0.trailing.equalToSuperview().inset(4)
-            $0.centerY.equalToSuperview()
-            $0.height.equalTo(24)
-        }
-
-        nameLabel.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(14)
-            $0.leading.equalTo(iconView.snp.trailing).offset(12)
-            $0.trailing.lessThanOrEqualTo(isCurrent ? badgeContainerView.snp.leading : container.snp.trailing).offset(-4)
-        }
-
-        subtitleLabel.snp.makeConstraints {
-            $0.top.equalTo(nameLabel.snp.bottom).offset(4)
-            $0.leading.equalTo(nameLabel)
-            $0.trailing.lessThanOrEqualTo(container.snp.trailing).offset(-4)
-            $0.bottom.equalToSuperview().inset(14)
-        }
-
-        return container
+    var body: some View {
+        RadialGradient(
+            gradient: Gradient(colors: gradientColors),
+            center: UnitPoint(x: 0.5, y: 0.04),
+            startRadius: 0,
+            endRadius: 54
+        )
     }
 
-    func makeHistoryToggleRow() -> UIView {
-        let button = UIButton(type: .system)
-        var configuration = UIButton.Configuration.plain()
-        configuration.title = isHistoryExpanded ? "접기" : "더보기"
-        configuration.image = UIImage(systemName: isHistoryExpanded ? "chevron.down" : "chevron.up")
-        configuration.imagePlacement = .trailing
-        configuration.imagePadding = 6
-        configuration.baseForegroundColor = UIColor(red: 0.39, green: 0.39, blue: 0.39, alpha: 1)
-        configuration.contentInsets = NSDirectionalEdgeInsets(top: 12, leading: 0, bottom: 12, trailing: 0)
-        button.configuration = configuration
-        button.titleLabel?.font = UIFont(name: "Pretendard-Medium", size: 14)
-            ?? .systemFont(ofSize: 14, weight: .medium)
-        button.addTarget(self, action: #selector(historyToggleTapped), for: .touchUpInside)
-        return button
-    }
-
-    @objc func historyToggleTapped() {
-        isHistoryExpanded.toggle()
-        UIView.performWithoutAnimation {
-            renderHistoryRows()
-            view.layoutIfNeeded()
+    private var gradientColors: [Color] {
+        if let exactPreset = TasteProfileGradientIconView.profilePreset(forTitle: title) {
+            return exactPreset.colors.map { Color(uiColor: $0) }
         }
+
+        if let palette = FragranceProfileText.profileColorPalette(forTitle: title) {
+            return [
+                Color(uiColor: UIColor(hex: palette.accentHex)),
+                Color(uiColor: UIColor(hex: palette.primaryHex)),
+                Color(uiColor: UIColor(hex: palette.baseHex))
+            ]
+        }
+
+        let base = Color(red: Double(0xF1) / 255.0, green: Double(0xE8) / 255.0, blue: Double(0xDF) / 255.0)
+        guard let first = fallbackFamilies.first else {
+            return [
+                Color(uiColor: UIColor(red: 1.0, green: 0.67, blue: 0.49, alpha: 1)),
+                Color(uiColor: UIColor(red: 0.95, green: 0.90, blue: 0.68, alpha: 1)),
+                base
+            ]
+        }
+
+        let firstColor = Color(uiColor: ScentFamilyColor.color(for: first).softened(amount: 0.30))
+        let secondColor = Color(uiColor: ScentFamilyColor.color(for: fallbackFamilies.dropFirst().first ?? first).softened(amount: 0.20))
+        return [secondColor, firstColor, base]
     }
 }

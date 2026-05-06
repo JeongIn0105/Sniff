@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum CollectedPerfumeUsageStatus: String, CaseIterable, Codable {
+enum CollectedPerfumeUsageStatus: String, CaseIterable, Codable, Hashable {
     case inUse = "사용중"
     case unopened = "새상품"
     case finished = "다 쓴 향수"
@@ -15,7 +15,7 @@ enum CollectedPerfumeUsageStatus: String, CaseIterable, Codable {
     nonisolated var displayName: String { rawValue }
 }
 
-enum CollectedPerfumeUsageFrequency: String, CaseIterable, Codable {
+enum CollectedPerfumeUsageFrequency: String, CaseIterable, Codable, Hashable {
     case often = "자주"
     case sometimes = "가끔"
     case rarely = "거의 안 씀"
@@ -23,12 +23,16 @@ enum CollectedPerfumeUsageFrequency: String, CaseIterable, Codable {
     nonisolated var displayName: String { rawValue }
 }
 
-enum CollectedPerfumePreferenceLevel: String, CaseIterable, Codable {
+enum CollectedPerfumePreferenceLevel: String, CaseIterable, Codable, Hashable {
     case liked = "좋아요"
     case neutral = "보통"
     case disappointed = "아쉬워요"
 
     nonisolated var displayName: String { rawValue }
+}
+
+enum CollectedPerfumeEditPolicy {
+    static let maxRegistrationEditCount = 3
 }
 
 struct CollectedPerfumeRegistrationInfo: Codable {
@@ -51,7 +55,7 @@ struct CollectedPerfumeRegistrationInfo: Codable {
     }
 }
 
-struct CollectedPerfume {
+struct CollectedPerfume: Identifiable {
     let id: String
     let name: String
     let brand: String
@@ -71,9 +75,18 @@ struct CollectedPerfume {
     let usageStatus: CollectedPerfumeUsageStatus?
     let usageFrequency: CollectedPerfumeUsageFrequency?
     let preferenceLevel: CollectedPerfumePreferenceLevel?
+    let registrationEditCount: Int
 
     var scentFamilies: [String] {
         mainAccords.filter { !$0.isEmpty }
+    }
+
+    var remainingRegistrationEditCount: Int {
+        max(0, CollectedPerfumeEditPolicy.maxRegistrationEditCount - registrationEditCount)
+    }
+
+    var canEditRegistrationInfo: Bool {
+        remainingRegistrationEditCount > 0
     }
 
     nonisolated init(
@@ -95,7 +108,8 @@ struct CollectedPerfume {
         sillage: String? = nil,
         usageStatus: CollectedPerfumeUsageStatus? = nil,
         usageFrequency: CollectedPerfumeUsageFrequency? = nil,
-        preferenceLevel: CollectedPerfumePreferenceLevel? = nil
+        preferenceLevel: CollectedPerfumePreferenceLevel? = nil,
+        registrationEditCount: Int = 0
     ) {
         self.id = id
         self.name = name
@@ -116,6 +130,7 @@ struct CollectedPerfume {
         self.usageStatus = usageStatus
         self.usageFrequency = usageFrequency
         self.preferenceLevel = preferenceLevel
+        self.registrationEditCount = max(0, registrationEditCount)
     }
 
     nonisolated init(

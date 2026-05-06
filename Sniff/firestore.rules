@@ -22,6 +22,45 @@ service cloud.firestore {
         && value.size() <= 10;
     }
 
+    function isOptionalString(data, field, maxSize) {
+      return !(field in data)
+        || (data[field] is string && data[field].size() <= maxSize);
+    }
+
+    function isOptionalTimestamp(data, field) {
+      return !(field in data) || data[field] is timestamp;
+    }
+
+    function isOptionalStringList(data, field, maxItems) {
+      return !(field in data)
+        || (data[field] is list && data[field].size() <= maxItems);
+    }
+
+    function isValidTastingUsageContext(data) {
+      return !('usageContext' in data)
+        || data.usageContext in ['오늘 사용', '최근 사용', '기억으로 기록'];
+    }
+
+    function isValidTastingLongevityExperience(data) {
+      return !('longevityExperience' in data)
+        || data.longevityExperience in ['2h 이하', '2~4h', '4~6h', '6h+'];
+    }
+
+    function isValidTastingSillageExperience(data) {
+      return !('sillageExperience' in data)
+        || data.sillageExperience in ['나만 맡음', '주변 1m', '방 전체'];
+    }
+
+    function isValidTastingDrydownChange(data) {
+      return !('drydownChange' in data)
+        || data.drydownChange in ['거의 비슷함', '조금 달라짐', '완전히 달라짐'];
+    }
+
+    function isValidTastingSkinChemistry(data) {
+      return !('skinChemistry' in data)
+        || data.skinChemistry in ['더 살아남', '그대로', '죽는 편'];
+    }
+
     function isValidUserProfile(data) {
       return data.keys().hasOnly([
         'nickname',
@@ -39,8 +78,8 @@ service cloud.firestore {
       && (!('contactEmail' in data) || data.contactEmail is string)
       && (!('onboardingCompleted' in data) || data.onboardingCompleted is bool)
       && (!('experienceLevel' in data) || data.experienceLevel is string)
-      && data.updatedAt != null
-      && data.createdAt != null;
+      && data.updatedAt is timestamp
+      && data.createdAt is timestamp;
     }
 
     function isValidLikedPerfume(data) {
@@ -62,7 +101,7 @@ service cloud.firestore {
       && data.name is string
       && data.brand is string
       && data.mainAccords is list
-      && data.likedAt != null
+      && data.likedAt is timestamp
       && (!('imageUrl' in data) || data.imageUrl is string)
       && (!('topNotes' in data) || data.topNotes is list)
       && (!('middleNotes' in data) || data.middleNotes is list)
@@ -79,12 +118,16 @@ service cloud.firestore {
         'name',
         'brand',
         'imageUrl',
+        'imageURL',
         'mainAccords',
+        'scentFamily',
+        'scentFamily2',
         'accordStrengths',
         'concentration',
         'gender',
         'memo',
         'addedAt',
+        'createdAt',
         'updatedAt',
         'topNotes',
         'middleNotes',
@@ -92,15 +135,23 @@ service cloud.firestore {
         'generalNotes',
         'seasonRanking',
         'longevity',
-        'sillage'
+        'sillage',
+        'usageStatus',
+        'usageFrequency',
+        'preferenceLevel',
+        'registrationEditCount'
       ])
       && data.name is string
       && data.brand is string
-      && data.mainAccords is list
-      && data.accordStrengths is map
-      && data.addedAt != null
-      && data.updatedAt != null
+      && (!('mainAccords' in data) || data.mainAccords is list)
+      && (!('accordStrengths' in data) || data.accordStrengths is map)
+      && isOptionalTimestamp(data, 'addedAt')
+      && isOptionalTimestamp(data, 'createdAt')
+      && data.updatedAt is timestamp
       && (!('imageUrl' in data) || data.imageUrl is string)
+      && (!('imageURL' in data) || data.imageURL is string)
+      && (!('scentFamily' in data) || data.scentFamily is string)
+      && (!('scentFamily2' in data) || data.scentFamily2 is string)
       && (!('concentration' in data) || data.concentration is string)
       && (!('gender' in data) || data.gender is string)
       && (!('memo' in data) || data.memo is string)
@@ -110,7 +161,31 @@ service cloud.firestore {
       && (!('generalNotes' in data) || data.generalNotes is list)
       && (!('seasonRanking' in data) || data.seasonRanking is list)
       && (!('longevity' in data) || data.longevity is string)
-      && (!('sillage' in data) || data.sillage is string);
+      && (!('sillage' in data) || data.sillage is string)
+      && (!('usageStatus' in data) || data.usageStatus is string)
+      && (!('usageFrequency' in data) || data.usageFrequency is string)
+      && (!('preferenceLevel' in data) || data.preferenceLevel is string)
+      && (!('registrationEditCount' in data) || (
+        data.registrationEditCount is int
+        && data.registrationEditCount >= 0
+        && data.registrationEditCount <= 3
+      ));
+    }
+
+    function isValidCollectionCreate(data) {
+      return isValidCollectionItem(data)
+        && (!('registrationEditCount' in data) || data.registrationEditCount == 0);
+    }
+
+    function isValidCollectionUpdate(previousData, nextData) {
+      return isValidCollectionItem(nextData)
+        && (
+          (!('registrationEditCount' in previousData) && nextData.registrationEditCount == 1)
+          || (
+            ('registrationEditCount' in previousData)
+            && nextData.registrationEditCount == previousData.registrationEditCount + 1
+          )
+        );
     }
 
     function isValidTastingRecord(data) {
@@ -126,6 +201,14 @@ service cloud.firestore {
         'memo',
         'wantToRevisit',
         'revisitDesire',
+        'usageContext',
+        'longevityExperience',
+        'sillageExperience',
+        'drydownChange',
+        'skinChemistry',
+        'wearSituations',
+        'weatherContexts',
+        'applicationAreas',
         'concentration',
         'createdAt',
         'updatedAt'
@@ -138,14 +221,22 @@ service cloud.firestore {
       && data.rating >= 0
       && data.rating <= 5
       && data.moodTags is list
-      && (!('memo' in data) || data.memo is string)
-      && (!('wantToRevisit' in data) || data.wantToRevisit is string)
-      && (!('revisitDesire' in data) || data.revisitDesire is string)
-      && (!('imageUrl' in data) || data.imageUrl is string)
-      && (!('perfumeImageURL' in data) || data.perfumeImageURL is string)
-      && (!('concentration' in data) || data.concentration is string)
-      && (!('createdAt' in data) || data.createdAt != null)
-      && data.updatedAt != null;
+      && isOptionalString(data, 'memo', 2000)
+      && isOptionalString(data, 'wantToRevisit', 50)
+      && isOptionalString(data, 'revisitDesire', 50)
+      && isValidTastingUsageContext(data)
+      && isValidTastingLongevityExperience(data)
+      && isValidTastingSillageExperience(data)
+      && isValidTastingDrydownChange(data)
+      && isValidTastingSkinChemistry(data)
+      && isOptionalStringList(data, 'wearSituations', 4)
+      && isOptionalStringList(data, 'weatherContexts', 4)
+      && isOptionalStringList(data, 'applicationAreas', 4)
+      && isOptionalString(data, 'imageUrl', 1000)
+      && isOptionalString(data, 'perfumeImageURL', 1000)
+      && isOptionalString(data, 'concentration', 80)
+      && isOptionalTimestamp(data, 'createdAt')
+      && data.updatedAt is timestamp;
     }
 
     function isValidAccordCache(data) {
@@ -163,8 +254,8 @@ service cloud.firestore {
       && data.confidence >= 0
       && data.confidence <= 1
       && data.source is string
-      && data.createdAt != null
-      && data.updatedAt != null;
+      && data.createdAt is timestamp
+      && data.updatedAt is timestamp;
     }
 
     function isValidProfileHistory(data) {
@@ -185,7 +276,7 @@ service cloud.firestore {
       && data.tastingCount is int
       && data.tastingCount >= 0
       && data.stage is string
-      && data.createdAt != null;
+      && data.createdAt is timestamp;
     }
 
     match /users/{userId} {
@@ -206,8 +297,10 @@ service cloud.firestore {
 
       match /collection/{perfumeId} {
         allow read: if isOwner(userId);
-        allow create, update: if isOwner(userId)
-          && isValidCollectionItem(request.resource.data);
+        allow create: if isOwner(userId)
+          && isValidCollectionCreate(request.resource.data);
+        allow update: if isOwner(userId)
+          && isValidCollectionUpdate(resource.data, request.resource.data);
         allow delete: if isOwner(userId);
       }
 
@@ -222,7 +315,7 @@ service cloud.firestore {
         allow read: if isOwner(userId);
         allow create: if isOwner(userId)
           && isValidTastingRecord(request.resource.data)
-          && request.resource.data.createdAt != null;
+          && request.resource.data.createdAt is timestamp;
         allow update: if isOwner(userId)
           && isValidTastingRecord(request.resource.data)
           && resource.data.createdAt == request.resource.data.createdAt;

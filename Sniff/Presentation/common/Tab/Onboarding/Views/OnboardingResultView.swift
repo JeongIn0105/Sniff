@@ -156,8 +156,8 @@ struct OnboardingResultView: View {
                         .font(.system(size: 15, weight: .semibold))
                         .frame(maxWidth: .infinity)
                         .frame(height: 54)
-                        .background(Color(hex: "#F1E8DF"))
-                        .foregroundColor(.black)
+                        .background(Color(hex: "#242424"))
+                        .foregroundColor(.white)
                         .cornerRadius(12)
                 }
             }

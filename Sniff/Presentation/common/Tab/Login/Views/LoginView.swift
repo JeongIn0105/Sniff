@@ -23,16 +23,9 @@ struct LoginView: View {
 
                 VStack(spacing: 0) {
                     Spacer()
-                        .frame(height: geometry.size.height * 0.26)
+                        .frame(height: geometry.size.height * 0.23)
 
-                    Text(AppStrings.AppShell.Login.title)
-                        .font(
-                            Font.custom("Hahmlet", size: 28)
-                                .weight(.bold)
-                        )
-                        .kerning(2)
-                        .multilineTextAlignment(.center)
-                        .foregroundColor(.black)
+                    SniffLogoText(color: .black, size: 46)
                         .frame(maxWidth: .infinity, alignment: .top)
 
                     Spacer()
@@ -68,6 +61,7 @@ struct LoginView: View {
                 }
             }
         }
+        .preferredColorScheme(.light)
         .toast(
             isPresented: $viewModel.showError,
             message: viewModel.errorMessage ?? AppStrings.AppShell.Login.defaultError

@@ -15,6 +15,7 @@ enum FirestoreServiceError: LocalizedError {
     case invalidUserProfile
     case nicknameCheckUnavailable
     case profileSaveUnavailable
+    case ownedPerfumeEditLimitReached
 
     var errorDescription: String? {
         switch self {
@@ -28,6 +29,8 @@ enum FirestoreServiceError: LocalizedError {
             return "지금은 닉네임 중복 확인을 할 수 없어요. 잠시 후 다시 시도해주세요"
         case .profileSaveUnavailable:
             return "지금은 프로필을 저장할 수 없어요. 잠시 후 다시 시도해주세요"
+        case .ownedPerfumeEditLimitReached:
+            return "보유 정보 수정 가능 횟수를 모두 사용했어요"
         }
     }
 }
@@ -309,6 +312,7 @@ final class FirestoreService {
             "brand": perfume.brand,
             "mainAccords": perfume.mainAccords,
             "accordStrengths": Self.accordStrengthsForStorage(from: perfume),
+            "registrationEditCount": 0,
             "addedAt": now,
             "updatedAt": now
         ]
@@ -337,6 +341,37 @@ final class FirestoreService {
             data["memo"] = memo
         }
         try await ref.setData(data, merge: false)
+    }
+
+    func updateCollectedPerfumeRegistration(
+        id: String,
+        registrationInfo: CollectedPerfumeRegistrationInfo
+    ) async throws {
+        let ref = try userDocumentRef()
+            .collection("collection")
+            .document(id)
+
+        let snapshot = try await ref.getDocument()
+        let currentEditCount = Self.intValue(from: snapshot.data()?["registrationEditCount"]) ?? 0
+        guard currentEditCount < CollectedPerfumeEditPolicy.maxRegistrationEditCount else {
+            throw FirestoreServiceError.ownedPerfumeEditLimitReached
+        }
+
+        var data: [String: Any] = [
+            "usageStatus": registrationInfo.usageStatus.rawValue,
+            "usageFrequency": registrationInfo.usageFrequency.rawValue,
+            "preferenceLevel": registrationInfo.preferenceLevel.rawValue,
+            "registrationEditCount": currentEditCount + 1,
+            "updatedAt": FieldValue.serverTimestamp()
+        ]
+
+        if let memo = registrationInfo.memo {
+            data["memo"] = memo
+        } else {
+            data["memo"] = FieldValue.delete()
+        }
+
+        try await ref.updateData(data)
     }
 
     func deleteCollectedPerfume(id: String) async throws {
@@ -518,4 +553,5 @@ private extension FirestoreService {
         || dictionary["recommendation_direction"] != nil
         || dictionary["analysis_summary"] != nil
     }
+
 }

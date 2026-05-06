@@ -499,22 +499,22 @@ struct PerfumeGridCardAccordLine: View {
 
         HStack(spacing: style.accordSpacing) {
             ForEach(Array(displayAccords.enumerated()), id: \.offset) { index, accord in
-                HStack(spacing: 4) {
-                    Circle()
-                        .fill(Color(uiColor: ScentFamilyColor.color(for: accords[index])))
-                        .frame(width: style.accordDotSize, height: style.accordDotSize)
-
-                    Text(accord)
-                        .font(.system(size: style.accordFontSize, weight: .regular))
-                        .foregroundColor(Color(.systemGray))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.82)
-                }
+                accordText(
+                    accord,
+                    color: Color(uiColor: ScentFamilyColor.color(for: accords[index]))
+                )
             }
 
             Spacer(minLength: 0)
         }
         .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func accordText(_ text: String, color: Color) -> some View {
+        (Text("● ").foregroundColor(color) + Text(text).foregroundColor(Color(.systemGray)))
+            .font(.system(size: style.accordFontSize, weight: .regular))
+            .lineLimit(1)
+            .minimumScaleFactor(0.82)
     }
 }
 
@@ -534,7 +534,8 @@ private struct PerfumeArtworkBackgroundCleanupProcessor: ImageProcessor {
 
 private extension UIImage {
     func removingEdgeConnectedWhiteBackground() -> UIImage {
-        guard let cgImage else { return self }
+        let sourceImage = downsampledForBackgroundCleanup(maxPixelSide: 700)
+        guard let cgImage = sourceImage.cgImage else { return self }
 
         let width = cgImage.width
         let height = cgImage.height
@@ -698,6 +699,28 @@ private extension UIImage {
         }
 
         guard let outputImage = context.makeImage() else { return self }
-        return UIImage(cgImage: outputImage, scale: scale, orientation: imageOrientation)
+        return UIImage(cgImage: outputImage, scale: sourceImage.scale, orientation: sourceImage.imageOrientation)
+    }
+
+    private func downsampledForBackgroundCleanup(maxPixelSide: Int) -> UIImage {
+        guard let cgImage else { return self }
+
+        let pixelWidth = cgImage.width
+        let pixelHeight = cgImage.height
+        let longestSide = max(pixelWidth, pixelHeight)
+        guard longestSide > maxPixelSide else { return self }
+
+        let ratio = CGFloat(maxPixelSide) / CGFloat(longestSide)
+        let targetSize = CGSize(
+            width: CGFloat(pixelWidth) * ratio,
+            height: CGFloat(pixelHeight) * ratio
+        )
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = false
+
+        return UIGraphicsImageRenderer(size: targetSize, format: format).image { _ in
+            draw(in: CGRect(origin: .zero, size: targetSize))
+        }
     }
 }

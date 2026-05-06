@@ -101,6 +101,7 @@ enum FragellaResponseParser {
                 forKeys: ["situation", "situations", "occasion", "occasions"],
                 in: dictionary
             ),
+            occasionRanking: occasionRankingEntries(in: dictionary),
             longevity: stringValue(forKeys: ["longevity", "Longevity"], in: dictionary),
             sillage: stringValue(forKeys: ["sillage", "Sillage"], in: dictionary)
         )
@@ -174,6 +175,39 @@ enum FragellaResponseParser {
 
             return SeasonRankingEntry(name: name, score: score)
         }
+    }
+
+    private static func occasionRankingEntries(in dictionary: [String: Any]) -> [OccasionRankingEntry] {
+        guard let raw = rankingArray(
+            forKeys: [
+                "Occasion Ranking",
+                "OccasionRanking",
+                "occasionRanking",
+                "occasion_ranking"
+            ],
+            in: dictionary
+        ) else { return [] }
+
+        return raw.enumerated().compactMap { index, item in
+            guard let rawName = item["name"] as? String else { return nil }
+            let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.isEmpty else { return nil }
+
+            let fallbackScore = Double(max(raw.count - index, 1))
+            let score =
+                numericValue(forKeys: ["score", "value", "percentage", "percent", "rank", "votes"], in: item)
+                ?? fallbackScore
+
+            return OccasionRankingEntry(name: name, score: score)
+        }
+    }
+
+    private static func rankingArray(forKeys keys: [String], in dictionary: [String: Any]) -> [[String: Any]]? {
+        for key in keys {
+            guard let raw = dictionary[key] as? [[String: Any]], !raw.isEmpty else { continue }
+            return raw
+        }
+        return nil
     }
 
     private static func stringValue(forKeys keys: [String], in dictionary: [String: Any]) -> String? {

@@ -85,7 +85,7 @@ struct OnboardingExperienceView: View {
                         .frame(height: 56)
                         .background(
                             viewModel.selectedExperience != nil
-                            ? Color.black
+                            ? Color(hex: "#242424")
                             : Color.gray.opacity(0.3)
                         )
                         .foregroundColor(.white)

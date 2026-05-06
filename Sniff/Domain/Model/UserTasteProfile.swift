@@ -11,7 +11,7 @@
 
 import Foundation
 
-enum RecommendationStage: Sendable {
+enum RecommendationStage: String, Codable, Sendable {
     case onboardingOnly
     case onboardingCollection
     case earlyTasting
@@ -20,20 +20,11 @@ enum RecommendationStage: Sendable {
 
 extension RecommendationStage {
     var historyValue: String {
-        switch self {
-        case .onboardingOnly:
-            return "onboardingOnly"
-        case .onboardingCollection:
-            return "onboardingCollection"
-        case .earlyTasting:
-            return "earlyTasting"
-        case .heavyTasting:
-            return "heavyTasting"
-        }
+        rawValue
     }
 }
 
-struct UserTasteProfile: Sendable {
+struct UserTasteProfile: Codable, Sendable {
     let tasteTitle: String?
     let analysisSummary: String
     let preferredImpressions: [String]

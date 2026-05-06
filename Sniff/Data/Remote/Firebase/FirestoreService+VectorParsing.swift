@@ -21,7 +21,8 @@ extension FirestoreService {
             let brand = data["brand"] as? String
         else { return nil }
 
-        let timestamp = data["addedAt"] as? Timestamp
+        let timestamp = (data["addedAt"] as? Timestamp)
+            ?? (data["createdAt"] as? Timestamp)
 
         let rawMainAccords = data["mainAccords"] as? [String] ?? []
         let legacyAccords = [data["scentFamily"] as? String, data["scentFamily2"] as? String]
@@ -58,7 +59,8 @@ extension FirestoreService {
             sillage: data["sillage"] as? String,
             usageStatus: CollectedPerfumeUsageStatus(rawValue: data["usageStatus"] as? String ?? ""),
             usageFrequency: CollectedPerfumeUsageFrequency(rawValue: data["usageFrequency"] as? String ?? ""),
-            preferenceLevel: CollectedPerfumePreferenceLevel(rawValue: data["preferenceLevel"] as? String ?? "")
+            preferenceLevel: CollectedPerfumePreferenceLevel(rawValue: data["preferenceLevel"] as? String ?? ""),
+            registrationEditCount: registrationEditCountValue(from: data["registrationEditCount"])
         )
     }
 
@@ -87,6 +89,13 @@ extension FirestoreService {
             moodTags: data["moodTags"] as? [String] ?? [],
             memo: data["memo"] as? String,
             revisitDesire: (data["revisitDesire"] as? String) ?? (data["wantToRevisit"] as? String),
+            longevityExperience: data["longevityExperience"] as? String,
+            sillageExperience: data["sillageExperience"] as? String,
+            drydownChange: data["drydownChange"] as? String,
+            skinChemistry: data["skinChemistry"] as? String,
+            wearSituations: data["wearSituations"] as? [String] ?? [],
+            weatherContexts: data["weatherContexts"] as? [String] ?? [],
+            applicationAreas: data["applicationAreas"] as? [String] ?? [],
             updatedAt: updatedAt
         )
     }
@@ -103,5 +112,17 @@ extension FirestoreService {
             else { return }
             result[canonical] = strength
         }
+    }
+
+    private static func registrationEditCountValue(from value: Any?) -> Int {
+        if let value = value as? Int {
+            return max(0, value)
+        }
+
+        if let value = value as? NSNumber {
+            return max(0, value.intValue)
+        }
+
+        return 0
     }
 }

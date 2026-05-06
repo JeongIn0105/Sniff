@@ -15,24 +15,65 @@ final class OwnedPerfumeListViewModel: ObservableObject {
         static let maxItems = 10
     }
 
+    enum UsageFilter: Hashable, CaseIterable {
+        case all
+        case status(CollectedPerfumeUsageStatus)
+
+        static var allCases: [UsageFilter] {
+            [.all] + CollectedPerfumeUsageStatus.allCases.map { .status($0) }
+        }
+
+        var title: String {
+            switch self {
+            case .all:
+                return "전체"
+            case .status(let status):
+                return status.displayName
+            }
+        }
+    }
+
+    enum SortOrder: Hashable, CaseIterable {
+        case latest
+        case oldest
+
+        var title: String {
+            switch self {
+            case .latest:
+                return "최신순"
+            case .oldest:
+                return "오래된순"
+            }
+        }
+    }
+
     struct PerfumeCardItem: Identifiable {
         let id: String
         let name: String
         let brand: String
         let imageURL: String?
         let accordTags: [String]
+        let usageStatus: CollectedPerfumeUsageStatus?
         let hasTastingRecord: Bool
         let isLiked: Bool
         let sourcePerfume: Perfume
+        let sourceCollectedPerfume: CollectedPerfume
     }
 
     @Published private(set) var perfumes: [PerfumeCardItem] = []
+    @Published private(set) var allPerfumes: [PerfumeCardItem] = []
     @Published private(set) var isLoading: Bool = false
     @Published var errorMessage: String?
     @Published var isEditMode = false
     @Published private(set) var selectedPerfumeIDs = Set<String>()
     @Published var toastMessage: String?
     @Published private(set) var monthlyUsageCount: Int = 0
+    @Published var selectedFilter: UsageFilter = .all {
+        didSet { applyFilter() }
+    }
+    @Published var selectedSortOrder: SortOrder = .latest {
+        didSet { applyFilter() }
+    }
 
     var isEmpty: Bool { perfumes.isEmpty }
     var perfumeCount: Int { perfumes.count }
@@ -76,7 +117,7 @@ final class OwnedPerfumeListViewModel: ObservableObject {
                 likedIDs = []
             }
 
-            perfumes = Array(collection.prefix(DisplayLimit.maxItems)).map { perfume in
+            allPerfumes = collection.map { perfume in
                 let sourcePerfume = perfume.toPerfume()
 
                 return PerfumeCardItem(
@@ -88,6 +129,7 @@ final class OwnedPerfumeListViewModel: ObservableObject {
                         mainAccords: perfume.mainAccords,
                         fallback: perfume.scentFamilies
                     ),
+                    usageStatus: perfume.usageStatus,
                     hasTastingRecord: tastingKeys.contains(
                         PerfumePresentationSupport.recordKey(
                             perfumeName: perfume.name,
@@ -98,9 +140,11 @@ final class OwnedPerfumeListViewModel: ObservableObject {
                         brandName: perfume.brand
                     )),
                     isLiked: likedIDs.contains(perfume.id),
-                    sourcePerfume: sourcePerfume
+                    sourcePerfume: sourcePerfume,
+                    sourceCollectedPerfume: perfume
                 )
             }
+            applyFilter()
 
             selectedPerfumeIDs = selectedPerfumeIDs.intersection(Set(perfumes.map(\.id)))
         } catch {
@@ -160,9 +204,11 @@ final class OwnedPerfumeListViewModel: ObservableObject {
             brand: item.brand,
             imageURL: item.imageURL,
             accordTags: item.accordTags,
+            usageStatus: item.usageStatus,
             hasTastingRecord: item.hasTastingRecord,
             isLiked: willLike,
-            sourcePerfume: item.sourcePerfume
+            sourcePerfume: item.sourcePerfume,
+            sourceCollectedPerfume: item.sourceCollectedPerfume
         )
 
         do {
@@ -176,9 +222,76 @@ final class OwnedPerfumeListViewModel: ObservableObject {
             handleError(error)
         }
     }
+
+    func updateOwnedPerfume(
+        _ perfume: CollectedPerfume,
+        registrationInfo: CollectedPerfumeRegistrationInfo
+    ) async -> Bool {
+        do {
+            try await collectionRepository
+                .updateCollectedPerfumeRegistration(id: perfume.id, registrationInfo: registrationInfo)
+                .async()
+            await load()
+            selectedFilter = .status(registrationInfo.usageStatus)
+            NotificationCenter.default.postPerfumeCollectionDidChange(scope: .owned)
+            showToast(message: "보유 정보가 저장됐어요.")
+            return true
+        } catch {
+            handleError(error)
+            return false
+        }
+    }
+
+    func deleteOwnedPerfume(_ perfume: CollectedPerfume) async -> Bool {
+        do {
+            try await collectionRepository.deleteCollectedPerfume(id: perfume.id).async()
+            selectedPerfumeIDs.remove(perfume.id)
+            await load()
+            NotificationCenter.default.postPerfumeCollectionDidChange(scope: .owned)
+            showToast(message: "보유 향수에서 해제됐어요.")
+            return true
+        } catch {
+            handleError(error)
+            return false
+        }
+    }
+
+    func showEditLimitToast() {
+        showToast(message: "보유 정보 수정 가능 횟수를 모두 사용했어요.")
+    }
 }
 
 private extension OwnedPerfumeListViewModel {
+
+    func applyFilter() {
+        let filtered: [PerfumeCardItem]
+        switch selectedFilter {
+        case .all:
+            filtered = allPerfumes
+        case .status(let status):
+            filtered = allPerfumes.filter { $0.usageStatus == status }
+        }
+
+        let sorted = filtered.sorted { lhs, rhs in
+            let lhsDate = lhs.sourceCollectedPerfume.createdAt
+            let rhsDate = rhs.sourceCollectedPerfume.createdAt
+
+            switch (lhsDate, rhsDate, selectedSortOrder) {
+            case let (lhsDate?, rhsDate?, .latest):
+                return lhsDate > rhsDate
+            case let (lhsDate?, rhsDate?, .oldest):
+                return lhsDate < rhsDate
+            case (.some, .none, _):
+                return true
+            case (.none, .some, _):
+                return false
+            case (.none, .none, _):
+                return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+            }
+        }
+
+        perfumes = Array(sorted.prefix(DisplayLimit.maxItems))
+    }
 
     func fetchCollection() async throws -> [CollectedPerfume] {
         try await collectionRepository.fetchCollection().async()

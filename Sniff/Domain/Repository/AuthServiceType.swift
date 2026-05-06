@@ -16,5 +16,7 @@ protocol AuthServiceType {
     func signInWithApple(identityToken: Data?, rawNonce: String) async throws -> AuthSession
     func reauthenticateWithApple(identityToken: Data?, rawNonce: String) async throws
     func signInWithGoogle(idToken: String, accessToken: String) async throws -> AuthSession
+    func reauthenticateWithGoogle(idToken: String, accessToken: String) async throws
+    func deleteCurrentUser() async throws
     func signOut() throws
 }

@@ -55,6 +55,27 @@ final class AuthService: AuthServiceType {
                            isNewUser: result.additionalUserInfo?.isNewUser ?? false)
     }
 
+    func reauthenticateWithGoogle(idToken: String, accessToken: String) async throws {
+        guard let currentUser = Auth.auth().currentUser else {
+            throw AuthServiceError.missingCurrentUser
+        }
+
+        let credential = GoogleAuthProvider.credential(withIDToken: idToken,
+                                                       accessToken: accessToken)
+        try await currentUser.reauthenticate(with: credential)
+    }
+
+    // MARK: - 계정 삭제
+
+    func deleteCurrentUser() async throws {
+        guard let currentUser = Auth.auth().currentUser else {
+            throw AuthServiceError.missingCurrentUser
+        }
+
+        try await currentUser.delete()
+        GIDSignIn.sharedInstance.signOut()
+    }
+
     // MARK: - 로그아웃
 
     func signOut() throws {
