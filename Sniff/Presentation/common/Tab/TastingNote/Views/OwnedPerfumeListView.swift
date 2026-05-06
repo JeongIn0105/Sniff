@@ -247,21 +247,20 @@ struct OwnedPerfumeListView: View {
         cardWidth: CGFloat
     ) -> some View {
         ZStack(alignment: .topLeading) {
-            PerfumeGridCardView(
-                imageURL: perfume.imageURL,
-                brand: perfume.brand,
-                name: perfume.name,
-                accords: perfume.accordTags,
-                isLiked: perfume.isLiked,
-                style: .grid,
-                cardWidth: cardWidth,
-                showsHeartIcon: true,
-                hasTastingRecord: !viewModel.isEditMode && perfume.hasTastingRecord
-            )
-            .overlay(alignment: .bottomLeading) {
+            VStack(alignment: .leading, spacing: 8) {
+                PerfumeGridCardView(
+                    imageURL: perfume.imageURL,
+                    brand: perfume.brand,
+                    name: perfume.name,
+                    accords: perfume.accordTags,
+                    isLiked: perfume.isLiked,
+                    style: .grid,
+                    cardWidth: cardWidth,
+                    showsHeartIcon: true,
+                    hasTastingRecord: !viewModel.isEditMode && perfume.hasTastingRecord
+                )
+
                 statusBadge(perfume.usageStatus)
-                    .padding(.leading, 10)
-                    .padding(.bottom, 8)
             }
 
             if viewModel.isEditMode {
@@ -277,7 +276,7 @@ struct OwnedPerfumeListView: View {
         _ perfume: OwnedPerfumeListViewModel.PerfumeCardItem,
         cardWidth: CGFloat
     ) -> some View {
-        ZStack(alignment: .bottomTrailing) {
+        VStack(alignment: .leading, spacing: 8) {
             PerfumeDetailPushLink(perfume: perfume.sourcePerfume) {
                 PerfumeGridCardView(
                     imageURL: perfume.imageURL,
@@ -290,36 +289,35 @@ struct OwnedPerfumeListView: View {
                     showsHeartIcon: false,
                     hasTastingRecord: perfume.hasTastingRecord
                 )
-                .overlay(alignment: .bottomLeading) {
-                    statusBadge(perfume.usageStatus)
-                        .padding(.leading, 10)
-                        .padding(.bottom, 8)
-                }
             }
             .buttonStyle(.plain)
 
-            Button {
-                guard perfume.sourceCollectedPerfume.canEditRegistrationInfo else {
-                    viewModel.showEditLimitToast()
-                    return
+            HStack(alignment: .center, spacing: 8) {
+                statusBadge(perfume.usageStatus)
+
+                Spacer(minLength: 0)
+
+                Button {
+                    guard perfume.sourceCollectedPerfume.canEditRegistrationInfo else {
+                        viewModel.showEditLimitToast()
+                        return
+                    }
+                    editingPerfume = perfume.sourceCollectedPerfume
+                } label: {
+                    Image(systemName: "pencil")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(Color(.systemGray2))
+                        .frame(width: 40, height: 40)
+                        .background(Color(.systemBackground))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .stroke(Color(.systemGray5), lineWidth: 1)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
-                editingPerfume = perfume.sourceCollectedPerfume
-            } label: {
-                Image(systemName: "pencil")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(Color(.systemGray2))
-                    .frame(width: 40, height: 40)
-                    .background(Color(.systemBackground))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(Color(.systemGray5), lineWidth: 1)
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .buttonStyle(.plain)
+                .opacity(perfume.sourceCollectedPerfume.canEditRegistrationInfo ? 1 : 0.45)
             }
-            .buttonStyle(.plain)
-            .opacity(perfume.sourceCollectedPerfume.canEditRegistrationInfo ? 1 : 0.45)
-            .padding(.trailing, 10)
-            .padding(.bottom, 8)
         }
         .frame(width: cardWidth, alignment: .topLeading)
     }
