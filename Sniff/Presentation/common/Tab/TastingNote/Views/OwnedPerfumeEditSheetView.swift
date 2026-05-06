@@ -129,6 +129,7 @@ struct OwnedPerfumeEditSheetView: View {
             title: title,
             options: options,
             selectedValue: selection.wrappedValue,
+            isRequiredTitle: true,
             titleFontSize: 16,
             cornerRadius: 13,
             onSelect: { selection.wrappedValue = $0 }
@@ -278,15 +279,15 @@ struct CollectedPerfumeOptionGroup<Value: Hashable>: View {
     @ViewBuilder
     private var titleView: some View {
         if isRequiredTitle {
-            HStack(spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(title)
                     .font(.system(size: titleFontSize, weight: .bold))
+                    .foregroundColor(.primary)
 
-                Circle()
-                    .fill(Color.primary)
-                    .frame(width: 5, height: 5)
+                Text("필수")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(Color(.systemGray3))
             }
-            .foregroundColor(.primary)
         } else {
             Text(title)
                 .font(.system(size: titleFontSize, weight: .bold))

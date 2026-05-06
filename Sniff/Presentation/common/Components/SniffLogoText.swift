@@ -13,10 +13,9 @@ struct SniffLogoText: View {
 
     var body: some View {
         Text(AppStrings.AppShell.appName)
-            .font(.custom("Hahmlet-Bold", size: size))
+            .font(.custom("Hahmlet-Black", size: size * 1.12))
             .fontWeight(.black)
-            .kerning(size * 0.07)
-            .scaleEffect(x: 1.08, y: 0.82, anchor: .center)
+            .kerning(size * 0.04)
             .foregroundColor(color)
             .multilineTextAlignment(.center)
     }

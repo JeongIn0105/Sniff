@@ -410,7 +410,7 @@ private struct HomeScreenView: View {
                     .padding(.top, 24)
 
                 popularRecommendationSection
-                    .padding(.top, 28)
+                    .padding(.top, 38)
 
                 guideView
                     .padding(.horizontal, 16)
@@ -427,7 +427,8 @@ private struct HomeScreenView: View {
     private var header: some View {
         HStack(alignment: .center) {
             Text(AppStrings.UIKitScreens.Home.title)
-                .font(.custom("Hahmlet-Bold", size: 24))
+                .font(.custom("Hahmlet-Black", size: 28))
+                .fontWeight(.black)
                 .tracking(2)
                 .foregroundColor(.primary)
 
@@ -577,7 +578,7 @@ private struct HomeScreenView: View {
                         onTap: { onPerfumeTap(item) },
                         onLikeTap: { onLikeTap(item) }
                     )
-                    .frame(width: 132, height: 226)
+                    .frame(width: 132, height: 260)
                 }
             }
             .padding(.horizontal, 16)
@@ -597,7 +598,7 @@ private struct HomeScreenView: View {
                 .lineSpacing(3)
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 226)
+        .frame(height: 260)
         .background(Color(red: 0.98, green: 0.98, blue: 0.98))
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }

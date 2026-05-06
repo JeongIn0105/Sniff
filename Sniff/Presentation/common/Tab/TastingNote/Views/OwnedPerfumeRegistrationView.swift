@@ -111,6 +111,8 @@ struct OwnedPerfumeRegistrationView: View {
 
     private var searchSection: some View {
         VStack(alignment: .leading, spacing: 16) {
+            requiredSectionTitle("향수")
+
             if let perfume = viewModel.selectedPerfume {
                 selectedPerfumeSection(perfume)
             } else {
@@ -124,6 +126,18 @@ struct OwnedPerfumeRegistrationView: View {
                     searchResultsList
                 }
             }
+        }
+    }
+
+    private func requiredSectionTitle(_ title: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text(title)
+                .font(.system(size: 17, weight: .bold))
+                .foregroundColor(.primary)
+
+            Text("필수")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(Color(.systemGray3))
         }
     }
 
@@ -364,7 +378,7 @@ struct OwnedPerfumeRegistrationView: View {
                 Task { await viewModel.register() }
             } label: {
                 ZStack {
-                    Text(viewModel.isSaving ? "등록 중" : "등록하기")
+                    Text(viewModel.isSaving ? "작성 중" : "작성완료")
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(.white)
                         .opacity(viewModel.isSaving ? 0 : 1)

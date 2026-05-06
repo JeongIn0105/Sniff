@@ -281,6 +281,35 @@ struct PerfumeGridCardView: View {
     var hasTastingRecord: Bool = false
     var textBottomAccessory: AnyView? = nil
     var textBottomAccessoryHeight: CGFloat = 0
+    var usesFixedTextBlockHeight: Bool? = nil
+
+    init(
+        imageURL: String?,
+        brand: String,
+        name: String,
+        accords: [String],
+        isLiked: Bool,
+        style: PerfumeCardStyle,
+        cardWidth: CGFloat?,
+        showsHeartIcon: Bool,
+        hasTastingRecord: Bool,
+        textBottomAccessory: AnyView?,
+        textBottomAccessoryHeight: CGFloat,
+        usesFixedTextBlockHeight: Bool?
+    ) {
+        self.imageURL = imageURL
+        self.brand = brand
+        self.name = name
+        self.accords = accords
+        self.isLiked = isLiked
+        self.style = style
+        self.cardWidth = cardWidth
+        self.showsHeartIcon = showsHeartIcon
+        self.hasTastingRecord = hasTastingRecord
+        self.textBottomAccessory = textBottomAccessory
+        self.textBottomAccessoryHeight = textBottomAccessoryHeight
+        self.usesFixedTextBlockHeight = usesFixedTextBlockHeight
+    }
 
     private var resolvedCardWidth: CGFloat? {
         cardWidth ?? style.defaultCardWidth
@@ -296,7 +325,8 @@ struct PerfumeGridCardView: View {
                 accords: accords,
                 style: style,
                 bottomAccessory: textBottomAccessory,
-                bottomAccessoryHeight: textBottomAccessoryHeight
+                bottomAccessoryHeight: textBottomAccessoryHeight,
+                usesFixedHeight: usesFixedTextBlockHeight
             )
             .padding(.top, style.contentTopSpacing)
         }
@@ -452,8 +482,14 @@ struct PerfumeCardTextContentView: View {
     var style: PerfumeCardStyle = .grid
     var bottomAccessory: AnyView? = nil
     var bottomAccessoryHeight: CGFloat = 0
+    var usesFixedHeight: Bool? = nil
+
+    private var shouldUseFixedHeight: Bool {
+        usesFixedHeight ?? style.usesFixedTextBlockHeight
+    }
 
     private var resolvedTextBlockHeight: CGFloat? {
+        guard shouldUseFixedHeight else { return nil }
         guard let textBlockHeight = style.textBlockHeight else { return nil }
         guard bottomAccessory != nil else { return textBlockHeight }
         return textBlockHeight + style.nameToAccordSpacing + bottomAccessoryHeight
@@ -494,7 +530,7 @@ struct PerfumeCardTextContentView: View {
                     .padding(.top, style.nameToAccordSpacing)
             }
 
-            if style.usesFixedTextBlockHeight {
+            if shouldUseFixedHeight {
                 Spacer(minLength: 0)
             }
         }

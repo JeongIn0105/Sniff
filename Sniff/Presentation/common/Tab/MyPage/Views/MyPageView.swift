@@ -314,7 +314,10 @@ struct MyPageView: View {
             style: .preview,
             cardWidth: Layout.cardWidth,
             showsHeartIcon: false,
-            hasTastingRecord: hasTastingRecord
+            hasTastingRecord: hasTastingRecord,
+            textBottomAccessory: nil,
+            textBottomAccessoryHeight: 0,
+            usesFixedTextBlockHeight: nil
         )
     }
 

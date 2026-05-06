@@ -2,6 +2,13 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Fonts/Hahmlet-Black.ttf</string>
+		<string>Fonts/Hahmlet-Bold.ttf</string>
+		<string>Fonts/Hahmlet-ExtraBold.ttf</string>
+		<string>Fonts/Hahmlet-ExtraLight.ttf</string>
+	</array>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

@@ -259,7 +259,8 @@ struct OwnedPerfumeListView: View {
                 showsHeartIcon: true,
                 hasTastingRecord: !viewModel.isEditMode && perfume.hasTastingRecord,
                 textBottomAccessory: AnyView(statusBadge(perfume.usageStatus)),
-                textBottomAccessoryHeight: Layout.statusBadgeHeight
+                textBottomAccessoryHeight: Layout.statusBadgeHeight,
+                usesFixedTextBlockHeight: nil
             )
 
             if viewModel.isEditMode {
@@ -275,7 +276,7 @@ struct OwnedPerfumeListView: View {
         _ perfume: OwnedPerfumeListViewModel.PerfumeCardItem,
         cardWidth: CGFloat
     ) -> some View {
-        ZStack(alignment: .bottomTrailing) {
+        VStack(alignment: .leading, spacing: 0) {
             PerfumeDetailPushLink(perfume: perfume.sourcePerfume) {
                 PerfumeGridCardView(
                     imageURL: perfume.imageURL,
@@ -287,13 +288,21 @@ struct OwnedPerfumeListView: View {
                     cardWidth: cardWidth,
                     showsHeartIcon: false,
                     hasTastingRecord: perfume.hasTastingRecord,
-                    textBottomAccessory: AnyView(statusBadge(perfume.usageStatus)),
-                    textBottomAccessoryHeight: Layout.statusBadgeHeight
+                    textBottomAccessory: nil,
+                    textBottomAccessoryHeight: 0,
+                    usesFixedTextBlockHeight: false
                 )
             }
             .buttonStyle(.plain)
 
-            editButton(for: perfume)
+            HStack(alignment: .center, spacing: 8) {
+                statusBadge(perfume.usageStatus)
+
+                Spacer(minLength: 0)
+
+                editButton(perfume)
+            }
+            .padding(.top, PerfumeCardStyle.grid.nameToAccordSpacing)
         }
         .frame(width: cardWidth, alignment: .topLeading)
     }

@@ -207,7 +207,12 @@ private struct LikePerfumesScreenView: View {
                     ),
                     isLiked: true,
                     style: .grid,
-                    showsHeartIcon: false
+                    cardWidth: nil,
+                    showsHeartIcon: false,
+                    hasTastingRecord: false,
+                    textBottomAccessory: nil,
+                    textBottomAccessoryHeight: 0,
+                    usesFixedTextBlockHeight: nil
                 )
             }
             .buttonStyle(.plain)

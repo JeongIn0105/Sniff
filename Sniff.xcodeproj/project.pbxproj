@@ -154,6 +154,8 @@
 			knownRegions = (
 				en,
 				Base,
+				"en-AU",
+				ko,
 			);
 			mainGroup = 991561352F7E90AD0030F8BC;
 			minimizedProjectReferenceProxies = 1;
@@ -165,6 +167,7 @@
 				7D70694F2F8D0AFE009D473E /* XCRemoteSwiftPackageReference "Then" */,
 				7D7069522F8D0B0F009D473E /* XCRemoteSwiftPackageReference "lottie-spm" */,
 				99D1B2B42FA4485700AB4DF8 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+				7D3845912FAB584C00A5CD93 /* XCRemoteSwiftPackageReference "hahmlet" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 9915613F2F7E90AD0030F8BC /* Products */;
@@ -228,7 +231,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.leejeongin.Sniff;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -242,7 +245,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
@@ -271,7 +274,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.leejeongin.Sniff;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -285,7 +288,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
@@ -438,6 +441,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		7D3845912FAB584C00A5CD93 /* XCRemoteSwiftPackageReference "hahmlet" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/hyper-type/hahmlet.git";
+			requirement = {
+				branch = master;
+				kind = branch;
+			};
+		};
 		7D70693D2F8D0AB9009D473E /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
