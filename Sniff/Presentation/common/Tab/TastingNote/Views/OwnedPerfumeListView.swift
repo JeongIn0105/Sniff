@@ -16,6 +16,7 @@ struct OwnedPerfumeListView: View {
         static let columnSpacing: CGFloat = 14
         static let rowSpacing: CGFloat = 32
         static let selectionInset: CGFloat = 8
+        static let statusBadgeHeight: CGFloat = 30
     }
 
     init(viewModel: OwnedPerfumeListViewModel) {
@@ -247,21 +248,19 @@ struct OwnedPerfumeListView: View {
         cardWidth: CGFloat
     ) -> some View {
         ZStack(alignment: .topLeading) {
-            VStack(alignment: .leading, spacing: 8) {
-                PerfumeGridCardView(
-                    imageURL: perfume.imageURL,
-                    brand: perfume.brand,
-                    name: perfume.name,
-                    accords: perfume.accordTags,
-                    isLiked: perfume.isLiked,
-                    style: .grid,
-                    cardWidth: cardWidth,
-                    showsHeartIcon: true,
-                    hasTastingRecord: !viewModel.isEditMode && perfume.hasTastingRecord
-                )
-
-                statusBadge(perfume.usageStatus)
-            }
+            PerfumeGridCardView(
+                imageURL: perfume.imageURL,
+                brand: perfume.brand,
+                name: perfume.name,
+                accords: perfume.accordTags,
+                isLiked: perfume.isLiked,
+                style: .grid,
+                cardWidth: cardWidth,
+                showsHeartIcon: true,
+                hasTastingRecord: !viewModel.isEditMode && perfume.hasTastingRecord,
+                textBottomAccessory: AnyView(statusBadge(perfume.usageStatus)),
+                textBottomAccessoryHeight: Layout.statusBadgeHeight
+            )
 
             if viewModel.isEditMode {
                 SelectionCheckbox(isSelected: viewModel.selectedPerfumeIDs.contains(perfume.id))
@@ -276,7 +275,7 @@ struct OwnedPerfumeListView: View {
         _ perfume: OwnedPerfumeListViewModel.PerfumeCardItem,
         cardWidth: CGFloat
     ) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        ZStack(alignment: .bottomTrailing) {
             PerfumeDetailPushLink(perfume: perfume.sourcePerfume) {
                 PerfumeGridCardView(
                     imageURL: perfume.imageURL,
@@ -287,39 +286,39 @@ struct OwnedPerfumeListView: View {
                     style: .grid,
                     cardWidth: cardWidth,
                     showsHeartIcon: false,
-                    hasTastingRecord: perfume.hasTastingRecord
+                    hasTastingRecord: perfume.hasTastingRecord,
+                    textBottomAccessory: AnyView(statusBadge(perfume.usageStatus)),
+                    textBottomAccessoryHeight: Layout.statusBadgeHeight
                 )
             }
             .buttonStyle(.plain)
 
-            HStack(alignment: .center, spacing: 8) {
-                statusBadge(perfume.usageStatus)
-
-                Spacer(minLength: 0)
-
-                Button {
-                    guard perfume.sourceCollectedPerfume.canEditRegistrationInfo else {
-                        viewModel.showEditLimitToast()
-                        return
-                    }
-                    editingPerfume = perfume.sourceCollectedPerfume
-                } label: {
-                    Image(systemName: "pencil")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(Color(.systemGray2))
-                        .frame(width: 40, height: 40)
-                        .background(Color(.systemBackground))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .stroke(Color(.systemGray5), lineWidth: 1)
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                }
-                .buttonStyle(.plain)
-                .opacity(perfume.sourceCollectedPerfume.canEditRegistrationInfo ? 1 : 0.45)
-            }
+            editButton(for: perfume)
         }
         .frame(width: cardWidth, alignment: .topLeading)
+    }
+
+    private func editButton(_ perfume: OwnedPerfumeListViewModel.PerfumeCardItem) -> some View {
+        Button {
+            guard perfume.sourceCollectedPerfume.canEditRegistrationInfo else {
+                viewModel.showEditLimitToast()
+                return
+            }
+            editingPerfume = perfume.sourceCollectedPerfume
+        } label: {
+            Image(systemName: "pencil")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(Color(.systemGray2))
+                .frame(width: 40, height: 40)
+                .background(Color(.systemBackground))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(Color(.systemGray5), lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .opacity(perfume.sourceCollectedPerfume.canEditRegistrationInfo ? 1 : 0.45)
     }
 
     private func statusBadge(_ status: CollectedPerfumeUsageStatus?) -> some View {
@@ -329,7 +328,7 @@ struct OwnedPerfumeListView: View {
             .lineLimit(1)
             .minimumScaleFactor(0.85)
             .padding(.horizontal, 10)
-            .frame(height: 30)
+            .frame(height: Layout.statusBadgeHeight)
             .background(Color.sniffBeige)
             .overlay(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)

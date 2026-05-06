@@ -279,6 +279,8 @@ struct PerfumeGridCardView: View {
     var cardWidth: CGFloat? = nil
     var showsHeartIcon: Bool = true
     var hasTastingRecord: Bool = false
+    var textBottomAccessory: AnyView? = nil
+    var textBottomAccessoryHeight: CGFloat = 0
 
     private var resolvedCardWidth: CGFloat? {
         cardWidth ?? style.defaultCardWidth
@@ -292,7 +294,9 @@ struct PerfumeGridCardView: View {
                 brand: brand,
                 name: name,
                 accords: accords,
-                style: style
+                style: style,
+                bottomAccessory: textBottomAccessory,
+                bottomAccessoryHeight: textBottomAccessoryHeight
             )
             .padding(.top, style.contentTopSpacing)
         }
@@ -446,6 +450,14 @@ struct PerfumeCardTextContentView: View {
     let name: String
     let accords: [String]
     var style: PerfumeCardStyle = .grid
+    var bottomAccessory: AnyView? = nil
+    var bottomAccessoryHeight: CGFloat = 0
+
+    private var resolvedTextBlockHeight: CGFloat? {
+        guard let textBlockHeight = style.textBlockHeight else { return nil }
+        guard bottomAccessory != nil else { return textBlockHeight }
+        return textBlockHeight + style.nameToAccordSpacing + bottomAccessoryHeight
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -477,14 +489,19 @@ struct PerfumeCardTextContentView: View {
             .padding(.top, style.nameToAccordSpacing)
             .frame(maxWidth: .infinity, alignment: .topLeading)
 
+            if let bottomAccessory {
+                bottomAccessory
+                    .padding(.top, style.nameToAccordSpacing)
+            }
+
             if style.usesFixedTextBlockHeight {
                 Spacer(minLength: 0)
             }
         }
         .frame(
             maxWidth: .infinity,
-            minHeight: style.textBlockHeight,
-            maxHeight: style.textBlockHeight,
+            minHeight: resolvedTextBlockHeight,
+            maxHeight: resolvedTextBlockHeight,
             alignment: .topLeading
         )
     }
