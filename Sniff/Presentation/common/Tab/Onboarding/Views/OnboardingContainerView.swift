@@ -236,18 +236,6 @@ private struct OnboardingTagStepView: View {
             onTagTap(tag)
         } label: {
             HStack(spacing: layout.iconSpacing) {
-                if layout.showsLeadingIcon {
-                    ZStack {
-                        Circle()
-                            .fill(selected ? Color.black : Color(hex: "#F4EDE6"))
-                            .frame(width: 28, height: 28)
-
-                        Image(systemName: selected ? "checkmark" : "plus")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(selected ? .white : Color(hex: "#8A6F55"))
-                    }
-                }
-
                 Text(tag)
                     .font(.system(size: layout.fontSize, weight: .semibold))
                     .foregroundStyle(disabled ? Color(hex: "#B8BEC8") : Color(hex: "#243044"))
@@ -347,17 +335,8 @@ private enum OnboardingTagLayout {
         }
     }
 
-    var showsLeadingIcon: Bool {
-        switch self {
-        case .verticalList, .twoColumnGrid:
-            return true
-        case .flow, .groupedFlow:
-            return false
-        }
-    }
-
     var iconSpacing: CGFloat {
-        showsLeadingIcon ? 12 : 0
+        0
     }
 }
 

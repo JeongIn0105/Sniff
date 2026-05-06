@@ -38,13 +38,8 @@ struct OwnedPerfumeRegistrationView: View {
 
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 0) {
-                        if !isSearchResultMode && viewModel.selectedPerfume == nil {
-                            stepIndicator
-                                .padding(.top, 22)
-                        }
-
                         searchSection
-                            .padding(.top, isSearchResultMode ? 34 : 34)
+                            .padding(.top, 28)
 
                         Divider()
                             .padding(.top, viewModel.selectedPerfume == nil && isSearchResultMode ? 40 : 28)
@@ -114,36 +109,11 @@ struct OwnedPerfumeRegistrationView: View {
         .padding(.bottom, 4)
     }
 
-    private var stepIndicator: some View {
-        VStack(spacing: 14) {
-            Text("1단계 — 향수 선택")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundColor(Color(.systemGray3))
-                .frame(maxWidth: .infinity, alignment: .center)
-
-            HStack(spacing: 8) {
-                Capsule()
-                    .fill(Color.primary)
-                Capsule()
-                    .fill(Color(.systemGray5))
-                Capsule()
-                    .fill(Color(.systemGray5))
-            }
-            .frame(height: 5)
-        }
-    }
-
     private var searchSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             if let perfume = viewModel.selectedPerfume {
                 selectedPerfumeSection(perfume)
             } else {
-                if !isSearchResultMode {
-                    Text("등록할 향수를 검색해주세요")
-                        .font(.system(size: 19, weight: .bold))
-                        .foregroundColor(.primary)
-                }
-
                 searchField
 
                 if viewModel.isSearching {
@@ -229,10 +199,6 @@ struct OwnedPerfumeRegistrationView: View {
                     }
                 }
             }
-
-            Divider()
-
-            directInputRow
         }
         .background(Color(.systemBackground))
         .overlay(
@@ -273,32 +239,6 @@ struct OwnedPerfumeRegistrationView: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
         .background(isHighlighted ? Color(hex: "#F4F2EF") : Color(.systemBackground))
-    }
-
-    private var directInputRow: some View {
-        Button {
-            viewModel.requestDirectInput()
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: "exclamationmark.circle")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(Color(.systemGray3))
-
-                Text("찾는 향수가 없다면")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(Color(.systemGray2))
-
-                Text("직접 입력")
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundColor(.primary)
-                    .underline()
-
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, 20)
-            .frame(height: 54)
-        }
-        .buttonStyle(.plain)
     }
 
     private func selectedPerfumeSection(_ perfume: Perfume) -> some View {
@@ -348,16 +288,6 @@ struct OwnedPerfumeRegistrationView: View {
             }
 
             Spacer()
-
-            ZStack {
-                Circle()
-                    .fill(Color.primary)
-                    .frame(width: 34, height: 34)
-
-                Image(systemName: "checkmark")
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundColor(.white)
-            }
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 18)
@@ -435,7 +365,7 @@ struct OwnedPerfumeRegistrationView: View {
             } label: {
                 ZStack {
                     Text(viewModel.isSaving ? "등록 중" : "등록하기")
-                        .font(.system(size: 18, weight: .bold))
+                        .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(.white)
                         .opacity(viewModel.isSaving ? 0 : 1)
 
@@ -445,14 +375,14 @@ struct OwnedPerfumeRegistrationView: View {
                     }
                 }
                 .frame(maxWidth: .infinity)
-                .frame(height: 64)
+                .frame(height: 48)
                 .background(viewModel.canRegister ? Color.primary : Color(.systemGray5))
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
             .disabled(!viewModel.canRegister)
             .padding(.horizontal, 20)
-            .padding(.top, 16)
-            .padding(.bottom, 18)
+            .padding(.top, 5)
+            .padding(.bottom, 17)
             .background(Color(.systemBackground))
         }
     }

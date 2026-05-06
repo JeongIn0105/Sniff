@@ -402,12 +402,5 @@ struct SelectionCheckbox: View {
                     .stroke(isSelected ? Color.black : borderColor, lineWidth: lineWidth)
             }
             .frame(width: size, height: size)
-            .overlay {
-                if isSelected {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: size * 0.58, weight: .bold))
-                        .foregroundColor(.white)
-                }
-            }
     }
 }

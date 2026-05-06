@@ -12,6 +12,7 @@ import RxSwift
 import RxCocoa
 import Kingfisher
 import SwiftUI
+import Combine
 
 final class PerfumeDetailViewController: UIViewController {
 
@@ -45,6 +46,7 @@ final class PerfumeDetailViewController: UIViewController {
     private let collectionStateReloadInterval: TimeInterval = 20
     private var collectionStateLoadedAt: Date?
     private var isLoadingCollectionState = false
+    private let bottomBarVerticalLift: CGFloat = 12
 
     private let addTastingRecordRelay = PublishRelay<Void>()
 
@@ -724,11 +726,11 @@ final class PerfumeDetailViewController: UIViewController {
         if let tabBar = tabBarController?.tabBar ?? controlledTabBar,
            let tabBarSuperview = tabBar.superview {
             let tabBarFrame = hostView.convert(tabBar.frame, from: tabBarSuperview)
-            bottomBarCenterYConstraint?.update(offset: tabBarFrame.midY - hostView.bounds.midY)
+            bottomBarCenterYConstraint?.update(offset: tabBarFrame.midY - hostView.bounds.midY - bottomBarVerticalLift)
             return
         }
 
-        let fallbackMidY = hostView.bounds.height - hostView.safeAreaInsets.bottom - 24
+        let fallbackMidY = hostView.bounds.height - hostView.safeAreaInsets.bottom - 24 - bottomBarVerticalLift
         bottomBarCenterYConstraint?.update(offset: fallbackMidY - hostView.bounds.midY)
     }
 
@@ -1034,5 +1036,805 @@ final class PerfumeDetailViewController: UIViewController {
     private func navigateToMyPage() {
         setTabBarHidden(false, animated: false)
         MainTabRouter.shared.select(.my)
+    }
+}
+
+@MainActor
+final class PerfumeDetailScreenViewModel: ObservableObject {
+    @Published private(set) var perfume: Perfume?
+    @Published private(set) var isLoading = false
+    @Published private(set) var isLiked = false
+    @Published private(set) var hasTastingRecord = false
+    @Published private(set) var ownedPerfume: CollectedPerfume?
+    @Published var editingOwnedPerfume: CollectedPerfume?
+    @Published var errorMessage: String?
+    @Published var toastMessage: String?
+
+    private let perfumeId: String
+    private let seedPerfume: Perfume?
+    private let perfumeCatalogRepository: PerfumeCatalogRepositoryType
+    private let collectionRepository: CollectionRepositoryType
+    private let tastingRecordRepository: TastingRecordRepositoryType
+    private var likedPerfumeIDs = Set<String>()
+    private var ownedPerfumesByID = [String: CollectedPerfume]()
+    private var hasLoaded = false
+    private var toastTask: Task<Void, Never>?
+
+    init(
+        perfume: Perfume,
+        perfumeCatalogRepository: PerfumeCatalogRepositoryType,
+        collectionRepository: CollectionRepositoryType,
+        tastingRecordRepository: TastingRecordRepositoryType
+    ) {
+        self.perfumeId = perfume.id
+        self.seedPerfume = perfume
+        self.perfume = perfume
+        self.perfumeCatalogRepository = perfumeCatalogRepository
+        self.collectionRepository = collectionRepository
+        self.tastingRecordRepository = tastingRecordRepository
+    }
+
+    init(
+        perfumeId: String,
+        perfumeCatalogRepository: PerfumeCatalogRepositoryType,
+        collectionRepository: CollectionRepositoryType,
+        tastingRecordRepository: TastingRecordRepositoryType
+    ) {
+        self.perfumeId = perfumeId
+        self.seedPerfume = nil
+        self.perfumeCatalogRepository = perfumeCatalogRepository
+        self.collectionRepository = collectionRepository
+        self.tastingRecordRepository = tastingRecordRepository
+    }
+
+    deinit {
+        toastTask?.cancel()
+    }
+
+    func load() {
+        guard !hasLoaded else {
+            Task { await reloadUserState() }
+            return
+        }
+
+        hasLoaded = true
+        Task {
+            await loadDetailIfNeeded()
+            await reloadUserState()
+            await refreshTastingRecordState()
+        }
+    }
+
+    func toggleLike() {
+        guard let perfume else { return }
+        let collectionID = perfume.collectionDocumentID
+        let wasLiked = likedPerfumeIDs.contains(collectionID)
+        applyLikeState(id: collectionID, isLiked: !wasLiked)
+
+        Task {
+            do {
+                if wasLiked {
+                    try await collectionRepository.deleteLikedPerfume(id: collectionID).async()
+                } else {
+                    try await collectionRepository.saveLikedPerfume(perfume).async()
+                }
+                NotificationCenter.default.postPerfumeCollectionDidChange(scope: .liked)
+            } catch {
+                applyLikeState(id: collectionID, isLiked: wasLiked)
+                presentMutationError(error)
+            }
+        }
+    }
+
+    func beginOwnedInfoEditing() {
+        guard let ownedPerfume else { return }
+        guard ownedPerfume.canEditRegistrationInfo else {
+            showToast("보유 정보 수정 가능 횟수를 모두 사용했어요.")
+            return
+        }
+        editingOwnedPerfume = ownedPerfume
+    }
+
+    func saveOwnedInfo(_ registrationInfo: CollectedPerfumeRegistrationInfo) async {
+        guard let ownedPerfume else { return }
+
+        do {
+            try await collectionRepository
+                .updateCollectedPerfumeRegistration(id: ownedPerfume.id, registrationInfo: registrationInfo)
+                .async()
+
+            let updated = updatedOwnedPerfume(ownedPerfume, registrationInfo: registrationInfo)
+            ownedPerfumesByID[updated.id] = updated
+            self.ownedPerfume = updated
+            editingOwnedPerfume = nil
+            NotificationCenter.default.postPerfumeCollectionDidChange(scope: .owned)
+            showToast("보유 정보가 저장됐어요.")
+        } catch {
+            presentEditMutationError(error)
+        }
+    }
+
+    func deleteOwnedPerfume() async {
+        guard let ownedPerfume else { return }
+
+        do {
+            try await collectionRepository.deleteCollectedPerfume(id: ownedPerfume.id).async()
+            ownedPerfumesByID.removeValue(forKey: ownedPerfume.id)
+            self.ownedPerfume = nil
+            editingOwnedPerfume = nil
+            NotificationCenter.default.postPerfumeCollectionDidChange(scope: .owned)
+            showToast("보유 향수에서 해제됐어요.")
+        } catch {
+            presentEditMutationError(error)
+        }
+    }
+
+    func markTastingRecordSaved(perfumeName: String) {
+        hasTastingRecord = true
+        showToast(AppStrings.ViewModelMessages.TastingNote.saved(perfumeName))
+        Task { await refreshTastingRecordState() }
+    }
+
+    var isOwnedPerfumeContext: Bool {
+        guard let perfume else { return false }
+        return ownedPerfume(for: perfume) != nil
+    }
+
+    private func loadDetailIfNeeded() async {
+        let currentPerfume = perfume
+        let needsDetailFetch = currentPerfume?.swiftUIDetailNeedsEnrichment ?? true
+        guard needsDetailFetch else { return }
+        guard currentPerfume?.swiftUICanFetchRemoteDetail ?? true else { return }
+
+        if currentPerfume == nil {
+            isLoading = true
+        }
+
+        do {
+            perfume = try await detailRequest()
+        } catch {
+            if seedPerfume == nil {
+                errorMessage = error.localizedDescription
+            }
+        }
+
+        isLoading = false
+    }
+
+    private func detailRequest() async throws -> Perfume {
+        guard let seedPerfume else {
+            return try await perfumeCatalogRepository.fetchDetail(perfumeId: perfumeId).async()
+        }
+
+        do {
+            return try await perfumeCatalogRepository.fetchDetail(perfumeId: perfumeId).async()
+        } catch {
+            return try await searchFallbackDetail(for: seedPerfume)
+        }
+    }
+
+    private func searchFallbackDetail(for perfume: Perfume) async throws -> Perfume {
+        let query = "\(perfume.brand) \(perfume.name)"
+        let results = try await perfumeCatalogRepository.search(query: query, limit: 30).async()
+        guard let matched = bestMatchedPerfume(in: results, target: perfume) else {
+            return perfume
+        }
+
+        do {
+            return try await perfumeCatalogRepository.fetchDetail(perfumeId: matched.id).async()
+        } catch {
+            return matched
+        }
+    }
+
+    private func reloadUserState() async {
+        do {
+            let liked = try await collectionRepository.fetchLikedPerfumes().async()
+            let owned = try await collectionRepository.fetchCollection().async()
+            likedPerfumeIDs = Set(liked.map(\.id))
+            ownedPerfumesByID = owned.reduce(into: [String: CollectedPerfume]()) { result, item in
+                result[item.id] = item
+            }
+            refreshDerivedState()
+        } catch {
+            #if DEBUG
+            print("[PerfumeDetailSwiftUI] reloadUserState failed: \(error)")
+            #endif
+        }
+    }
+
+    private func refreshTastingRecordState() async {
+        guard let perfume else { return }
+
+        do {
+            let records = try await tastingRecordRepository.fetchTastingRecords().async()
+            let keys = PerfumePresentationSupport.recordMatchingKeys(
+                perfumeName: perfume.name,
+                brandName: perfume.brand
+            )
+            hasTastingRecord = records.contains {
+                !keys.isDisjoint(with: PerfumePresentationSupport.recordMatchingKeys(
+                    perfumeName: $0.perfumeName,
+                    brandName: $0.brandName
+                ))
+            }
+        } catch {
+            #if DEBUG
+            print("[PerfumeDetailSwiftUI] refreshTastingRecordState failed: \(error)")
+            #endif
+        }
+    }
+
+    private func refreshDerivedState() {
+        guard let perfume else { return }
+        let collectionID = perfume.collectionDocumentID
+        isLiked = likedPerfumeIDs.contains(collectionID)
+        ownedPerfume = ownedPerfume(for: perfume)
+    }
+
+    private func applyLikeState(id: String, isLiked: Bool) {
+        if isLiked {
+            likedPerfumeIDs.insert(id)
+        } else {
+            likedPerfumeIDs.remove(id)
+        }
+        self.isLiked = isLiked
+    }
+
+    private func ownedPerfume(for perfume: Perfume) -> CollectedPerfume? {
+        if let item = ownedPerfumesByID[perfume.collectionDocumentID] {
+            return item
+        }
+
+        let targetKey = PerfumePresentationSupport.recordKey(
+            perfumeName: perfume.name,
+            brandName: perfume.brand
+        )
+        return ownedPerfumesByID.values.first {
+            PerfumePresentationSupport.recordKey(
+                perfumeName: $0.name,
+                brandName: $0.brand
+            ) == targetKey
+        }
+    }
+
+    private func updatedOwnedPerfume(
+        _ perfume: CollectedPerfume,
+        registrationInfo: CollectedPerfumeRegistrationInfo
+    ) -> CollectedPerfume {
+        CollectedPerfume(
+            id: perfume.id,
+            name: perfume.name,
+            brand: perfume.brand,
+            imageUrl: perfume.imageUrl,
+            mainAccords: perfume.mainAccords,
+            accordStrengths: perfume.accordStrengths,
+            memo: registrationInfo.memo,
+            createdAt: perfume.createdAt,
+            topNotes: perfume.topNotes,
+            middleNotes: perfume.middleNotes,
+            baseNotes: perfume.baseNotes,
+            generalNotes: perfume.generalNotes,
+            seasonRanking: perfume.seasonRanking,
+            concentration: perfume.concentration,
+            longevity: perfume.longevity,
+            sillage: perfume.sillage,
+            usageStatus: registrationInfo.usageStatus,
+            usageFrequency: registrationInfo.usageFrequency,
+            preferenceLevel: registrationInfo.preferenceLevel,
+            registrationEditCount: min(
+                perfume.registrationEditCount + 1,
+                CollectedPerfumeEditPolicy.maxRegistrationEditCount
+            )
+        )
+    }
+
+    private func bestMatchedPerfume(in perfumes: [Perfume], target: Perfume) -> Perfume? {
+        let normalizedTargetName = normalize(target.name)
+        let normalizedTargetBrand = normalize(target.brand)
+
+        return perfumes.first {
+            normalize($0.name) == normalizedTargetName &&
+            normalize($0.brand) == normalizedTargetBrand
+        } ?? perfumes.first {
+            normalize($0.name).contains(normalizedTargetName) &&
+            normalize($0.brand) == normalizedTargetBrand
+        } ?? perfumes.first {
+            normalize($0.name) == normalizedTargetName
+        }
+    }
+
+    private func normalize(_ value: String) -> String {
+        value
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "en_US_POSIX"))
+            .lowercased()
+    }
+
+    private func presentMutationError(_ error: Error) {
+        if let limitError = error as? CollectionUsageLimitError {
+            showToast(limitError.localizedDescription)
+        } else if error is FirestoreServiceError {
+            errorMessage = error.localizedDescription
+        } else {
+            errorMessage = "잠시 후 다시 시도해주세요."
+        }
+    }
+
+    private func presentEditMutationError(_ error: Error) {
+        if let firestoreError = error as? FirestoreServiceError {
+            errorMessage = firestoreError.localizedDescription
+        } else {
+            errorMessage = "잠시 후 다시 시도해주세요."
+        }
+    }
+
+    private func showToast(_ message: String) {
+        toastTask?.cancel()
+        toastMessage = message
+        toastTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                self?.toastMessage = nil
+            }
+        }
+    }
+}
+
+final class PerfumeDetailHostingController: UIHostingController<PerfumeDetailScreenView> {
+    init(viewModel: PerfumeDetailScreenViewModel) {
+        super.init(rootView: PerfumeDetailScreenView(viewModel: viewModel))
+        hidesBottomBarWhenPushed = true
+        rootView = PerfumeDetailScreenView(
+            viewModel: viewModel,
+            onBack: { [weak self] in
+                self?.navigationController?.popViewController(animated: true)
+            },
+            onShowTastingRecords: { [weak self] perfume in
+                let scope = TastingNotePerfumeScope(
+                    perfumeName: perfume.name,
+                    brandName: perfume.brand
+                )
+                let tastingView = TastingNoteSceneFactory.makeListView(perfumeScope: scope)
+                let hostingController = UIHostingController(rootView: tastingView)
+                hostingController.hidesBottomBarWhenPushed = false
+                self?.navigationController?.pushViewController(hostingController, animated: true)
+            }
+        )
+    }
+
+    @MainActor required dynamic init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        navigationController?.setNavigationBarHidden(true, animated: animated)
+    }
+}
+
+struct PerfumeDetailScreenView: View {
+    @ObservedObject var viewModel: PerfumeDetailScreenViewModel
+    var onBack: () -> Void = {}
+    var onShowTastingRecords: (Perfume) -> Void = { _ in }
+
+    @State private var showsTastingForm = false
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            Color(.systemBackground).ignoresSafeArea()
+
+            if viewModel.isLoading && viewModel.perfume == nil {
+                ProgressView()
+                    .tint(.primary)
+            } else if let perfume = viewModel.perfume {
+                detailContent(perfume)
+            }
+
+            if let message = viewModel.toastMessage {
+                toastView(message)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 82)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .navigationBarBackButtonHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
+        .toolbar(.hidden, for: .tabBar)
+        .task {
+            viewModel.load()
+        }
+        .alert(AppStrings.UIKitScreens.error, isPresented: Binding(
+            get: { viewModel.errorMessage != nil },
+            set: { if !$0 { viewModel.errorMessage = nil } }
+        )) {
+            Button(AppStrings.UIKitScreens.confirm) { viewModel.errorMessage = nil }
+        } message: {
+            Text(viewModel.errorMessage ?? "")
+        }
+        .sheet(item: $viewModel.editingOwnedPerfume) { ownedPerfume in
+            OwnedPerfumeEditSheetView(
+                perfume: ownedPerfume,
+                onSave: { info in
+                    Task { await viewModel.saveOwnedInfo(info) }
+                },
+                onCancel: {
+                    viewModel.editingOwnedPerfume = nil
+                },
+                onDelete: {
+                    Task { await viewModel.deleteOwnedPerfume() }
+                }
+            )
+        }
+        .fullScreenCover(isPresented: $showsTastingForm) {
+            TastingNoteSceneFactory.makeFormView(
+                initialPerfume: viewModel.perfume,
+                isOwnedPerfumeContext: viewModel.isOwnedPerfumeContext
+            ) { perfumeName in
+                showsTastingForm = false
+                viewModel.markTastingRecordSaved(perfumeName: perfumeName)
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: viewModel.toastMessage)
+    }
+
+    private func detailContent(_ perfume: Perfume) -> some View {
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 0) {
+                topBar
+                    .padding(.horizontal, 20)
+                    .padding(.top, 2)
+
+                imageStage(perfume)
+                    .frame(height: 320)
+                    .padding(.horizontal, 20)
+
+                Text(PerfumePresentationSupport.displayBrand(perfume.brand))
+                    .font(.custom("Georgia", size: 15))
+                    .foregroundColor(Color(hex: "#7A7A7A"))
+                    .padding(.horizontal, 20)
+                    .padding(.top, 6)
+
+                Text(PerfumePresentationSupport.displayPerfumeName(perfume.name))
+                    .font(.custom("Georgia-Bold", size: 22))
+                    .foregroundColor(Color(hex: "#1F1F1F"))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 6)
+                    .padding(.bottom, 18)
+
+                detailSection(title: AppStrings.UIKitScreens.PerfumeDetail.accords) {
+                    FlowLayout(spacing: 8) {
+                        ForEach(perfume.mainAccords.map(PerfumePresentationSupport.displayAccord), id: \.self) { accord in
+                            detailChip(accord)
+                        }
+                    }
+                }
+
+                notesSection(perfume)
+                usageSection(perfume)
+
+                if let ownedPerfume = viewModel.ownedPerfume {
+                    ownedInfoSection(ownedPerfume)
+                }
+
+                detailSection(title: AppStrings.UIKitScreens.PerfumeDetail.season) {
+                    chipRow(topSeasonNames(for: perfume))
+                }
+
+                detailSection(title: AppStrings.UIKitScreens.PerfumeDetail.occasion) {
+                    chipRow(topOccasionNames(for: perfume))
+                }
+            }
+            .padding(.bottom, 106)
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            bottomTastingButton(perfume)
+        }
+    }
+
+    private var topBar: some View {
+        HStack {
+            Button(action: onBack) {
+                Image(systemName: "arrow.left")
+                    .font(.system(size: 19, weight: .semibold))
+                    .foregroundColor(.primary)
+                    .frame(width: 32, height: 44, alignment: .leading)
+            }
+            .buttonStyle(.plain)
+
+            Spacer()
+
+            Button {
+                viewModel.toggleLike()
+            } label: {
+                Image(systemName: "heart.fill")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundColor(viewModel.isLiked ? PerfumeHeartStyle.activeColor : PerfumeHeartStyle.inactiveColor)
+                    .frame(width: 40, height: 44)
+            }
+            .buttonStyle(.plain)
+            .disabled(viewModel.perfume == nil)
+        }
+        .frame(height: 52)
+    }
+
+    private func imageStage(_ perfume: Perfume) -> some View {
+        ZStack {
+            if let imageUrl = perfume.imageUrl, let url = URL(string: imageUrl) {
+                KFImage(url)
+                    .resizable()
+                    .placeholder {
+                        Text(AppStrings.UIKitScreens.PerfumeDetail.imagePlaceholder)
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(Color(hex: "#B5B5B5"))
+                    }
+                    .scaledToFit()
+            } else {
+                Text(AppStrings.UIKitScreens.PerfumeDetail.imagePlaceholder)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(Color(hex: "#B5B5B5"))
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func usageSection(_ perfume: Perfume) -> some View {
+        detailSection(title: AppStrings.UIKitScreens.PerfumeDetail.usage) {
+            HStack(spacing: 8) {
+                usageItem(title: "농도", value: displayValue(perfume.concentration))
+                usageItem(title: AppStrings.UIKitScreens.PerfumeDetail.longevity, value: PerfumeKoreanTranslator.koreanLongevity(for: perfume.longevity))
+                usageItem(title: AppStrings.UIKitScreens.PerfumeDetail.sillage, value: PerfumeKoreanTranslator.koreanSillage(for: perfume.sillage))
+            }
+        }
+    }
+
+    private func notesSection(_ perfume: Perfume) -> some View {
+        detailSection(title: AppStrings.UIKitScreens.PerfumeDetail.notes) {
+            VStack(alignment: .leading, spacing: 12) {
+                noteRow(title: AppStrings.UIKitScreens.PerfumeDetail.topNotes, notes: PerfumePresentationSupport.displayNotes(perfume.topNotes ?? []))
+                noteRow(title: AppStrings.UIKitScreens.PerfumeDetail.middleNotes, notes: PerfumePresentationSupport.displayNotes(perfume.middleNotes ?? []))
+                noteRow(title: AppStrings.UIKitScreens.PerfumeDetail.baseNotes, notes: PerfumePresentationSupport.displayNotes(perfume.baseNotes ?? []))
+            }
+        }
+    }
+
+    private func ownedInfoSection(_ ownedPerfume: CollectedPerfume) -> some View {
+        detailSection(title: "보유 정보") {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 8) {
+                    ownedPill(ownedPerfume.usageStatus?.displayName)
+                    ownedPill(ownedPerfume.usageFrequency?.displayName)
+                    ownedPill(ownedPerfume.preferenceLevel?.displayName)
+
+                    Spacer(minLength: 0)
+
+                    Button("수정") {
+                        viewModel.beginOwnedInfoEditing()
+                    }
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.primary)
+                }
+
+                if let memo = ownedPerfume.memo, !memo.isEmpty {
+                    Text(memo)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(Color(hex: "#7A7A7A"))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(16)
+            .background(Color(.systemBackground))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(Color(hex: "#E9E9E9"), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+    }
+
+    private func detailSection<Content: View>(
+        title: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(Color(hex: "#1F1F1F"))
+
+            content()
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 18)
+    }
+
+    private func noteRow(title: String, notes: [String]) -> some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Text(title)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(Color(hex: "#7A7A7A"))
+
+            if notes.isEmpty {
+                Text("-")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(Color(hex: "#B5B5B5"))
+            } else {
+                FlowLayout(spacing: 8) {
+                    ForEach(notes, id: \.self) { note in
+                        detailChip(note)
+                    }
+                }
+            }
+        }
+    }
+
+    private func usageItem(title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(Color(hex: "#7A7A7A"))
+                .lineLimit(1)
+
+            Text(value)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(Color(hex: "#1F1F1F"))
+                .lineLimit(2)
+                .minimumScaleFactor(0.82)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 12)
+        .frame(height: 72)
+        .background(Color(.systemBackground))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Color(hex: "#E9E9E9"), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private func chipRow(_ values: [String]) -> some View {
+        FlowLayout(spacing: 8) {
+            ForEach(values.isEmpty ? ["-"] : values, id: \.self) { value in
+                detailChip(value)
+            }
+        }
+    }
+
+    private func detailChip(_ title: String) -> some View {
+        Text(title)
+            .font(.system(size: 14, weight: .medium))
+            .foregroundColor(Color(hex: "#1F1F1F"))
+            .padding(.horizontal, 12)
+            .frame(height: 34)
+            .background(Color(.systemBackground))
+            .overlay(
+                RoundedRectangle(cornerRadius: 17, style: .continuous)
+                    .stroke(Color(hex: "#E9E9E9"), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 17, style: .continuous))
+    }
+
+    private func ownedPill(_ value: String?) -> some View {
+        Text(value ?? "-")
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundColor(Color(hex: "#1F1F1F"))
+            .padding(.horizontal, 10)
+            .frame(height: 30)
+            .background(Color(hex: "#F4F2EF"))
+            .clipShape(Capsule())
+    }
+
+    private func bottomTastingButton(_ perfume: Perfume) -> some View {
+        VStack(spacing: 0) {
+            Button {
+                if viewModel.hasTastingRecord {
+                    onShowTastingRecords(perfume)
+                } else {
+                    showsTastingForm = true
+                }
+            } label: {
+                Text(AppStrings.UIKitScreens.PerfumeDetail.addTasting)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 48)
+                    .background(Color(hex: "#1F1F1F"))
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 20)
+            .padding(.top, 5)
+            .padding(.bottom, 17)
+        }
+        .background(Color(.systemBackground).ignoresSafeArea(edges: .bottom))
+    }
+
+    private func toastView(_ message: String) -> some View {
+        Text(message)
+            .font(.system(size: 15, weight: .medium))
+            .foregroundColor(.white)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 13)
+            .background(Color.black.opacity(0.86))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private func displayValue(_ value: String?) -> String {
+        guard let value = value?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else {
+            return "-"
+        }
+        return value
+    }
+}
+
+private extension PerfumeDetailScreenView {
+    func topSeasonNames(for perfume: Perfume) -> [String] {
+        let rankedSeasons = perfume.seasonRanking
+            .sorted { lhs, rhs in
+                if lhs.score != rhs.score { return lhs.score > rhs.score }
+                return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+            }
+            .prefix(2)
+            .map(\.name)
+
+        let seasons = rankedSeasons.isEmpty ? (perfume.season ?? []) : Array(rankedSeasons)
+        return PerfumePresentationSupport.displaySeasons(seasons)
+    }
+
+    func topOccasionNames(for perfume: Perfume) -> [String] {
+        let rankedOccasions = perfume.occasionRanking
+            .sorted { lhs, rhs in
+                if lhs.score != rhs.score { return lhs.score > rhs.score }
+                return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+            }
+            .prefix(2)
+            .map(\.name)
+
+        let occasions = rankedOccasions.isEmpty ? (perfume.situation ?? []) : Array(rankedOccasions)
+        return occasions.map(displayOccasion)
+    }
+
+    func displayOccasion(_ occasion: String) -> String {
+        let normalized = occasion.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let displayMap: [String: String] = [
+            "daily": "데일리",
+            "day": "낮",
+            "night": "밤",
+            "date": "데이트",
+            "office": "출근",
+            "work": "출근",
+            "school": "학교",
+            "weekend": "주말",
+            "travel": "여행",
+            "casual": "캐주얼",
+            "formal": "포멀",
+            "party": "파티",
+            "sport": "운동",
+            "gym": "운동"
+        ]
+        return displayMap[normalized] ?? occasion
+    }
+}
+
+private extension Perfume {
+    var swiftUIDetailNeedsEnrichment: Bool {
+        let hasCompleteNotes = !(topNotes?.isEmpty ?? true)
+            && !(middleNotes?.isEmpty ?? true)
+            && !(baseNotes?.isEmpty ?? true)
+        let hasSeasonInfo = !seasonRanking.isEmpty || !(season?.isEmpty ?? true)
+        let hasOccasionInfo = !occasionRanking.isEmpty || !(situation?.isEmpty ?? true)
+        let hasUsageInfo = !(concentration?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+            && !(longevity?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+            && !(sillage?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+
+        return !(hasCompleteNotes && hasSeasonInfo && hasOccasionInfo && hasUsageInfo)
+    }
+
+    var swiftUICanFetchRemoteDetail: Bool {
+        let syntheticID = "\(brand)-\(name)"
+        return id != syntheticID
     }
 }

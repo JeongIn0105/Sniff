@@ -422,14 +422,6 @@ private struct HomeScreenView: View {
         .refreshable {
             onRefresh()
         }
-        .alert(
-            AppStrings.Home.popularRecommendInfoTitle,
-            isPresented: $showsPopularRecommendationInfo
-        ) {
-            Button("확인", role: .cancel) {}
-        } message: {
-            Text(AppStrings.Home.popularRecommendInfoMessage)
-        }
     }
 
     private var header: some View {
@@ -488,11 +480,11 @@ private struct HomeScreenView: View {
                     .padding(.top, 6)
                 }
                 .padding(.horizontal, 18)
-                .padding(.top, 24)
-                .padding(.bottom, 24)
+                .padding(.top, 20)
+                .padding(.bottom, 20)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
             }
-            .frame(height: 334)
+            .frame(height: 300)
             .overlay(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                     .stroke(Color.black.opacity(0.10), lineWidth: 1)
@@ -532,7 +524,9 @@ private struct HomeScreenView: View {
             sectionTitle(AppStrings.Home.popularRecommendTitle)
 
             Button {
-                showsPopularRecommendationInfo = true
+                withAnimation(.easeInOut(duration: 0.24)) {
+                    showsPopularRecommendationInfo.toggle()
+                }
             } label: {
                 Image(systemName: "questionmark.circle")
                     .font(.system(size: 15, weight: .regular))
@@ -544,6 +538,32 @@ private struct HomeScreenView: View {
 
             Spacer(minLength: 0)
         }
+        .background(alignment: .bottomLeading) {
+            if showsPopularRecommendationInfo {
+                popularRecommendationInfoView
+                    .offset(y: 40)
+                    .transition(
+                        .asymmetric(
+                            insertion: .move(edge: .trailing).combined(with: .opacity),
+                            removal: .move(edge: .leading).combined(with: .opacity)
+                        )
+                    )
+            }
+        }
+        .padding(.bottom, showsPopularRecommendationInfo ? 72 : 0)
+        .clipped()
+    }
+
+    private var popularRecommendationInfoView: some View {
+        Text(AppStrings.Home.popularRecommendInfoMessage)
+            .font(.custom("Pretendard-Medium", size: 13))
+            .foregroundColor(Color(red: 0.43, green: 0.43, blue: 0.43))
+            .lineSpacing(3)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 12)
+            .background(Color(red: 0.98, green: 0.98, blue: 0.98))
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
     private func perfumeRail(_ items: [HomePerfumeItem]) -> some View {

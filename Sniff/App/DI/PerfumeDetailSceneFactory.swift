@@ -7,54 +7,51 @@
 
 import UIKit
 
+@MainActor
 enum PerfumeDetailSceneFactory {
 
-    static func makeViewController(perfume: Perfume) -> PerfumeDetailViewController {
+    static func makeViewController(perfume: Perfume) -> UIViewController {
         makeViewController(perfume: perfume, dependencyContainer: AppDependencyContainer())
     }
 
     static func makeViewController(
         perfume: Perfume,
         dependencyContainer: AppDependencyContainer
-    ) -> PerfumeDetailViewController {
+    ) -> UIViewController {
         let collectionRepository = dependencyContainer.makeCollectionRepository()
         let tastingRecordRepository = dependencyContainer.makeTastingRecordRepository()
-        let viewModel = PerfumeDetailViewModel(
+        let viewModel = PerfumeDetailScreenViewModel(
             perfume: perfume,
-            perfumeCatalogRepository: dependencyContainer.makePerfumeCatalogRepository()
-        )
-        return configuredDetailViewController(PerfumeDetailViewController(
-            viewModel: viewModel,
+            perfumeCatalogRepository: dependencyContainer.makePerfumeCatalogRepository(),
             collectionRepository: collectionRepository,
             tastingRecordRepository: tastingRecordRepository
-        ))
+        )
+        return configuredDetailViewController(PerfumeDetailHostingController(viewModel: viewModel))
     }
 
-    static func makeViewController(perfumeId: String) -> PerfumeDetailViewController {
+    static func makeViewController(perfumeId: String) -> UIViewController {
         makeViewController(perfumeId: perfumeId, dependencyContainer: AppDependencyContainer())
     }
 
     static func makeViewController(
         perfumeId: String,
         dependencyContainer: AppDependencyContainer
-    ) -> PerfumeDetailViewController {
+    ) -> UIViewController {
         let collectionRepository = dependencyContainer.makeCollectionRepository()
         let tastingRecordRepository = dependencyContainer.makeTastingRecordRepository()
-        let viewModel = PerfumeDetailViewModel(
+        let viewModel = PerfumeDetailScreenViewModel(
             perfumeId: perfumeId,
-            perfumeCatalogRepository: dependencyContainer.makePerfumeCatalogRepository()
-        )
-        return configuredDetailViewController(PerfumeDetailViewController(
-            viewModel: viewModel,
+            perfumeCatalogRepository: dependencyContainer.makePerfumeCatalogRepository(),
             collectionRepository: collectionRepository,
             tastingRecordRepository: tastingRecordRepository
-        ))
+        )
+        return configuredDetailViewController(PerfumeDetailHostingController(viewModel: viewModel))
     }
 
     private static func configuredDetailViewController(
-        _ viewController: PerfumeDetailViewController
-    ) -> PerfumeDetailViewController {
-        viewController.hidesBottomBarWhenPushed = false
+        _ viewController: UIViewController
+    ) -> UIViewController {
+        viewController.hidesBottomBarWhenPushed = true
         return viewController
     }
 }

@@ -56,7 +56,7 @@ private final class PerfumeDetailPushPresenterViewController: UIViewController {
         guard !isPushScheduled else { return }
 
         isPushScheduled = true
-        DispatchQueue.main.async { [weak self] in
+        Task { @MainActor [weak self] in
             guard let self else { return }
             self.isPushScheduled = false
             guard let perfume = self.pendingPerfume else { return }

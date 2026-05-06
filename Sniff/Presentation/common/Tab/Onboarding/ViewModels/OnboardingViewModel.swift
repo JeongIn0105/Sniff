@@ -60,7 +60,7 @@ final class OnboardingViewModel: ObservableObject {
     let preferredScentGroups: [(title: String, tags: [String])] = [
         (
             "깨끗하고 산뜻한 향",
-            ["상큼한 레몬 향", "깨끗한 샤워 향", "싱그러운 풀잎 향", "맑은 허브 향", "깨끗한 섬유유연제 향"]
+            ["상큼한 레몬 향", "방금 씻은 듯한 향", "싱그러운 풀잎 향", "맑은 허브 향", "깨끗한 섬유유연제 향"]
         ),
         (
             "은은한 꽃 향",

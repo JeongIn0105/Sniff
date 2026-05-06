@@ -12,6 +12,7 @@ enum OnboardingTagMapper {
     nonisolated static let calmWoodsFamilies = ["Woods", "Woody Amber", "Mossy Woods", "Dry Woods"]
     nonisolated private static let preferredTagFamilyMap: [String: [String]] = [
         "상큼한 레몬 향": ["Citrus", "Fruity"],
+        "방금 씻은 듯한 향": ["Water", "Aromatic", "Citrus"],
         "깨끗한 샤워 향": ["Water", "Aromatic", "Citrus"],
         "싱그러운 풀잎 향": ["Green"],
         "맑은 허브 향": ["Aromatic", "Green"],
@@ -108,7 +109,7 @@ enum OnboardingTagMapper {
             return ["woody", "woody amber", "mossy woods", "dry woods", "forest"]
         case "상큼한 레몬", "상큼한 레몬 향":
             return ["citrus", "lemon", "fresh"]
-        case "시원한 바다", "깨끗한 샤워 향":
+        case "시원한 바다", "방금 씻은 듯한 향", "깨끗한 샤워 향":
             return ["aquatic", "marine", "water", "clean", "aromatic"]
         case "맑은 허브 향":
             return ["aromatic", "herbal", "green"]

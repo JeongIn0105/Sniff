@@ -177,10 +177,6 @@ final class OwnedPerfumeRegistrationViewModel: ObservableObject {
         }
     }
 
-    func requestDirectInput() {
-        showToast("직접 입력은 준비 중이에요")
-    }
-
     private func resetRegistrationDetails() {
         usageStatus = nil
         usageFrequency = nil
@@ -189,16 +185,15 @@ final class OwnedPerfumeRegistrationViewModel: ObservableObject {
     }
 
     private func search(query: String) async {
+        let requestQuery = PerfumeKoreanTranslator.toEnglishQuery(query) ?? query
+
         do {
-            let results = try await perfumeCatalogRepository.search(query: query, limit: 12).async()
+            let results = try await perfumeCatalogRepository.search(query: requestQuery, limit: 12).async()
             guard !Task.isCancelled, activeSearchQuery == query, selectedPerfume == nil else { return }
             searchResults = results
         } catch {
             guard !Task.isCancelled, activeSearchQuery == query else { return }
-            errorMessage = AppStrings.ViewModelMessages.TastingNoteForm.serverError(
-                (error as NSError).code,
-                error.localizedDescription
-            )
+            searchResults = []
         }
 
         guard activeSearchQuery == query else { return }

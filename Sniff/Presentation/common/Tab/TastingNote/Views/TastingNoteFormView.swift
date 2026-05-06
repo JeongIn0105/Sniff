@@ -208,10 +208,6 @@ struct TastingNoteFormView: View {
                 }
 
                 Spacer(minLength: 8)
-
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(isSelected ? .black : Color(.systemGray3))
             }
             .padding(.horizontal, 14)
             .frame(height: 58)
@@ -564,10 +560,10 @@ struct TastingNoteFormView: View {
                 // 초기화 버튼
                 Button { vm.reset() } label: {
                     Text(AppStrings.TastingNoteFormUI.reset)
-                        .font(.custom("Pretendard", size: 16).weight(.semibold))
+                        .font(.custom("Pretendard", size: 15).weight(.semibold))
                         .foregroundColor(.primary)
                         .frame(width: 108)
-                        .frame(height: 52)
+                        .frame(height: 48)
                         .background(Color(.systemGray6))
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
@@ -579,12 +575,12 @@ struct TastingNoteFormView: View {
                             ProgressView().tint(.white)
                         } else {
                             Text(vm.saveButtonTitle)
-                                .font(.custom("Pretendard", size: 16).weight(.semibold))
+                                .font(.custom("Pretendard", size: 15).weight(.semibold))
                                 .foregroundColor(.white)
                         }
                     }
                     .frame(maxWidth: .infinity)
-                    .frame(height: 52)
+                    .frame(height: 48)
                     .background(vm.canSave ? Color.black : Color(.systemGray4))
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
@@ -592,15 +588,10 @@ struct TastingNoteFormView: View {
             }
         }
         .padding(.horizontal, 20)
-        .padding(.top, 10)
-        .padding(.bottom, 18)
+        .padding(.top, 5)
+        .padding(.bottom, 17)
         .background(
             Color(.systemBackground)
-                .overlay(alignment: .top) {
-                    Rectangle()
-                        .fill(Color(.systemGray5))
-                        .frame(height: 0.5)
-                }
                 .ignoresSafeArea(edges: .bottom)
         )
     }

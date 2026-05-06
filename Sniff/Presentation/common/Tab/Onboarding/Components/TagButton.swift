@@ -17,22 +17,6 @@ struct TagButton: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(isSelected ? Color.black : Color(hex: "#F1E8DF"))
-                        .frame(width: 30, height: 30)
-
-                    if let selectionOrder {
-                        Text("\(selectionOrder)")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundStyle(.white)
-                    } else {
-                        Image(systemName: isSelected ? "checkmark" : "plus")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundStyle(isSelected ? .white : Color(hex: "#8A6F55"))
-                    }
-                }
-
                 Text(title)
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(
