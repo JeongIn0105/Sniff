@@ -1,5 +1,4 @@
 # 킁킁 (Sniff)
-
 <p align="center">
   <img src="https://github.com/user-attachments/assets/8c450aac-25a7-4e7a-9541-3ed50b6eba4c" alt="Sniff Cover" width="1000" />
 </p>
@@ -174,7 +173,7 @@ Sniff
 
 ## 향후 개선 계획
 
-- 다른 사용자 리뷰 기능 추가
+- 다른 사용자 시향 리뷰 기능 추가로 향수 정보 확장
 - 향수 구매 링크 연결로 추천에서 구매까지 흐름 완성
 - 커뮤니티 기능 도입으로 취향이 비슷한 사용자 간 향수 공유
 - 향수 추천 히스토리 제공
